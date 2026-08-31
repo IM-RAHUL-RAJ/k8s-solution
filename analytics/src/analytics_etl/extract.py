@@ -1,4 +1,4 @@
-#EXTRACT PIPELINE
+# EXTRACT PIPELINE
 from __future__ import annotations
 
 from .cache import RawResponseCache

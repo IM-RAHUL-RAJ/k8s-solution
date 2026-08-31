@@ -26,4 +26,4 @@ __pycache__/
 data/
 
 #Analytics egg info
-/analytics/src/sprint_04_analytics_etl.egg-info/
+sprint_04_analytics_etl.egg-info/

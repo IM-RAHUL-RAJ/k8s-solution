@@ -1,8 +1,0 @@
-duckdb
-requests
-pandas
-plotly
-python-dotenv
-
-[dev]
-pytest
