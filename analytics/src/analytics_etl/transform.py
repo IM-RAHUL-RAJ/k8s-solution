@@ -437,10 +437,5 @@ def transform_candles(
 
 
 def transform(raw_data: dict) -> dict:
-    """
-    Main transform entry point.
-
-    This is the callable imported by the ETL pipeline.
-    """
 
     return transform_candles(raw_data)
