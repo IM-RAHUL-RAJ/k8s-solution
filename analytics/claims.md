@@ -6,7 +6,7 @@
 During the observation period, **Apple Inc. (AAPL) generated the highest total return among the analysed companies while maintaining moderate daily volatility compared with Infosys Limited and Reliance Industries Limited.**
 
 ### Chart Artefact
-`risk_return.html`
+![Risk vs Return](src/analytics_etl/analysis/charts/risk_return.png)
 
 ### Business Question
 Which company generated the highest return, and was that return achieved with high or low risk?
@@ -60,7 +60,7 @@ The chart shows whether higher returns were achieved with relatively stable or v
 
 ### Screenshot
 
-![Risk vs Return Chart](risk_return.png)
+![Risk vs Return](src/analytics_etl/analysis/charts/risk_return.png)
 
 
 ---
@@ -110,7 +110,7 @@ Higher values indicate stronger market participation and increased buying and se
 
 ### Screenshot
 
-![Trading Volume Chart](volume_by_date.png)
+![Trading Volume Chart](src/analytics_etl/analysis/charts/volume_by_date.png)
 
 
 ---
@@ -157,7 +157,7 @@ The chart highlights which company experienced the largest temporary loss from i
 
 ### Screenshot
 
-![Maximum Drawdown Chart](drawdown.png)
+![Maximum Drowdown Chart](src/analytics_etl/analysis/charts/drawdown.png)
 
 
 ---
