@@ -49,7 +49,7 @@ def run_analysis():
         str(ANALYSIS_DIR / "risk_return.html"),
     )
 
-    print("✓ risk_return.html created")
+    print("risk_return.html created")
 
     # CLAIM 2: TRADING VOLUME
     volume = calculate_trading_volume(df)
@@ -62,7 +62,7 @@ def run_analysis():
         str(ANALYSIS_DIR / "volume_by_date.html"),
     )
 
-    print("✓ volume_by_date.html created")
+    print("volume_by_date.html created")
 
     # CLAIM 3: MAXIMUM DRAWDOWN
     drawdown = calculate_max_drawdown(df)
@@ -76,7 +76,7 @@ def run_analysis():
         str(ANALYSIS_DIR / "drawdown.html"),
     )
 
-    print("✓ drawdown.html created")
+    print("drawdown.html created")
 
     print("\n" + "=" * 40)
     print("ALL ANALYSIS COMPLETED")

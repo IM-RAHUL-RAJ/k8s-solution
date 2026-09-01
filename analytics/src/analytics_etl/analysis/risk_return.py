@@ -66,9 +66,6 @@ def calculate_risk_return(
 def plot_risk_return(
     result: pd.DataFrame,
 ):
-    """
-    Create an offline Risk vs Return scatter plot.
-    """
 
     fig = px.scatter(
         result,
@@ -120,12 +117,6 @@ def save_risk_return_chart(
     result: pd.DataFrame,
     output_path: str = "risk_return.png",
 ) -> None:
-    """
-    Save the chart as a self-contained HTML file.
-
-    The Plotly JavaScript is embedded so the chart
-    works without Internet access.
-    """
 
     fig = plot_risk_return(result)
 

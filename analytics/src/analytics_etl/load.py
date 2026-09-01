@@ -93,7 +93,7 @@ def create_schema(connection):
 
     connection.execute(schema_sql)
 
-    print("✓ Schema created")
+    print("Schema created")
 
 
 
@@ -158,7 +158,7 @@ def load_dim_date(connection):
 
         current += timedelta(days=1)
 
-    print(f"✓ DIM_DATE loaded: {rows} rows")
+    print(f"DIM_DATE loaded: {rows} rows")
 
 # Load DIM INSTRUMENT
 def load_dim_instrument(connection, transformed_data):
@@ -223,7 +223,7 @@ def load_dim_instrument(connection, transformed_data):
         ],
     )
 
-    print(f"✓ DIM_INSTRUMENT loaded: {symbol}")
+    print(f"DIM_INSTRUMENT loaded: {symbol}")
 
     return instrument_key
 
@@ -289,7 +289,7 @@ def load_fact_candles(connection, transformed_data):
         if inserted:
             rows += 1
 
-    print(f"✓ FACT_CANDLES inserted: {rows} rows")
+    print(f"FACT_CANDLES inserted: {rows} rows")
 
     return rows
 
@@ -366,7 +366,7 @@ def load(transformed_data):
 
         display_loaded_tables(connection)
 
-        print("\n✓ LOAD COMPLETED SUCCESSFULLY")
+        print("\nLOAD COMPLETED SUCCESSFULLY")
 
         return rows_loaded
 
