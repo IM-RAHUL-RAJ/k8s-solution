@@ -1,8 +1,11 @@
 package com.capstone.etp.entity;
 
+import com.capstone.etp.enums.OrderSide;
+import com.capstone.etp.enums.OrderStatus;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -19,8 +22,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class OrderTest {
 
     private Order newOrder() {
-        return new Order(null, 1L, 10L, "IDEMPOTENCY-KEY-01",
-                OrderSide.BUY, 10, new BigDecimal("25.00"));
+        return new Order(
+                null,
+                null,
+                null,
+                "IDEMPOTENCY-KEY-01",
+                OrderSide.BUY,
+                10,
+                new BigDecimal("25.00"),
+                OrderStatus.NEW,
+                LocalDateTime.now(),
+                null
+        );
     }
 
     @Test

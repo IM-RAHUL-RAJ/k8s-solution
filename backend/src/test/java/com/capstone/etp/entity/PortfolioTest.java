@@ -1,8 +1,11 @@
 package com.capstone.etp.entity;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -15,16 +18,28 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class PortfolioTest {
 
+    Portfolio portfolio;
+
+    @BeforeEach
+    void createPortfolio() {
+        portfolio = Portfolio.builder()
+                .id(1L)
+                .name("Growth Portfolio")
+                .currentValue(new BigDecimal("0.00"))
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .holdings(List.of())
+                .build();
+    }
+
     @Test
     void createPortfolioReturnsGeneratedId() {
-        Portfolio portfolio = new Portfolio(null, 1L, "Growth Portfolio");
         Long id = portfolio.createPortfolio();
         assertNotNull(id);
     }
 
     @Test
     void editPortfolioUpdatesNameAndReturnsTrue() {
-        Portfolio portfolio = new Portfolio(1L, 1L, "Growth Portfolio");
         boolean edited = portfolio.editPortfolio("Balanced Portfolio");
         assertTrue(edited);
         assertEquals("Balanced Portfolio", portfolio.getName());
@@ -32,9 +47,30 @@ class PortfolioTest {
 
     @Test
     void recalculateValueSumsHoldings() {
-        Portfolio portfolio = new Portfolio(1L, 1L, "Growth Portfolio");
-        PortfolioHolding holding1 = new PortfolioHolding(1L, 1L, 10L, 10, new BigDecimal("25.00"));
-        PortfolioHolding holding2 = new PortfolioHolding(2L, 1L, 20L, 5, new BigDecimal("100.00"));
+        Instrument instrument1 = Instrument.builder()
+                .id(10L)
+                .build();
+
+        Instrument instrument2 = Instrument.builder()
+                .id(20L)
+                .build();
+
+        PortfolioHolding holding1 = PortfolioHolding.builder()
+                .id(1L)
+                .portfolio(portfolio)
+                .instrument(instrument1)
+                .quantity(10)
+                .avgPrice(new BigDecimal("25.00"))
+                .build();
+
+        PortfolioHolding holding2 = PortfolioHolding.builder()
+                .id(2L)
+                .portfolio(portfolio)
+                .instrument(instrument2)
+                .quantity(5)
+                .avgPrice(new BigDecimal("100.00"))
+                .build();
+
         portfolio.setHoldings(java.util.List.of(holding1, holding2));
 
         portfolio.recalculateValue();
@@ -45,7 +81,6 @@ class PortfolioTest {
 
     @Test
     void recalculateValueIsZeroWithNoHoldings() {
-        Portfolio portfolio = new Portfolio(1L, 1L, "Empty Portfolio");
         portfolio.setHoldings(java.util.List.of());
         portfolio.recalculateValue();
         assertEquals(new BigDecimal("0.00"), portfolio.getCurrentValue());

@@ -1,6 +1,7 @@
 package com.capstone.etp.entity;
 
 import org.junit.jupiter.api.Test;
+import com.capstone.etp.enums.*;
 
 import java.math.BigDecimal;
 
@@ -19,8 +20,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class AccountTest {
 
     private Account activeAccount(BigDecimal balance) {
-        return new Account(1L, "ACC-REF-1", 100L, AccountType.INDIAN_EQUITY,
-                "INR", balance, AccountStatus.ACTIVE, 0L);
+        return Account.builder()
+                .accountRef("ACC-REF-1")
+                .accountType(AccountType.INDIAN_EQUITY)
+                .currency("INR")
+                .cashBalance(balance)
+                .status(AccountStatus.ACTIVE)
+                .version(0L)
+                .build();
     }
 
     @Test
