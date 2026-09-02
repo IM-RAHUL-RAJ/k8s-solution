@@ -245,24 +245,24 @@ RUNNING EXPLAIN ANALYZE ON QUERIES BEFORE AND AFTER INDEXING
 
 ### Query 1 — Execution Plan Before Indexing
 
-![Query 1 - Before Indexing](images/q_1_without_index.PNG)
+![Query 1 - Before Indexing](images/q_1_without_index.png)
 
 ### Query 1 — Execution Plan After Indexing
 
-![Query 1 - After Indexing](images/q_1_with_index.PNG)
+![Query 1 - After Indexing](images/q_1_with_index.png)
 
 ### Query 2 — Execution Plan Before Indexing
 
-![Query 2 - Before Indexing](images/q_2_without_index.PNG)
+![Query 2 - Before Indexing](images/q_2_without_index.png)
 
 ### Query 2 — Execution Plan After Indexing
 
-![Query 2 - After Indexing](images/q_2_with_index.PNG)
+![Query 2 - After Indexing](images/q_2_with_index.png)
 
 ### Query 4 — Execution Plan Before Indexing
 
-![Query 4 - Before Indexing](images/q_4_without_index.PNG)
+![Query 4 - Before Indexing](images/q_4_without_index.png)
 
 ### Query 4 — Execution Plan After Indexing
 
-![Query 4 - After Indexing](images/q_4_without_index.PNG)
+![Query 4 - After Indexing](images/q_4_without_index.png)
