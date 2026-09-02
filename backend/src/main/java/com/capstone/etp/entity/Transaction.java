@@ -37,7 +37,9 @@ public class Transaction {
         return status;
     }
 
-//    public List<Transaction> getHistory(){
-//        return
-//    }
+    public List<Transaction> getHistory(List<Transaction> transactions) {
+        return transactions.stream()
+                .filter(t -> t.getOrder().getId().equals(this.order.getId()))
+                .toList();
+    }
 }

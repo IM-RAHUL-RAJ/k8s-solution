@@ -7,6 +7,7 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 
 @Entity
@@ -73,7 +74,10 @@ public class Order {
         return true;
     }
 
-    public Long submit(){
+    public Long submit() {
+        if (this.id == null) {
+            this.id = Math.abs(UUID.randomUUID().getMostSignificantBits());
+        }
         return this.id;
     }
 
