@@ -25,14 +25,12 @@
     </properties>
 
     <dependencies>
-        <!-- The one and only non-test dependency allowed -->
         <dependency>
             <groupId>jakarta.validation</groupId>
             <artifactId>jakarta.validation-api</artifactId>
             <version>3.1.0</version>
         </dependency>
 
-        <!-- Test scope only -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
@@ -40,8 +38,6 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Bean Validation *implementation*, permitted in test scope only,
-             so PlaceOrderRequestValidationTest can run a real Validator. -->
         <dependency>
             <groupId>org.hibernate.validator</groupId>
             <artifactId>hibernate-validator</artifactId>
@@ -103,11 +99,6 @@
                                         <exclude>com.mchange:c3p0</exclude>
                                     </excludes>
                                     <searchTransitive>true</searchTransitive>
-                                    <message>
-                                        Domain module may only depend on jakarta.validation-api (plus test scope).
-                                        Spring, servlet APIs, JDBC drivers, MyBatis, and connection pools belong
-                                        in an infrastructure module, not here.
-                                    </message>
                                 </bannedDependencies>
                             </rules>
                             <fail>true</fail>
