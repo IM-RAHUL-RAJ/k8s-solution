@@ -138,9 +138,7 @@ classDiagram
         +execute(Order) : Transaction
     }
 
-    %% =========================
     %% Enums
-    %% =========================
 
     class ClientStatus {
         <<enumeration>>
@@ -192,9 +190,7 @@ classDiagram
         FAILED
     }
 
-    %% =========================
     %% Relationships
-    %% =========================
 
     OrderExecution ..> Order : executes
     OrderValidator ..> Order : validates

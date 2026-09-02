@@ -78,9 +78,8 @@ sequenceDiagram
     Order-->>OrderService: orderId
     OrderService-->>Client: 201 Created - order accepted
 
-    %% ================================================
-    %% Post-acceptance: order moves out of NEW
-    %% ================================================
+    %% After order is validated, it is sent to Executor
+
     participant OrderExecution
     participant Transaction
 
