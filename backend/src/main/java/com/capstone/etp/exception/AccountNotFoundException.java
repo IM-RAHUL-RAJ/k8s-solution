@@ -1,3 +1,4 @@
+package com.capstone.etp.exception;
 public final class AccountNotFoundException extends ETFException{
  
     private final Long accountId;

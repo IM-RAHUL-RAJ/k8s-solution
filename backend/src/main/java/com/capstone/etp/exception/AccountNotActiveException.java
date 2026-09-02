@@ -1,3 +1,4 @@
+package com.capstone.etp.exception;
 public final class AccountNotActiveException extends ETFException {
 
     private final Long accountId;
