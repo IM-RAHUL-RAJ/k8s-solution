@@ -5,8 +5,8 @@ WITH filled_orders AS (
         o.instrument_id,
         o.created_at,
         t.quantity,
-        t.price,
-        (t.quantity * t.price) AS order_value
+        t.executed_price,
+        (t.quantity * t.executed_price) AS order_value
     FROM orders o
     JOIN transactions t
         ON t.order_id = o.id
@@ -20,7 +20,7 @@ SELECT
     instrument_id,
     created_at,
     quantity,
-    price,
+    executed_price,
     order_value,
 
     -- Running total of cash committed over time
