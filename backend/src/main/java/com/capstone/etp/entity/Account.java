@@ -66,21 +66,19 @@ public class Account {
         return cashBalance.compareTo(amount)>=0;
     }
 
-    public void debit(BigDecimal amount){
-        if(!canAfford(amount)){
-            throw new RuntimeException(
-                    "Insufficient Funds"
-            );
-        }
-        cashBalance =
-                cashBalance.subtract(amount);
-    }
-
-
-    public void credit(BigDecimal amount){
+    public String deposit(BigDecimal amount) {
         cashBalance = cashBalance.add(amount);
+        return this.id.toString();
     }
 
+    public String withdraw(BigDecimal amount) {
+        if (!canAfford(amount)) {
+            throw new IllegalStateException("Insufficient Funds");
+        }
+
+        cashBalance = cashBalance.subtract(amount);
+        return this.id.toString();
+    }
 
     public void suspend(){
         if (this.status == AccountStatus.CLOSED) {
@@ -101,5 +99,9 @@ public class Account {
     public void close(){
         this.status = AccountStatus.CLOSED;
         this.closedAt = LocalDateTime.now();
+    }
+
+    public boolean isActive() {
+        return status == AccountStatus.ACTIVE;
     }
 }
