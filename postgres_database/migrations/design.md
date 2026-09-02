@@ -265,4 +265,4 @@ RUNNING EXPLAIN ANALYZE ON QUERIES BEFORE AND AFTER INDEXING
 
 ### Query 4 — Execution Plan After Indexing
 
-![Query 4 - After Indexing](images/q_4_without_index.png)
+![Query 4 - After Indexing](images/q_4_with_index.png)
