@@ -124,6 +124,7 @@ CREATE TABLE accounts (
     created_at      TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     suspended_at    TIMESTAMPTZ,
     closed_at       TIMESTAMPTZ,
+    updated_at       TIMESTAMPTZ,
 
     CONSTRAINT ck_accounts_account_ref
         CHECK (account_ref ~ '^ACC[0-9]{7}$'),
@@ -285,7 +286,7 @@ CREATE TABLE orders (
     idempotency_key     TEXT NOT NULL UNIQUE,
     order_type          order_type_enum NOT NULL,
     quantity            INTEGER NOT NULL,
-    price               NUMERIC(10,2),
+    limit_price               NUMERIC(10,2),
     status              order_status_enum NOT NULL DEFAULT 'NEW',
     created_at          TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     terminal_at         TIMESTAMPTZ,
@@ -296,8 +297,8 @@ CREATE TABLE orders (
 
     CONSTRAINT ck_orders_price
         CHECK(
-            price IS NULL
-            OR price > 0
+            limit_price IS NULL
+            OR limit_price > 0
         ),
 
 
@@ -326,7 +327,7 @@ CREATE TABLE transactions (
                         REFERENCES orders(id)
                         ON DELETE RESTRICT,
     quantity        INTEGER NOT NULL,
-    price           NUMERIC(10,2) NOT NULL,
+    executed_price           NUMERIC(10,2) NOT NULL,
     status          transaction_status_enum NOT NULL,
     executed_at     TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -336,7 +337,7 @@ CREATE TABLE transactions (
 
 
     CONSTRAINT ck_transactions_price
-        CHECK(price > 0)
+        CHECK(executed_price > 0)
 );
 
 

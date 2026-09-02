@@ -442,7 +442,7 @@ INSERT INTO orders
     idempotency_key,
     order_type,
     quantity,
-    price,
+    limit_price,
     status,
     created_at,
     terminal_at
@@ -467,7 +467,7 @@ INSERT INTO transactions
 (
     order_id,
     quantity,
-    price,
+    executed_price,
     status,
     executed_at
 )
@@ -491,7 +491,7 @@ INSERT INTO orders
     idempotency_key,
     order_type,
     quantity,
-    price,
+    limit_price,
     status,
     created_at
 )
@@ -518,7 +518,7 @@ INSERT INTO orders
     idempotency_key,
     order_type,
     quantity,
-    price,
+    limit_price,
     status,
     created_at,
     terminal_at
@@ -543,7 +543,7 @@ INSERT INTO transactions
 (
     order_id,
     quantity,
-    price,
+    executed_price,
     status,
     executed_at
 )
@@ -567,7 +567,7 @@ INSERT INTO orders
     idempotency_key,
     order_type,
     quantity,
-    price,
+    limit_price,
     status,
     created_at,
     terminal_at
@@ -597,7 +597,7 @@ INSERT INTO orders
     idempotency_key,
     order_type,
     quantity,
-    price,
+    limit_price,
     status,
     created_at,
     terminal_at
@@ -622,7 +622,7 @@ INSERT INTO transactions
 (
     order_id,
     quantity,
-    price,
+    executed_price,
     status,
     executed_at
 )
@@ -646,7 +646,7 @@ INSERT INTO orders
     idempotency_key,
     order_type,
     quantity,
-    price,
+    limit_price,
     status,
     created_at,
     terminal_at
@@ -671,7 +671,7 @@ INSERT INTO transactions
 (
     order_id,
     quantity,
-    price,
+    executed_price,
     status,
     executed_at
 )
@@ -695,7 +695,7 @@ INSERT INTO orders
     idempotency_key,
     order_type,
     quantity,
-    price,
+    limit_price,
     status,
     created_at,
     terminal_at
@@ -720,7 +720,7 @@ INSERT INTO transactions
 (
     order_id,
     quantity,
-    price,
+    executed_price,
     status,
     executed_at
 )
@@ -744,7 +744,7 @@ INSERT INTO orders
     idempotency_key,
     order_type,
     quantity,
-    price,
+    limit_price,
     status,
     created_at
 )
@@ -771,7 +771,7 @@ INSERT INTO orders
     idempotency_key,
     order_type,
     quantity,
-    price,
+    limit_price,
     status,
     created_at,
     terminal_at
@@ -796,7 +796,7 @@ INSERT INTO transactions
 (
     order_id,
     quantity,
-    price,
+    executed_price,
     status,
     executed_at
 )

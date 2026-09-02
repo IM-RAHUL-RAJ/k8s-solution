@@ -3,7 +3,7 @@ SELECT
     i.symbol,
     o.order_type,
     o.quantity,
-    o.price,
+    o.limit_price,
     o.status,
     o.created_at,
     o.terminal_at
