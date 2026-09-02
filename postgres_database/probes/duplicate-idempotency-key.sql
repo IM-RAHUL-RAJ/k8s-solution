@@ -8,7 +8,7 @@ INSERT INTO orders
     idempotency_key,
     order_type,
     quantity,
-    price,
+    limit_price,
     status
 )
 VALUES
@@ -34,7 +34,7 @@ INSERT INTO orders
     idempotency_key,
     order_type,
     quantity,
-    price,
+    limit_price,
     status
 )
 VALUES
