@@ -8,6 +8,7 @@ import javax.swing.text.Position;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 
 @Entity
@@ -68,16 +69,15 @@ public class Account {
 
     public String deposit(BigDecimal amount) {
         cashBalance = cashBalance.add(amount);
-        return this.id.toString();
+        return UUID.randomUUID().toString();
     }
 
     public String withdraw(BigDecimal amount) {
         if (!canAfford(amount)) {
             throw new IllegalStateException("Insufficient Funds");
         }
-
         cashBalance = cashBalance.subtract(amount);
-        return this.id.toString();
+        return UUID.randomUUID().toString();
     }
 
     public void suspend(){
