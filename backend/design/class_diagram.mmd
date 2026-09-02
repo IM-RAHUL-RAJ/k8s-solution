@@ -91,21 +91,6 @@ classDiagram
         +getSymbol() : String
     }
 
-    class Equity {
-        +getCurrency() : String
-        +getAssetClass() : AssetClass
-    }
-
-    class Crypto {
-        +getCurrency() : String
-        +getAssetClass() : AssetClass
-    }
-
-    class Forex {
-        +getCurrency() : String
-        +getAssetClass() : AssetClass
-    }
-
    class OrderService {
     -OrderValidator validator
     -OrderExecutor executor
@@ -215,17 +200,8 @@ classDiagram
     %% Relationships
     %% =========================
 
-    
-
-    Instrument <|-- Equity
-    Instrument <|-- Crypto
-    Instrument <|-- Forex
-
-    OrderExecution <|-- LimitOrderExecution
-
-    OrderExecution --> Order : executes
-    OrderValidator --> Order : validates
-    
+    OrderExecution ..> Order : executes
+    OrderValidator ..> Order : validates
 
     Client "1" *-- "many" Account
     Account "1" *-- "many" AccountPreference
@@ -247,7 +223,3 @@ classDiagram
 
    OrderService --> OrderValidator : uses
    OrderService --> OrderExecution : uses
-
-   OrderValidator --> Account : checks
-    OrderValidator --> Instrument : checks
-    OrderValidator --> PortfolioHolding : checks
