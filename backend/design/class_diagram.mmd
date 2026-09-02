@@ -45,7 +45,7 @@ classDiagram
     class AccountPreference {
         -Long id
         -Long accountId
-        -String riskProfile
+        -RiskProfile riskProfile
         -String investmentGoals
         -String[] preferredSectors
         -DateTime createdAt
@@ -78,6 +78,7 @@ classDiagram
     }
 
     class Instrument {
+        <<abstract>>
         -Long id
         -String symbol
         -String exchange
@@ -137,13 +138,7 @@ classDiagram
         +execute(Order) : Transaction
     }
 
-    class LimitOrderExecution {
-        +execute(Order) : Transaction
-    }
-
-    %% =========================
     %% Enums
-    %% =========================
 
     class ClientStatus {
         <<enumeration>>
@@ -195,9 +190,14 @@ classDiagram
         FAILED
     }
 
-    %% =========================
+    class RiskProfile {
+        <<enumeration>>
+        CONSERVATIVE
+        MODERATE
+        AGGRESSIVE
+    }
+
     %% Relationships
-    %% =========================
 
     OrderExecution ..> Order : executes
     OrderValidator ..> Order : validates
@@ -215,6 +215,7 @@ classDiagram
     Client --> ClientStatus
     Account --> AccountType
     Account --> AccountStatus
+    AccountPreference --> RiskProfile
     Instrument --> AssetClass
     Order --> OrderSide
     Order --> OrderStatus
