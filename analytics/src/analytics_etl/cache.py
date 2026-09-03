@@ -1,20 +1,17 @@
-# Cache the RAW response to disk, keyed by instrument symbol + date range.
-#
-# SUB-RANGE HIT SEMANTICS
+# Caching the RAW response to disk
 # -----------------------
-# If data was fetched for [2026-04-01, 2026-07-11] it is cached as:
+# If data was fetched for example : [2026-04-01, 2026-07-11] it is cached as:
 #
 #   INFY.NS__2026-04-01_2026-07-11.json
 #
-# A later request for [2026-05-01, 2026-06-01] — a sub-range — will:
+# A later request arrived for [2026-05-01, 2026-06-01] (a sub-range)  will:
 #   1. Find the existing file whose range covers [2026-05-01, 2026-06-01].
-#   2. Load it from disk.
-#   3. Filter `data.candles` to only the candles whose date falls inside
+#   2. Load it from cache folder.
+#   3. Filter data.candles to only the candles whose date falls inside
 #      [2026-05-01, 2026-06-01].
-#   4. Return the filtered response dict (same shape as the API response).
+#   4. Return the filtered response dict
 #
-# This means the API is never hit again for data already on disk, even
-# when a narrower window is requested.
+#So API is never hit
 
 from __future__ import annotations
 

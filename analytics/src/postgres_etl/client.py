@@ -1,3 +1,5 @@
+
+
 from __future__ import annotations
 
 import logging
@@ -14,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 _EXTRACT_SQL = """
 SELECT
-    o.order_id                  AS order_id,
+    o.id                        AS order_id,
     o.idempotency_key           AS source_order_id,
     o.order_type                AS side,
     o.quantity                  AS quantity,
@@ -28,17 +30,17 @@ SELECT
     t.executed_at               AS executed_at,
 
     -- Instrument
-    i.instrument_id             AS instrument_id,
-    i.instrument_ticker         AS symbol,
+    i.id                        AS instrument_id,
+    i.symbol                    AS symbol,
     i.name                      AS instrument_name,
     i.asset_class               AS asset_class,
-    'USD'                       AS currency,
-    'EXCHANGE'                  AS exchange,
-    (i.trading_status = 'TRADING') AS tradable,
+    i.currency                  AS currency,
+    i.exchange                  AS exchange,
+    i.is_tradable               AS tradable,
 
     -- Account
-    a.account_id                AS account_id,
-    a.account_id                AS account_ref,
+    a.id                        AS account_id,
+    a.account_ref               AS account_ref,
     a.status                    AS account_status,
     a.created_at                AS account_created_at,
 
@@ -46,19 +48,18 @@ SELECT
     c.name                      AS holder_name
 
 FROM orders o
-JOIN instruments i  ON i.instrument_id = o.instrument_id
-JOIN accounts    a  ON a.account_id = o.account_id
-JOIN clients     c  ON c.client_id = a.client_id
-LEFT JOIN transactions t ON t.order_id = o.order_id
+JOIN instruments i  ON i.id = o.instrument_id
+JOIN accounts    a  ON a.id = o.account_id
+JOIN clients     c  ON c.id = a.client_id
+LEFT JOIN transactions t ON t.order_id = o.id
 
 WHERE o.created_at >= %(watermark)s
- 
+
 ORDER BY o.created_at ASC
 """
 
 
 class PostgresClient:
-
     def __init__(self, dsn: str | None = None):
         dsn = dsn or get_postgres_dsn()
         try:
@@ -72,6 +73,7 @@ class PostgresClient:
             raise PostgresConnectionError(str(exc)) from exc
 
     def health(self) -> bool:
+        """Return True if the Postgres connection is alive."""
         try:
             with self._conn.cursor() as cur:
                 cur.execute("SELECT 1")
@@ -102,8 +104,9 @@ class PostgresClient:
         except Exception:
             pass
 
+    # Context manager support
     def __enter__(self) -> PostgresClient:
         return self
 
     def __exit__(self, *args: object) -> None:
-        self.close()
+        self.close
