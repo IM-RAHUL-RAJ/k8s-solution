@@ -13,7 +13,8 @@ dependencies = [
     "requests",
     "pandas",
     "plotly",
-    "python-dotenv"
+    "python-dotenv",
+    "psycopg2-binary"
 ]
 
 [project.optional-dependencies]
@@ -26,3 +27,4 @@ where = ["src"]
 
 [project.scripts]
 fauxnance-pipeline = "analytics_etl.pipeline:main"
+postgres-pipeline = "postgres_etl.pipeline:main"

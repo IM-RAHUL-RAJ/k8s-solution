@@ -1,15 +1,7 @@
 import pandas as pd
 import plotly.express as px
 
-
-COMPANY_NAMES = {
-    "AAPL": "Apple Inc. (AAPL)",
-    "INFY.NS": "Infosys Limited (INFY.NS)",
-    "RELIANCE.NS": "Reliance Industries Limited (RELIANCE.NS)",
-    "HCLTECH.BO" : "Hindustan Computers Limited (HCLTECH.BO)",
-    "X:BTC-USD" : "BITCOIN USD",
-    "FX:EURUSD" : " FOREX EURO -> USD"
-}
+from analytics_etl.config import COMPANY_NAMES
 
 
 def calculate_trading_volume(
