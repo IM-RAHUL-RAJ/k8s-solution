@@ -43,15 +43,12 @@ def test_subrange_cache_hit(tmp_path):
         }
     }
 
-    # Cache the broad range
     cache.set(symbol, from_date, to_date, full_payload)
 
-    # Query for exact range -> hits exact
     exact_hit = cache.get(symbol, from_date, to_date)
     assert exact_hit is not None
     assert len(exact_hit["data"]["candles"]) == 4
 
-    # Query for subrange [2026-05-01, 2026-06-01] -> hits subrange
     sub_hit = cache.get(symbol, "2026-05-01", "2026-06-01")
     assert sub_hit is not None
     candles = sub_hit["data"]["candles"]
@@ -59,11 +56,9 @@ def test_subrange_cache_hit(tmp_path):
     assert candles[0]["date"] == "2026-05-01"
     assert candles[1]["date"] == "2026-06-01"
 
-    # Query for out-of-range -> returns None
     miss = cache.get(symbol, "2026-01-01", "2026-04-09")
     assert miss is None
 
-    # Query for partially overlapping (not fully covered) -> returns None
     partial_miss = cache.get(symbol, "2026-03-01", "2026-05-01")
     assert partial_miss is None
 

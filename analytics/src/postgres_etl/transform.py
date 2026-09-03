@@ -1,10 +1,3 @@
-# TRANSFORM step for the Postgres ETL pipeline.
-#
-# Validates raw rows from Postgres and shapes them for DuckDB load.
-# Bad rows are quarantined (not raised) so the rest of the batch continues.
-#
-# Mirrors the structure of analytics_etl/transform.py.
-
 from __future__ import annotations
 
 import logging
@@ -17,10 +10,6 @@ logger = logging.getLogger(__name__)
 VALID_SIDES    = {"BUY", "SELL"}
 VALID_STATUSES = {"NEW", "OPEN", "RECEIVED", "FILLED", "CANCELLED", "REJECTED"}
 
-
-# ---------------------------------------------------------------------------
-# Field validators
-# ---------------------------------------------------------------------------
 
 def _require_str(value: Any, field: str) -> str:
     if not isinstance(value, str) or not value.strip():
@@ -65,21 +54,11 @@ def _require_datetime(value: Any, field: str) -> datetime:
 
 
 def _date_key(dt: datetime) -> int:
-    """Convert a datetime to an integer YYYYMMDD date key."""
     return int(dt.strftime("%Y%m%d"))
 
 
-# ---------------------------------------------------------------------------
-# Single-row transform
-# ---------------------------------------------------------------------------
 
 def transform_row(row: dict[str, Any]) -> dict[str, Any]:
-    """
-    Validate and reshape one raw Postgres row into a clean dict ready for load.
-
-    Raises ValueError on any validation failure — the caller quarantines the row.
-    """
-    # --- Core order fields ---
     source_order_id = _require_str(row.get("source_order_id"), "source_order_id")
     side = _require_str(row.get("side"), "side").upper()
     if side not in VALID_SIDES:
@@ -96,25 +75,21 @@ def transform_row(row: dict[str, Any]) -> dict[str, Any]:
     price = _require_positive_decimal(row.get("price"), "price")
     executed_price = _optional_decimal(row.get("executed_price"), "executed_price")
 
-    # trade_value: use executed_price when filled, otherwise requested price
     effective_price = executed_price if executed_price is not None else price
     trade_value = Decimal(quantity) * effective_price
 
     created_at = _require_datetime(row.get("created_at"), "created_at")
     date_key_val = _date_key(created_at)
 
-    # --- Instrument fields ---
     symbol      = _require_str(row.get("symbol"), "symbol")
     instrument_id = _require_int(row.get("instrument_id"), "instrument_id")
 
-    # --- Account fields ---
     account_id  = _require_str(str(row.get("account_id")), "account_id")
     account_ref = _require_str(row.get("account_ref"), "account_ref")
     holder_name = _require_str(row.get("holder_name"), "holder_name")
     account_status = _require_str(row.get("account_status"), "account_status")
 
     return {
-        # fact_trades columns
         "source_order_id": source_order_id,
         "side":            side,
         "status":          status,
@@ -125,7 +100,6 @@ def transform_row(row: dict[str, Any]) -> dict[str, Any]:
         "created_at":      created_at,
         "date_key":        date_key_val,
 
-        # instrument (for dim_instrument lookup/upsert)
         "instrument_id":   instrument_id,
         "symbol":          symbol,
         "instrument_name": row.get("instrument_name"),
@@ -134,7 +108,6 @@ def transform_row(row: dict[str, Any]) -> dict[str, Any]:
         "exchange":        row.get("exchange"),
         "tradable":        row.get("tradable"),
 
-        # account (for dim_account lookup/upsert)
         "account_id":      account_id,
         "account_ref":     account_ref,
         "holder_name":     holder_name,
@@ -143,20 +116,8 @@ def transform_row(row: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-# ---------------------------------------------------------------------------
-# Batch transform
-# ---------------------------------------------------------------------------
 
 def transform(raw_rows: list[dict[str, Any]]) -> dict[str, Any]:
-    """
-    Transform a list of raw Postgres rows.
-
-    Returns:
-        {
-            "clean":      [list of validated, shaped dicts],
-            "quarantine": [list of {"row": ..., "reason": ...} dicts],
-        }
-    """
     clean     : list[dict] = []
     quarantine: list[dict] = []
 

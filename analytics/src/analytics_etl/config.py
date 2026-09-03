@@ -1,11 +1,4 @@
-# ---------------------------------------------------------------------------
-# SYMBOL_UNIVERSE
-# Keys   : Fauxnance API symbol strings used as pipeline inputs.
-# Values : Human-readable display names used in charts and dashboards.
-#
-# This is the single source of truth for instrument names.
-# Do NOT add a local COMPANY_NAMES dict in any analysis module — import this.
-# ---------------------------------------------------------------------------
+#SYMBOL UNIVERSE
 SYMBOL_UNIVERSE: dict[str, str] = {
     "INFY.NS":     "Infosys Limited (INFY.NS)",
     "RELIANCE.NS": "Reliance Industries Limited (RELIANCE.NS)",

@@ -1,8 +1,3 @@
-# Postgres HTTP/DB client — connects to Postgres and extracts trade data.
-#
-# This is the Postgres equivalent of analytics_etl/client.py (FauxnanceClient).
-# It wraps psycopg2 and exposes one extraction method: get_orders_since().
-
 from __future__ import annotations
 
 import logging
@@ -17,9 +12,6 @@ from .errors import PostgresConnectionError, PostgresExtractError
 
 logger = logging.getLogger(__name__)
 
-# SQL: extract orders + transactions + instruments + accounts in one query.
-# We pull ALL order statuses (NEW, FILLED, CANCELLED, REJECTED) so that
-# fill-rate analytics can be computed against the full population.
 _EXTRACT_SQL = """
 SELECT
     o.order_id                  AS order_id,
@@ -66,18 +58,6 @@ ORDER BY o.created_at ASC
 
 
 class PostgresClient:
-    """
-    Thin wrapper around psycopg2 for extracting trade data.
-
-    Usage:
-        client = PostgresClient()
-        rows = client.get_orders_since(datetime(2026, 1, 1, tzinfo=timezone.utc))
-        client.close()
-
-    Or as a context manager:
-        with PostgresClient() as client:
-            rows = client.get_orders_since(watermark)
-    """
 
     def __init__(self, dsn: str | None = None):
         dsn = dsn or get_postgres_dsn()
@@ -92,7 +72,6 @@ class PostgresClient:
             raise PostgresConnectionError(str(exc)) from exc
 
     def health(self) -> bool:
-        """Return True if the Postgres connection is alive."""
         try:
             with self._conn.cursor() as cur:
                 cur.execute("SELECT 1")
@@ -101,13 +80,6 @@ class PostgresClient:
             return False
 
     def get_orders_since(self, watermark: datetime) -> list[dict[str, Any]]:
-        """
-        Return all orders created at or after `watermark`.
-
-        Each row is a dict with keys matching the _EXTRACT_SQL column aliases.
-        Rows are ordered by created_at ASC so the pipeline processes them
-        in chronological order.
-        """
         if watermark.tzinfo is None:
             watermark = watermark.replace(tzinfo=timezone.utc)
 
@@ -130,7 +102,6 @@ class PostgresClient:
         except Exception:
             pass
 
-    # Context manager support
     def __enter__(self) -> PostgresClient:
         return self
 

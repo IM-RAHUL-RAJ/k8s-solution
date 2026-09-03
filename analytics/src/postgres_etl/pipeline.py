@@ -16,32 +16,9 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-# ---------------------------------------------------------------------------
 # MAIN PIPELINE
-# ---------------------------------------------------------------------------
-
 
 def run_pipeline(watermark=None):
-    """
-    Run the Postgres → DuckDB ETL pipeline.
-
-    Steps
-    -----
-    1. Determine watermark (MAX created_at already in trades.duckdb, or 90 d ago).
-    2. EXTRACT: pull all orders since watermark from Postgres.
-    3. TRANSFORM: validate and shape rows; quarantine bad ones.
-    4. LOAD: upsert dimensions and insert fact_trades into trades.duckdb.
-
-    Parameters
-    ----------
-    watermark : datetime | None
-        Override the automatic watermark. Useful for backfills.
-
-    Returns
-    -------
-    int
-        Number of new fact_trades rows inserted.
-    """
     logger.info("=" * 60)
     logger.info("STARTING POSTGRES ETL PIPELINE")
     logger.info("=" * 60)

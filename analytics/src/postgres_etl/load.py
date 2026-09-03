@@ -1,15 +1,3 @@
-# LOAD step for the Postgres ETL pipeline.
-#
-# Writes clean transformed rows into trades.duckdb.
-# This file NEVER touches analytics.duckdb.
-#
-# Load order (required by foreign key constraints):
-#   1. Schema creation (idempotent IF NOT EXISTS)
-#   2. dim_date      — populate the full year if rows are missing
-#   3. dim_instrument — Type 1 upsert (overwrite on symbol)
-#   4. dim_account   — Type 2 upsert (new version row on status change)
-#   5. fact_trades   — insert with ON CONFLICT DO NOTHING on source_order_id
-
 from __future__ import annotations
 
 import logging
@@ -29,10 +17,6 @@ BASE_DIR    = Path(__file__).resolve().parent
 SCHEMA_FILE = BASE_DIR / "contracts" / "trades-schema.sql"
 
 
-# ---------------------------------------------------------------------------
-# Schema
-# ---------------------------------------------------------------------------
-
 def _create_schema(conn: duckdb.DuckDBPyConnection) -> None:
     if not SCHEMA_FILE.exists():
         raise LoadError(f"Schema file not found: {SCHEMA_FILE}")
@@ -41,12 +25,8 @@ def _create_schema(conn: duckdb.DuckDBPyConnection) -> None:
     logger.info("Schema created / verified")
 
 
-# ---------------------------------------------------------------------------
-# DIM_DATE
-# ---------------------------------------------------------------------------
 
 def _load_dim_date(conn: duckdb.DuckDBPyConnection, year: int) -> int:
-    """Populate dim_date for the given year if rows are not already present."""
     start = date(year, 1, 1)
     end   = date(year, 12, 31)
     current = start
@@ -84,15 +64,7 @@ def _load_dim_date(conn: duckdb.DuckDBPyConnection, year: int) -> int:
     return rows
 
 
-# ---------------------------------------------------------------------------
-# DIM_INSTRUMENT (Type 1 — overwrite on symbol)
-# ---------------------------------------------------------------------------
-
 def _upsert_instrument(conn: duckdb.DuckDBPyConnection, row: dict) -> int:
-    """
-    Return the instrument_key for the given symbol, creating or updating
-    the dim_instrument row as needed.
-    """
     existing = conn.execute(
         "SELECT instrument_key FROM dim_instrument WHERE symbol = ?",
         [row["symbol"]],
@@ -122,7 +94,6 @@ def _upsert_instrument(conn: duckdb.DuckDBPyConnection, row: dict) -> int:
         )
         return existing[0]
 
-    # New instrument
     key = (
         conn.execute(
             "SELECT COALESCE(MAX(instrument_key), 0) + 1 FROM dim_instrument"
@@ -148,17 +119,8 @@ def _upsert_instrument(conn: duckdb.DuckDBPyConnection, row: dict) -> int:
     return key
 
 
-# ---------------------------------------------------------------------------
-# DIM_ACCOUNT (Type 2 — new version row on status change)
-# ---------------------------------------------------------------------------
 
 def _upsert_account(conn: duckdb.DuckDBPyConnection, row: dict) -> int:
-    """
-    Return the account_key for the current version of this account.
-
-    If the account status has changed since the last load, closes the old
-    version (sets end_date, is_current=FALSE) and inserts a new version.
-    """
     current_version = conn.execute(
         """
         SELECT account_key, status
@@ -174,9 +136,8 @@ def _upsert_account(conn: duckdb.DuckDBPyConnection, row: dict) -> int:
     if current_version:
         existing_key, existing_status = current_version
         if existing_status == row["account_status"]:
-            return existing_key  # No change — reuse existing version
+            return existing_key 
 
-        # Status changed: close the old version
         conn.execute(
             """
             UPDATE dim_account
@@ -187,7 +148,6 @@ def _upsert_account(conn: duckdb.DuckDBPyConnection, row: dict) -> int:
             [today - timedelta(days=1), existing_key],
         )
 
-    # Insert new version
     new_key = (
         conn.execute(
             "SELECT COALESCE(MAX(account_key), 0) + 1 FROM dim_account"
@@ -216,21 +176,12 @@ def _upsert_account(conn: duckdb.DuckDBPyConnection, row: dict) -> int:
     return new_key
 
 
-# ---------------------------------------------------------------------------
-# FACT_TRADES
-# ---------------------------------------------------------------------------
-
 def _insert_trade(
     conn: duckdb.DuckDBPyConnection,
     row: dict,
     account_key: int,
     instrument_key: int,
 ) -> bool:
-    """
-    Insert one row into fact_trades.
-    Returns True if a new row was inserted, False if it already existed.
-    """
-    # Deterministic 63-bit integer surrogate key from source_order_id
     import hashlib
     trade_key = int(hashlib.sha256(row["source_order_id"].encode("utf-8")).hexdigest()[:15], 16)
 
@@ -262,18 +213,7 @@ def _insert_trade(
 
     return result is not None
 
-
-# ---------------------------------------------------------------------------
-# Public entry point
-# ---------------------------------------------------------------------------
-
 def load(transformed_data: dict[str, Any], db_path: str | None = None) -> int:
-    """
-    Load clean transformed rows into trades.duckdb.
-
-    Returns the number of new fact_trades rows inserted.
-    Never touches analytics.duckdb.
-    """
     clean: list[dict] = transformed_data.get("clean", [])
 
     target_path = Path(db_path or TRADES_DUCKDB_PATH)
@@ -321,10 +261,6 @@ def load(transformed_data: dict[str, Any], db_path: str | None = None) -> int:
 
 
 def get_watermark(db_path: str | None = None) -> datetime:
-    """
-    Return the watermark for incremental loads: the MAX(created_at) already
-    in fact_trades, or 90 days ago if the table is empty / doesn't exist yet.
-    """
     path = db_path or TRADES_DUCKDB_PATH
     path_obj = Path(path)
 
