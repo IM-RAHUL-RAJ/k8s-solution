@@ -15,7 +15,7 @@ classDiagram
         -String passwordHash
         -String phone
         -Date dateOfBirth
-        -String gender
+        -Gender gender
         -ClientStatus status
         +register()
         +updateProfile()
@@ -78,7 +78,6 @@ classDiagram
     }
 
     class Instrument {
-        <<abstract>>
         -Long id
         -String symbol
         -String exchange
@@ -138,6 +137,13 @@ classDiagram
     }
 
     %% Enums
+
+    class Gender {
+        <<enumeration>>
+        MALE
+        FEMALE
+        OTHER
+    }
 
     class ClientStatus {
         <<enumeration>>
