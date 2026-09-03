@@ -73,7 +73,6 @@ class PostgresClient:
             raise PostgresConnectionError(str(exc)) from exc
 
     def health(self) -> bool:
-        """Return True if the Postgres connection is alive."""
         try:
             with self._conn.cursor() as cur:
                 cur.execute("SELECT 1")

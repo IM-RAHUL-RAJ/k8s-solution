@@ -41,7 +41,6 @@ def _safe_symbol(symbol: str) -> str:
 
 
 def _parse_date(value: str) -> date | None:
-    """Parse a YYYY-MM-DD string to a date, returning None on failure."""
     try:
         return date.fromisoformat(value)
     except (ValueError, TypeError):
@@ -49,7 +48,6 @@ def _parse_date(value: str) -> date | None:
 
 
 def _filter_candles(raw_response: dict, from_date: date, to_date: date) -> dict:
-    """Return a copy of raw_response with candles filtered to [from_date, to_date]."""
     import copy
     filtered = copy.deepcopy(raw_response)
     candles = filtered.get("data", {}).get("candles", [])
@@ -68,10 +66,6 @@ class RawResponseCache:
         self.cache_dir = Path(cache_dir)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
 
-    # ------------------------------------------------------------------
-    # Internal helpers
-    # ------------------------------------------------------------------
-
     def _exact_path(self, symbol: str, from_date: str, to_date: str) -> Path:
         return self.cache_dir / _cache_key(symbol, from_date, to_date)
 
@@ -81,14 +75,7 @@ class RawResponseCache:
         requested_from: date,
         requested_to: date,
     ) -> Path | None:
-        """
-        Scan the cache directory for a file that covers the requested range.
-
-        A file covers [requested_from, requested_to] when:
-            cached_from <= requested_from  AND  cached_to >= requested_to
-
-        Returns the Path of the first matching file, or None.
-        """
+        
         safe = _safe_symbol(symbol)
         for entry in self.cache_dir.iterdir():
             if not entry.is_file() or not entry.name.endswith(".json"):
@@ -107,20 +94,8 @@ class RawResponseCache:
                 return entry
         return None
 
-    # ------------------------------------------------------------------
-    # Public API
-    # ------------------------------------------------------------------
-
     def get(self, symbol: str, from_date: str, to_date: str) -> dict | None:
-        """
-        Return the cached API response for symbol/from_date/to_date, or None.
 
-        Hit rules (in priority order):
-        1. Exact key match  — fastest, no filtering needed.
-        2. Sub-range hit    — requested range is fully inside a cached range;
-                              candles are filtered before returning.
-        """
-        # 1. Exact match
         exact = self._exact_path(symbol, from_date, to_date)
         if exact.exists():
             with open(exact, "r", encoding="utf-8") as f:
@@ -140,7 +115,6 @@ class RawResponseCache:
         return None
 
     def set(self, symbol: str, from_date: str, to_date: str, raw_response: dict) -> None:
-        """Write raw_response to disk under the exact from_date/to_date key."""
         path     = self._exact_path(symbol, from_date, to_date)
         tmp_path = path.with_suffix(".json.tmp")
         with open(tmp_path, "w", encoding="utf-8") as f:
