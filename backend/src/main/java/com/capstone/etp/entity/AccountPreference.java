@@ -4,11 +4,11 @@ import com.capstone.etp.enums.RiskProfile;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
-
 @Entity
-@Table(name="account_preferences")
+@Table(name = "account_preferences")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -19,8 +19,8 @@ public class AccountPreference {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name="account_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "account_id")
     private Account account;
 
     @Enumerated(EnumType.STRING)
@@ -30,7 +30,14 @@ public class AccountPreference {
 
     private List<String> preferredSectors;
 
-    public void createPreference(){}
-    public void editPreference(){}
-    public void deletePreference(){}
+    private LocalDateTime createdAt;
+
+    public void createPreference() {
+    }
+
+    public void editPreference() {
+    }
+
+    public void deletePreference() {
+    }
 }

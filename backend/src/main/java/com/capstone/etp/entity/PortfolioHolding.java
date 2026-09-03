@@ -5,10 +5,10 @@ import jakarta.validation.constraints.Positive;
 import lombok.*;
 
 import java.math.BigDecimal;
-
+import java.time.LocalDateTime;
 
 @Entity
-@Table(name="portfolio_holdings")
+@Table(name = "portfolio_holdings")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -20,11 +20,11 @@ public class PortfolioHolding {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name="portfolio_id")
+    @JoinColumn(name = "portfolio_id")
     private Portfolio portfolio;
 
     @ManyToOne
-    @JoinColumn(name="instrument_id")
+    @JoinColumn(name = "instrument_id")
     private Instrument instrument;
 
     @Positive
@@ -32,16 +32,16 @@ public class PortfolioHolding {
 
     private BigDecimal avgPrice;
 
+    private LocalDateTime updatedAt;
+
     public boolean updateAveragePrice(int newQuantity, BigDecimal newPrice) {
         if (newQuantity <= 0) {
             throw new IllegalArgumentException(
-                    "New quantity must be greater than zero"
-            );
+                    "New quantity must be greater than zero");
         }
         if (newPrice == null || newPrice.compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalArgumentException(
-                    "Price cannot be null or negative"
-            );
+                    "Price cannot be null or negative");
         }
 
         if (this.quantity == 0) {
@@ -62,8 +62,7 @@ public class PortfolioHolding {
                 .divide(
                         BigDecimal.valueOf(totalQuantity),
                         2,
-                        java.math.RoundingMode.HALF_UP
-                );
+                        java.math.RoundingMode.HALF_UP);
 
         this.quantity = totalQuantity;
 

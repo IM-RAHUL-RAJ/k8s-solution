@@ -8,7 +8,6 @@ import lombok.*;
 import java.time.LocalDate;
 import java.util.List;
 
-
 @Entity
 @Getter
 @Setter
@@ -42,24 +41,23 @@ public class Client {
     @Enumerated(EnumType.STRING)
     private ClientStatus status;
 
-    @OneToMany(
-            mappedBy = "client",
-            cascade = CascadeType.ALL
-    )
+    @OneToMany(mappedBy = "client", cascade = CascadeType.ALL)
     private List<Account> accounts;
 
-    public boolean isActive(){
+    public boolean isActive() {
         return status == ClientStatus.ACTIVE;
     }
 
-    public void register(){}
-    public void login(){}
+    public void register() {
+    }
+
+    public void signIn() {
+    }
 
     public void updateProfile(
             String name,
             String phone,
-            Gender gender
-    ){
+            Gender gender) {
         this.name = name;
         this.phone = phone;
         this.gender = gender;
