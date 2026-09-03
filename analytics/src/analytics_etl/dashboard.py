@@ -4,6 +4,8 @@ import plotly.graph_objects as go
 from plotly.offline import plot
 from pathlib import Path
 
+from analytics_etl.config import SYMBOL_UNIVERSE
+
 # Path
 BASE_DIR = Path(__file__).resolve().parent
 DATABASE_FILE = str(BASE_DIR / "analytics.duckdb")
@@ -11,14 +13,6 @@ OUTPUT_FILE = "market_analytics_dashboard.html"
 
 INCLUDE_SYNTHETIC = False
 
-
-INSTRUMENTS = {
-    "AAPL",
-    "INFY",
-    "HCLTECH",
-    "FX",
-    "RELIANCE",
-}
 
 def load_market_data(connection):
     query = """
@@ -50,6 +44,9 @@ def load_market_data(connection):
     """
     
     df = connection.execute(query).df()
+
+    # Populate/fallback instrument name from SYMBOL_UNIVERSE
+    df["name"] = df["name"].fillna(df["symbol"].map(SYMBOL_UNIVERSE)).fillna(df["symbol"])
 
     if not INCLUDE_SYNTHETIC:
         df = df[df["synthetic"] == False].copy()
@@ -115,7 +112,7 @@ th { background:#f0f2f5; }
     html += "</body></html>"
 
     Path(OUTPUT_FILE).write_text(html, encoding="utf-8")
-    print(f"\u2713 Dashboard generated: {OUTPUT_FILE}")
+    print(f"[OK] Dashboard generated: {OUTPUT_FILE}")
 
 
 

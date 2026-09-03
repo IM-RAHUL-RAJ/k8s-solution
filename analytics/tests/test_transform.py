@@ -149,7 +149,7 @@ def test_dd_mm_yyyy_date_is_normalised():
 
 
 def test_malformed_fixture():
-    # Result should have cleaned and quarantined rows
+    # Result has cleaned and quarantined rows
 
     raw = load_fixture("candles-malformed.json")
 

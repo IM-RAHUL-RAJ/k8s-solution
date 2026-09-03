@@ -2,6 +2,8 @@ from pathlib import Path
 import duckdb
 from datetime import date, timedelta
 
+from .config import SYMBOL_UNIVERSE
+
 BASE_DIR = Path(__file__).resolve().parent
 
 SCHEMA_FILE = BASE_DIR / "contracts" / "analytics-schema.sql"
@@ -173,8 +175,18 @@ def load_dim_instrument(connection, transformed_data):
         [symbol],
     ).fetchone()
 
-    if existing:
+    name = SYMBOL_UNIVERSE.get(symbol, symbol)
 
+    if existing:
+        # Update name if previously null
+        connection.execute(
+            """
+            UPDATE dim_instrument
+            SET name = COALESCE(name, ?)
+            WHERE symbol = ?
+            """,
+            [name, symbol],
+        )
         return existing[0]
 
     instrument_key = connection.execute("""
@@ -194,6 +206,7 @@ def load_dim_instrument(connection, transformed_data):
         (
             instrument_key,
             symbol,
+            name,
             currency,
             interval,
             source,
@@ -206,12 +219,13 @@ def load_dim_instrument(connection, transformed_data):
 
 
         VALUES
-        (?,?,?,?,?,?,?,?,?,?)
+        (?,?,?,?,?,?,?,?,?,?,?)
 
         """,
         [
             instrument_key,
             symbol,
+            name,
             transformed_data["currency"],
             transformed_data["interval"],
             meta.get("source"),
@@ -223,7 +237,7 @@ def load_dim_instrument(connection, transformed_data):
         ],
     )
 
-    print(f"DIM_INSTRUMENT loaded: {symbol}")
+    print(f"DIM_INSTRUMENT loaded: {symbol} ({name})")
 
     return instrument_key
 

@@ -13,17 +13,17 @@ def extract_candles(
     client: FauxnanceClient | None = None,
     cache: RawResponseCache | None = None,
 ) -> dict:
-    cache = cache or RawResponseCache(CACHE_DIR)
+    cache  = cache  or RawResponseCache(CACHE_DIR)
     client = client or FauxnanceClient()
 
-    range_key = f"{from_date or 'default'}_{to_date or 'default'}"
+    # Normalise missing dates to the string "default" for cache keying
+    cache_from = from_date or "default"
+    cache_to   = to_date   or "default"
 
-    cached = cache.get(symbol, range_key)
+    cached = cache.get(symbol, cache_from, cache_to)
     if cached is not None:
         return cached
 
     raw = client.get_candles(symbol, from_date=from_date, to_date=to_date)
-    cache.set(symbol, range_key, raw)
+    cache.set(symbol, cache_from, cache_to, raw)
     return raw
-
-
