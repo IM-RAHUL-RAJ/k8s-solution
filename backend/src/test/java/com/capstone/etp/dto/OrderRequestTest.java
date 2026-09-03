@@ -1,6 +1,5 @@
-package com.capstone.etp.entity;
+package com.capstone.etp.dto;
 
-import com.capstone.etp.dto.OrderRequest;
 import com.capstone.etp.enums.OrderSide;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;

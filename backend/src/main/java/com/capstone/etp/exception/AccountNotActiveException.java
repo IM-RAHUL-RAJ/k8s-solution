@@ -1,8 +1,9 @@
 package com.capstone.etp.exception;
-public final class AccountNotActiveException extends ETFException {
+
+public final class AccountNotActiveException extends ETPException {
 
     private final Long accountId;
-    private final String currentStatus; 
+    private final String currentStatus;
 
     public AccountNotActiveException(Long accountId, String currentStatus) {
         super("ACC-403", "Account not active");

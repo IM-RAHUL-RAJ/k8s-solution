@@ -1,7 +1,8 @@
 package com.capstone.etp.exception;
+
 import java.math.BigDecimal;
 
-public final class InsufficientFundsException extends ETFException {
+public final class InsufficientFundsException extends ETPException {
 
     private final Long accountId;
     private final BigDecimal requiredAmount;

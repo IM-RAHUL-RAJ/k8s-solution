@@ -10,7 +10,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
-
 @Entity
 @Getter
 @Setter
@@ -22,11 +21,11 @@ public class Account {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique=true,nullable=false, length=10)
+    @Column(unique = true, nullable = false, length = 10)
     private String accountRef;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name="client_id")
+    @JoinColumn(name = "client_id")
     private Client client;
 
     @Enumerated(EnumType.STRING)
@@ -34,7 +33,7 @@ public class Account {
 
     private String currency;
 
-    @Column(nullable=false, precision=10, scale=2)
+    @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal cashBalance;
 
     @Enumerated(EnumType.STRING)
@@ -49,22 +48,19 @@ public class Account {
 
     private LocalDateTime closedAt;
 
+    private LocalDateTime updatedAt;
 
-    @OneToOne(mappedBy="account",
-            cascade=CascadeType.ALL)
+    @OneToOne(mappedBy = "account", cascade = CascadeType.ALL)
     private Portfolio portfolio;
 
-
-    @OneToMany(mappedBy="account")
+    @OneToMany(mappedBy = "account")
     private List<Order> orders;
 
+    @OneToMany(mappedBy = "account")
+    private List<AccountPreference> preferences;
 
-    @OneToMany(mappedBy="account")
-    private List<PortfolioHolding> positions;
-
-
-    public boolean canAfford(BigDecimal amount){
-        return cashBalance.compareTo(amount)>=0;
+    public boolean canAfford(BigDecimal amount) {
+        return cashBalance.compareTo(amount) >= 0;
     }
 
     public String deposit(BigDecimal amount) {
@@ -80,23 +76,20 @@ public class Account {
         return UUID.randomUUID().toString();
     }
 
-    public void suspend(){
+    public void suspend() {
         if (this.status == AccountStatus.CLOSED) {
             throw new IllegalStateException(
-                    "Closed account cannot be suspended"
-            );
+                    "Closed account cannot be suspended");
         }
         if (this.status == AccountStatus.SUSPENDED) {
             throw new IllegalStateException(
-                    "Account is already suspended"
-            );
+                    "Account is already suspended");
         }
         this.status = AccountStatus.SUSPENDED;
         this.suspendedAt = LocalDateTime.now();
     }
 
-
-    public void close(){
+    public void close() {
         this.status = AccountStatus.CLOSED;
         this.closedAt = LocalDateTime.now();
     }

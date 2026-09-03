@@ -1,5 +1,6 @@
 package com.capstone.etp.exception;
-public final class DuplicateOrderException extends ETFException {
+
+public final class DuplicateOrderException extends ETPException {
 
     private final String idempotencyKey;
 

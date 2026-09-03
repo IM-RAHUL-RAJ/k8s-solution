@@ -1,10 +1,10 @@
 package com.capstone.etp.exception;
 
-public abstract class ETFException extends RuntimeException {
+public abstract class ETPException extends RuntimeException {
 
     private final String catalogueCode;
 
-    public ETFException(String catalogueCode, String catalogueMessage) {
+    public ETPException(String catalogueCode, String catalogueMessage) {
         super(catalogueMessage);
         this.catalogueCode = catalogueCode;
     }

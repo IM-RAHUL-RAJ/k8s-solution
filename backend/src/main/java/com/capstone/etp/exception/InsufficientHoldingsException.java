@@ -1,5 +1,6 @@
 package com.capstone.etp.exception;
-public final class InsufficientHoldingsException extends ETFException {
+
+public final class InsufficientHoldingsException extends ETPException {
 
     private final Long accountId;
     private final String symbol;
@@ -7,7 +8,7 @@ public final class InsufficientHoldingsException extends ETFException {
     private final Long availableQuantity;
 
     public InsufficientHoldingsException(Long accountId, String symbol,
-                                          Long requestedQuantity, Long availableQuantity) {
+            Long requestedQuantity, Long availableQuantity) {
         super("ORD-409", "Insufficient holdings");
         this.accountId = accountId;
         this.symbol = symbol;
