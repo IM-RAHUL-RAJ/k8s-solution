@@ -9,7 +9,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-
 @Entity
 @Getter
 @Setter
@@ -17,19 +16,20 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 public class Order {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name="account_id")
+    @JoinColumn(name = "account_id")
     private Account account;
 
     @ManyToOne
-    @JoinColumn(name="instrument_id")
+    @JoinColumn(name = "instrument_id")
     private Instrument instrument;
 
-    @Column(unique=true)
+    @Column(unique = true)
     private String idempotencyKey;
 
     @Enumerated(EnumType.STRING)
@@ -45,43 +45,64 @@ public class Order {
     private OrderStatus status;
 
     private LocalDateTime createdAt;
+
     private LocalDateTime terminalAt;
 
     private boolean isTerminal() {
+
         return status == OrderStatus.FILLED
                 || status == OrderStatus.REJECTED
                 || status == OrderStatus.CANCELLED;
     }
 
-    public void fill(){
+    public void fill() {
+
         status = OrderStatus.FILLED;
         terminalAt = LocalDateTime.now();
     }
 
-    public void reject(){
+    public void reject() {
+
         status = OrderStatus.REJECTED;
+        terminalAt = LocalDateTime.now();
     }
 
     public boolean cancel() {
+
         if (isTerminal()) {
+
             throw new IllegalStateException(
-                    "Cannot cancel an order that has already reached a terminal state"
-            );
+                    "Cannot cancel an order that has already reached a terminal state");
         }
+
         status = OrderStatus.CANCELLED;
         terminalAt = LocalDateTime.now();
 
         return true;
     }
 
+    // Changed method
     public Long submit() {
+
         if (this.id == null) {
-            this.id = Math.abs(UUID.randomUUID().getMostSignificantBits());
+
+            this.id = Math.abs(
+                    UUID.randomUUID()
+                            .getMostSignificantBits());
         }
+
+        if (this.createdAt == null) {
+
+            this.createdAt = LocalDateTime.now();
+        }
+
+        this.status = OrderStatus.NEW;
+
         return this.id;
     }
 
     public boolean checkStatus() {
+
         return isTerminal();
     }
 }

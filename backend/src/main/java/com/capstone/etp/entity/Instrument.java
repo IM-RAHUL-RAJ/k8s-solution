@@ -4,6 +4,7 @@ import com.capstone.etp.enums.AssetClass;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
 
 @Entity
 @Getter
@@ -16,7 +17,7 @@ public class Instrument {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique=true)
+    @Column(unique = true)
     private String symbol;
 
     private String exchange;
@@ -31,11 +32,13 @@ public class Instrument {
 
     private boolean tradable;
 
-    public boolean isTradable(){
+    private LocalDateTime stoppedAt;
+
+    public boolean isTradable() {
         return tradable;
     }
 
-    public String getSymbol(){
+    public String getSymbol() {
         return symbol;
     }
 }

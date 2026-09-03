@@ -1,47 +1,110 @@
 package com.capstone.etp.entity;
 
+import com.capstone.etp.enums.AssetClass;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import java.time.LocalDateTime;
 
-/**
- * Covers isTradable()/getSymbol() on the abstract Instrument, and
- * getCurrency()/getAssetClass() on each concrete subtype (Equity, Crypto,
- * Forex). isTradable() assumed false once stoppedAt is set (delisting).
- */
+import static org.junit.jupiter.api.Assertions.*;
+
 class InstrumentTest {
 
-    @Test
-    void equityIsTradableByDefault() {
-        Equity equity = new Equity(1L, "AAPL", "NASDAQ", "Apple Inc.", "USD");
-        assertTrue(equity.isTradable());
-        assertEquals("AAPL", equity.getSymbol());
-        assertEquals("USD", equity.getCurrency());
-        assertEquals(AssetClass.US_EQUITY, equity.getAssetClass());
-    }
+        @Test
+        void instrumentIsTradableWhenApiMarksItTradable() {
 
-    @Test
-    void equityBecomesNotTradableWhenStopped() {
-        Equity equity = new Equity(1L, "AAPL", "NASDAQ", "Apple Inc.", "USD");
-        equity.stopTrading();
-        assertFalse(equity.isTradable());
-    }
+                Instrument instrument = Instrument.builder()
+                                .id(1L)
+                                .symbol("AAPL")
+                                .exchange("NASDAQ")
+                                .name("Apple Inc.")
+                                .currency("USD")
+                                .assetClass(AssetClass.US_EQUITY)
+                                .tradable(true)
+                                .build();
 
-    @Test
-    void cryptoReportsOwnAssetClassAndCurrency() {
-        Crypto crypto = new Crypto(2L, "BTC-USD", "COINBASE", "Bitcoin", "USD");
-        assertTrue(crypto.isTradable());
-        assertEquals(AssetClass.CRYPTO, crypto.getAssetClass());
-        assertEquals("USD", crypto.getCurrency());
-    }
+                assertTrue(instrument.isTradable());
 
-    @Test
-    void forexReportsOwnAssetClassAndCurrency() {
-        Forex forex = new Forex(3L, "EUR/USD", "FX", "Euro / US Dollar", "USD");
-        assertTrue(forex.isTradable());
-        assertEquals(AssetClass.FX, forex.getAssetClass());
-        assertEquals("USD", forex.getCurrency());
-    }
+                assertEquals(
+                                "AAPL",
+                                instrument.getSymbol());
+
+                assertEquals(
+                                "USD",
+                                instrument.getCurrency());
+
+                assertEquals(
+                                AssetClass.US_EQUITY,
+                                instrument.getAssetClass());
+        }
+
+        @Test
+        void instrumentIsNotTradableWhenApiMarksItStopped() {
+
+                Instrument instrument = Instrument.builder()
+                                .id(1L)
+                                .symbol("AAPL")
+                                .exchange("NASDAQ")
+                                .name("Apple Inc.")
+                                .currency("USD")
+                                .assetClass(AssetClass.US_EQUITY)
+                                .tradable(false)
+                                .stoppedAt(LocalDateTime.now())
+                                .build();
+
+                assertFalse(
+                                instrument.isTradable());
+
+                assertNotNull(
+                                instrument.getStoppedAt());
+        }
+
+        @Test
+        void cryptoInstrumentHasCorrectAssetClassAndCurrency() {
+
+                Instrument instrument = Instrument.builder()
+                                .id(2L)
+                                .symbol("BTC-USD")
+                                .exchange("COINBASE")
+                                .name("Bitcoin")
+                                .currency("USD")
+                                .assetClass(AssetClass.CRYPTO)
+                                .tradable(true)
+                                .build();
+
+                assertTrue(
+                                instrument.isTradable());
+
+                assertEquals(
+                                AssetClass.CRYPTO,
+                                instrument.getAssetClass());
+
+                assertEquals(
+                                "USD",
+                                instrument.getCurrency());
+        }
+
+        @Test
+        void forexInstrumentHasCorrectAssetClassAndCurrency() {
+
+                Instrument instrument = Instrument.builder()
+                                .id(3L)
+                                .symbol("EUR/USD")
+                                .exchange("FX")
+                                .name("Euro / US Dollar")
+                                .currency("USD")
+                                .assetClass(AssetClass.FX)
+                                .tradable(true)
+                                .build();
+
+                assertTrue(
+                                instrument.isTradable());
+
+                assertEquals(
+                                AssetClass.FX,
+                                instrument.getAssetClass());
+
+                assertEquals(
+                                "USD",
+                                instrument.getCurrency());
+        }
 }

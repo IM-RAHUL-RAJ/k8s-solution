@@ -1,4 +1,5 @@
 package com.capstone.etp.entity;
+
 import com.capstone.etp.enums.*;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Positive;
@@ -20,7 +21,7 @@ public class Transaction {
     private Long id;
 
     @OneToOne
-    @JoinColumn(name="order_id")
+    @JoinColumn(name = "order_id")
     private Order order;
 
     @Positive

@@ -1,7 +1,10 @@
 package com.capstone.etp.exception;
-public final class InstrumentNotFoundException extends ETFException {
 
-    public enum Reason { UNKNOWN_SYMBOL, NOT_TRADABLE }
+public final class InstrumentNotFoundException extends ETPException {
+
+    public enum Reason {
+        UNKNOWN_SYMBOL, NOT_TRADABLE
+    }
 
     private final String symbol;
     private final Reason reason;

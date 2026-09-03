@@ -7,7 +7,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
-
 @Entity
 @Getter
 @Setter
@@ -19,8 +18,8 @@ public class Portfolio {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne(fetch=FetchType.LAZY)
-    @JoinColumn(name="account_id")
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "account_id")
     private Account account;
 
     private String name;
@@ -31,12 +30,8 @@ public class Portfolio {
 
     private LocalDateTime updatedAt;
 
-    @OneToMany(
-            mappedBy="portfolio",
-            cascade=CascadeType.ALL
-    )
+    @OneToMany(mappedBy = "portfolio", cascade = CascadeType.ALL)
     private List<PortfolioHolding> holdings;
-
 
     public void recalculateValue() {
         if (holdings == null || holdings.isEmpty()) {
