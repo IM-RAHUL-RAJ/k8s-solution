@@ -9,6 +9,9 @@ import com.capstone.etp.exception.*;
 import java.math.BigDecimal;
 import java.util.List;
 
+import org.springframework.stereotype.Service;
+
+@Service 
 public class OrderValidator {
 
     public void validate(
@@ -169,8 +172,7 @@ public class OrderValidator {
 
         if (duplicate) {
 
-            throw new DuplicateOrderException(
-                    order.getIdempotencyKey());
+            throw new DuplicateOrderException(order.getIdempotencyKey());
         }
     }
 }

@@ -5,6 +5,7 @@ import com.capstone.etp.enums.OrderStatus;
 import lombok.*;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -12,7 +13,7 @@ import java.time.Instant;
 @AllArgsConstructor
 @Builder
 public class OrderHistoryEntry {
-    private String orderId;
+    private UUID orderId;
     private Long accountId;
     private String symbol;
     private OrderSide side;
@@ -21,5 +22,5 @@ public class OrderHistoryEntry {
     private OrderStatus status;
     private Instant createdOn;
     private BigDecimal executedPrice;
-    private String idempotencyKey;
+    private UUID idempotencyKey;
 }

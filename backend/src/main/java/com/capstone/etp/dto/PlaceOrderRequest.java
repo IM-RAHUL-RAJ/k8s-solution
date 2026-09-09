@@ -5,6 +5,7 @@ import jakarta.validation.constraints.*;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -32,7 +33,6 @@ public class PlaceOrderRequest {
         @Digits(integer = 10, fraction = 2, message = "Price must have at most 2 decimal places")
         private BigDecimal price;
 
-        @NotBlank(message = "Idempotency key is required")
-        @Size(min = 8, max = 100, message = "Idempotency key must contain between 8 and 100 characters")
-        private String idempotencyKey;
+        @NotNull(message = "Idempotency key is required")
+        private UUID idempotencyKey;
 }
