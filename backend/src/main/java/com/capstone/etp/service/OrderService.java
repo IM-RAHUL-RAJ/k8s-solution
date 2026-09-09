@@ -72,13 +72,7 @@ public class OrderService {
                 .build();
     }
 
-    /**
-     * DELETE /orders/{id} - Cancel an existing order
-     * Fetches the order and updates its status to CANCELLED
-     *
-     * @param orderId the UUID of the order to cancel
-     * @return OrderResponse with cancelled order details
-     */
+   // Delete order (cancel)
     public OrderResponse cancelOrder(UUID orderId) {
         // STEP 1: Fetch the order from database
         Order order = orderMapper.findOrderById(orderId);

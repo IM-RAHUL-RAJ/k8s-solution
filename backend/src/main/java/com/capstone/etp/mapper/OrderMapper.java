@@ -20,13 +20,12 @@ import java.util.UUID;
 @Mapper
 public interface OrderMapper {
 
-    // ============ Validation Query Methods ============
 
     //Get Account by ID for validation
 
     @Select("""
         SELECT 
-            id::text AS id, client_id, account_ref, account_type, currency, 
+            id AS id, client_id, account_ref, account_type, currency, 
             cash_balance, status, version, created_at, suspended_at, closed_at, updated_at
         FROM accounts
         WHERE id = #{accountId}""")
@@ -50,7 +49,7 @@ public interface OrderMapper {
 
     @Select("""
         SELECT 
-            id::text AS id, symbol, name, asset_class, currency, is_tradable, created_at, updated_at
+            id AS id, symbol, name, asset_class, currency, is_tradable, stopped_at
         FROM instruments
         WHERE symbol = #{symbol}""")
     @Results({
@@ -60,8 +59,8 @@ public interface OrderMapper {
         @Result(property = "assetClass", column = "asset_class"),
         @Result(property = "currency", column = "currency"),
         @Result(property = "tradable", column = "is_tradable"),
-        @Result(property = "createdAt", column = "created_at"),
-        @Result(property = "updatedAt", column = "updated_at")
+        @Result(property = "stoppedAt", column = "stopped_at"),
+       
     })
     Instrument findInstrumentBySymbol(@Param("symbol") String symbol);
 
@@ -69,8 +68,8 @@ public interface OrderMapper {
 
     @Select("""
         SELECT 
-            ph.id::text AS id, ph.portfolio_id, ph.instrument_id, ph.quantity, ph.avg_price, 
-            ph.created_at, ph.updated_at
+            ph.id AS id, ph.portfolio_id, ph.instrument_id, ph.quantity, ph.avg_price, 
+         ph.updated_at
         FROM portfolio_holdings ph
         JOIN portfolios p ON ph.portfolio_id = p.id
         WHERE p.account_id = #{accountId} AND ph.instrument_id = #{instrumentId}""")
@@ -80,7 +79,6 @@ public interface OrderMapper {
         @Result(property = "instrumentId", column = "instrument_id"),
         @Result(property = "quantity", column = "quantity"),
         @Result(property = "avgPrice", column = "avg_price"),
-        @Result(property = "createdAt", column = "created_at"),
         @Result(property = "updatedAt", column = "updated_at")
     })
     PortfolioHolding findPortfolioHolding(
@@ -91,7 +89,7 @@ public interface OrderMapper {
 
     @Select("""
         SELECT 
-            id::text AS id, account_id, instrument_id, idempotency_key::text AS idempotency_key, 
+            id AS id, account_id, instrument_id, idempotency_key AS idempotency_key, 
             order_type, quantity, limit_price, status, created_at, terminal_at
         FROM orders
         WHERE account_id = #{accountId}""")
@@ -115,7 +113,7 @@ public interface OrderMapper {
 
     @Select("""
         SELECT 
-            id::text AS id, account_id, instrument_id, idempotency_key::text AS idempotency_key, 
+            id AS id, account_id, instrument_id, idempotency_key AS idempotency_key, 
             order_type, quantity, limit_price, status, created_at, terminal_at
         FROM orders
         WHERE id = #{orderId}""")
@@ -137,7 +135,7 @@ public interface OrderMapper {
 
     @Select("""
         SELECT 
-            id::text AS id, account_id, instrument_id, idempotency_key::text AS idempotency_key, 
+            id AS id, account_id, instrument_id, idempotency_key AS idempotency_key, 
             order_type, quantity, limit_price, status, created_at, terminal_at
         FROM orders
         WHERE idempotency_key = #{idempotencyKey}""")
@@ -164,7 +162,7 @@ public interface OrderMapper {
             (id, account_id, instrument_id, idempotency_key, order_type, quantity, limit_price, status, created_at)
         VALUES 
             (#{order.id}, #{order.accountId}, #{order.instrumentId}, #{order.idempotencyKey}, 
-             #{order.side}, #{order.quantity}, #{order.limitPrice}, #{order.status}, #{order.createdAt})""")
+             #{order.side}::order_type_enum, #{order.quantity}, #{order.limitPrice}, #{order.status}:: order_status_enum, #{order.createdAt})""")
     void insertOrder(@Param("order") Order order);
 
     //Update order status (e.g., to CANCELLED)

@@ -12,7 +12,7 @@ import org.apache.ibatis.annotations.Results;
 import org.apache.ibatis.annotations.Select;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 @Mapper
@@ -88,7 +88,7 @@ public interface AccountMapper {
     @Select("""
         <script>
         SELECT
-            o.id::text AS order_id,
+            o.id AS order_id,
             o.account_id AS account_id,
             i.symbol AS symbol,
             o.order_type AS side,
@@ -97,7 +97,7 @@ public interface AccountMapper {
             o.status AS status,
             o.created_at AS created_on,
             t.executed_price AS executed_price,
-            o.idempotency_key::text AS idempotency_key
+            o.idempotency_key AS idempotency_key
 
         FROM orders o
 
@@ -140,7 +140,7 @@ public interface AccountMapper {
         List<OrderHistoryEntry> getOrdersByAccountId(
                 @Param("accountId") Long accountId,
                 @Param("status") OrderStatus status,
-                @Param("from") LocalDateTime from,
-                @Param("to") LocalDateTime to
+                @Param("from") Instant from,
+                @Param("to") Instant to
         );
 }

@@ -9,7 +9,7 @@ import com.capstone.etp.mapper.AccountMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 @Service
@@ -34,7 +34,7 @@ public class AccountService {
     }
 
     //Retrieve order history for an account with optional filtering by status and date range
-    public List<OrderHistoryEntry> getOrders(Long accountId, OrderStatus status, LocalDateTime from, LocalDateTime to) {
+    public List<OrderHistoryEntry> getOrders(Long accountId, OrderStatus status, Instant from, Instant to) {
         return accountMapper.getOrdersByAccountId(accountId, status, from, to);
     }
 }

@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 @RestController
@@ -28,6 +28,7 @@ public class AccountController {
 
     @GetMapping("/{id}")
     public ResponseEntity<AccountResponse> getAccount(@PathVariable Long id) {
+        System.out.println("Fetching account with ID: " + id);
         return ResponseEntity.status(HttpStatus.OK).body(accountService.getAccount(id));
     }
 
@@ -45,8 +46,8 @@ public class AccountController {
     public ResponseEntity<List<OrderHistoryEntry>> getOrders(
             @PathVariable Long id,
             @RequestParam(required = false) OrderStatus status,
-            @RequestParam(required = false) LocalDateTime from,
-            @RequestParam(required = false) LocalDateTime to) {
+            @RequestParam(required = false) Instant from,
+            @RequestParam(required = false) Instant to) {
         return ResponseEntity.status(HttpStatus.OK).body(accountService.getOrders(id, status, from, to));
     }
 }
