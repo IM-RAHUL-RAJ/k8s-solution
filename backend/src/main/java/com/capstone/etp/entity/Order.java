@@ -1,108 +1,58 @@
 package com.capstone.etp.entity;
 
-import com.capstone.etp.enums.*;
-import jakarta.persistence.*;
+import com.capstone.etp.enums.OrderSide;
+import com.capstone.etp.enums.OrderStatus;
 import jakarta.validation.constraints.Positive;
 import lombok.*;
-
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.UUID;
 
-@Entity
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class Order {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @ManyToOne
-    @JoinColumn(name = "account_id")
-    private Account account;
-
-    @ManyToOne
-    @JoinColumn(name = "instrument_id")
-    private Instrument instrument;
-
-    @Column(unique = true)
+    private UUID id;
+    private Long accountId;
+    private Long instrumentId;
     private String idempotencyKey;
-
-    @Enumerated(EnumType.STRING)
     private OrderSide side;
-
-    @Positive(message = "Quantity must be greater than zero")
     private int quantity;
-
-    @Column(precision = 10, scale = 2)
     private BigDecimal limitPrice;
-
-    @Enumerated(EnumType.STRING)
     private OrderStatus status;
-
-    private LocalDateTime createdAt;
-
-    private LocalDateTime terminalAt;
+    private Instant createdAt;
+    private Instant terminalAt;
 
     private boolean isTerminal() {
-
         return status == OrderStatus.FILLED
                 || status == OrderStatus.REJECTED
                 || status == OrderStatus.CANCELLED;
     }
 
     public void fill() {
-
+        ensureNotTerminal();
         status = OrderStatus.FILLED;
-        terminalAt = LocalDateTime.now();
+        terminalAt = Instant.now();
     }
 
     public void reject() {
-
+        ensureNotTerminal();
         status = OrderStatus.REJECTED;
-        terminalAt = LocalDateTime.now();
+        terminalAt = Instant.now();
     }
 
-    public boolean cancel() {
-
-        if (isTerminal()) {
-
-            throw new IllegalStateException(
-                    "Cannot cancel an order that has already reached a terminal state");
-        }
-
+    public void cancel() {
+        ensureNotTerminal();
         status = OrderStatus.CANCELLED;
-        terminalAt = LocalDateTime.now();
-
-        return true;
+        terminalAt = Instant.now();
     }
 
-    // Changed method
-    public Long submit() {
-
-        if (this.id == null) {
-
-            this.id = Math.abs(
-                    UUID.randomUUID()
-                            .getMostSignificantBits());
+    private void ensureNotTerminal() {
+        if (isTerminal()) {
+            throw new IllegalStateException(
+                    "Cannot change an order that has already reached a terminal state");
         }
-
-        if (this.createdAt == null) {
-
-            this.createdAt = LocalDateTime.now();
-        }
-
-        this.status = OrderStatus.NEW;
-
-        return this.id;
-    }
-
-    public boolean checkStatus() {
-
-        return isTerminal();
     }
 }
