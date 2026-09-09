@@ -169,8 +169,7 @@ public class OrderValidator {
 
         if (duplicate) {
 
-            throw new DuplicateOrderException(
-                    order.getIdempotencyKey());
+            throw new DuplicateOrderException(order.getIdempotencyKey());
         }
     }
 }

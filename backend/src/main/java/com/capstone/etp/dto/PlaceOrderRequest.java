@@ -5,6 +5,7 @@ import jakarta.validation.constraints.*;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -34,5 +35,5 @@ public class PlaceOrderRequest {
 
         @NotBlank(message = "Idempotency key is required")
         @Size(min = 8, max = 100, message = "Idempotency key must contain between 8 and 100 characters")
-        private String idempotencyKey;
+        private UUID idempotencyKey;
 }

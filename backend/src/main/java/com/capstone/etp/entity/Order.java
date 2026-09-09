@@ -17,7 +17,7 @@ public class Order {
     private UUID id;
     private Long accountId;
     private Long instrumentId;
-    private String idempotencyKey;
+    private UUID idempotencyKey;
     private OrderSide side;
     private int quantity;
     private BigDecimal limitPrice;
