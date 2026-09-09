@@ -8,6 +8,7 @@ import com.capstone.etp.entity.Order;
 import com.capstone.etp.entity.PortfolioHolding;
 import com.capstone.etp.enums.OrderStatus;
 import com.capstone.etp.mapper.OrderMapper;
+import com.capstone.etp.security.AccountAuthorizer;
 import com.capstone.etp.validator.OrderValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -22,9 +23,12 @@ public class OrderService {
 
     private final OrderMapper orderMapper;
     private final OrderValidator orderValidator;
+    private final AccountAuthorizer accountAuthorizer;
 
     // create a new order
     public OrderResponse placeOrder(PlaceOrderRequest request) {
+        accountAuthorizer.ensureAccountAccess(request.getAccountId());
+
         // STEP 1: Fetch Account for validation
         Account account = orderMapper.findAccountById(request.getAccountId());
 
@@ -76,6 +80,7 @@ public class OrderService {
     public OrderResponse cancelOrder(UUID orderId) {
         // STEP 1: Fetch the order from database
         Order order = orderMapper.findOrderById(orderId);
+        accountAuthorizer.ensureAccountAccess(order.getAccountId());
 
         // STEP 2: Call Order entity's business logic to cancel
         // This will throw exception if order is already in terminal state
