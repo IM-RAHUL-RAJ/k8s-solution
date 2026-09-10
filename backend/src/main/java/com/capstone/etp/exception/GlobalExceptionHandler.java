@@ -88,6 +88,16 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(errorResponse);
     }
 
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalState(IllegalStateException ex) {
+        log.warn("Illegal state: {}", ex.getMessage());
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .errorCode(ex.getCatalogueCode())
+                .message(ex.getMessage())
+                .build();
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
     //handler for any generic ETPException
     @ExceptionHandler(ETPException.class)
     public ResponseEntity<ErrorResponse> handleETPException(ETPException ex) {

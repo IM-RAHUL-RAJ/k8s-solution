@@ -8,6 +8,7 @@ import com.capstone.etp.entity.Order;
 import com.capstone.etp.entity.PortfolioHolding;
 import com.capstone.etp.enums.OrderStatus;
 import com.capstone.etp.exception.AccountNotFoundException;
+import com.capstone.etp.exception.IllegalOrderStateException;
 import com.capstone.etp.exception.InstrumentNotFoundException;
 import com.capstone.etp.exception.OptimisticLockException;
 import com.capstone.etp.mapper.OrderMapper;
@@ -96,8 +97,12 @@ public class OrderService {
        if (account == null) {
            throw new AccountNotFoundException(order.getAccountId());
        }
-
-       order.cancel();
+       try{
+                order.cancel();
+       } catch (IllegalOrderStateException e) {
+           throw new IllegalOrderStateException("Failed to cancel order: " + e.getMessage());
+       }
+       
 
        int affectedRows = orderMapper.updateOrderStatusIfCurrentStatusMatches(
                 orderId,

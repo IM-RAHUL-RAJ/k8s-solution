@@ -2,6 +2,8 @@ package com.capstone.etp.entity;
 
 import com.capstone.etp.enums.OrderSide;
 import com.capstone.etp.enums.OrderStatus;
+import com.capstone.etp.exception.IllegalOrderStateException;
+
 import jakarta.validation.constraints.Positive;
 import lombok.*;
 import java.math.BigDecimal;
@@ -51,7 +53,7 @@ public class Order {
 
     private void ensureNotTerminal() {
         if (isTerminal()) {
-            throw new IllegalStateException(
+            throw new IllegalOrderStateException(
                     "Cannot change an order that has already reached a terminal state");
         }
     }
