@@ -88,8 +88,8 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(errorResponse);
     }
 
-    @ExceptionHandler(IllegalStateException.class)
-    public ResponseEntity<ErrorResponse> handleIllegalState(IllegalStateException ex) {
+    @ExceptionHandler(IllegalOrderStateException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalState(IllegalOrderStateException ex) {
         log.warn("Illegal state: {}", ex.getMessage());
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .errorCode(ex.getCatalogueCode())

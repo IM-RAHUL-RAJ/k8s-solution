@@ -144,7 +144,7 @@ class JwtAuthenticationFilterTest {
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.errorCode").value("ACC-403"))
-                .andExpect(jsonPath("$.message").value("Account not active"));
+                .andExpect(jsonPath("$.message").value("Sorry you dont have access to this account"));
     }
 
     @Test
