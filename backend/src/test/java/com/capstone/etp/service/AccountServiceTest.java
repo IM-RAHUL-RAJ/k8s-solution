@@ -42,39 +42,29 @@ class AccountServiceTest {
         accountService = new AccountService(accountMapper);
     }
 
-    /**
-     * Test: account details returned successfully
-     */
+    //account details returned successfully
     @Test
     void getAccount_WithValidAccount_ReturnsAccountResponse() {
 
-        // Arrange
         AccountResponse expectedResponse = createAccountResponse();
 
         when(accountMapper.getAccountById(ACCOUNT_ID))
                 .thenReturn(expectedResponse);
 
-        // Act
         AccountResponse result = accountService.getAccount(ACCOUNT_ID);
 
-        // Assert
         assertThat(result).isNotNull();
         assertThat(result.getId()).isEqualTo(ACCOUNT_ID);
         assertThat(result.getAccountId()).isEqualTo(ACCOUNT_REF);
 
-        // getAccount() calls the mapper twice:
-        // once to retrieve the account and once inside validateAccountId()
         verify(accountMapper, times(2))
                 .getAccountById(ACCOUNT_ID);
     }
 
-    /**
-     * Test: balance returned successfully
-     */
+    //balance returned successfully
     @Test
     void getBalance_WithValidAccount_ReturnsBalanceResponse() {
 
-        // Arrange
         AccountResponse accountResponse = createAccountResponse();
         BalanceResponse expectedResponse = createBalanceResponse();
 
@@ -84,10 +74,8 @@ class AccountServiceTest {
         when(accountMapper.getBalance(ACCOUNT_ID))
                 .thenReturn(expectedResponse);
 
-        // Act
         BalanceResponse result = accountService.getBalance(ACCOUNT_ID);
 
-        // Assert
         assertThat(result).isNotNull();
         assertThat(result.getAccountId()).isEqualTo(ACCOUNT_ID);
         assertThat(result.getCashBalance())
@@ -100,13 +88,10 @@ class AccountServiceTest {
                 .getBalance(ACCOUNT_ID);
     }
 
-    /**
-     * Test: positions returned successfully
-     */
+    //positions returned successfully
     @Test
     void getPositions_WithValidAccount_ReturnsPositionsList() {
 
-        // Arrange
         AccountResponse accountResponse = createAccountResponse();
 
         List<PositionResponse> expectedPositions = List.of(
@@ -120,11 +105,9 @@ class AccountServiceTest {
         when(accountMapper.getPositionsByAccountId(ACCOUNT_ID))
                 .thenReturn(expectedPositions);
 
-        // Act
         List<PositionResponse> result =
                 accountService.getPositions(ACCOUNT_ID);
 
-        // Assert
         assertThat(result).isNotNull();
         assertThat(result).hasSize(2);
         assertThat(result.get(0).getSymbol()).isEqualTo("INFY");
@@ -137,13 +120,10 @@ class AccountServiceTest {
                 .getPositionsByAccountId(ACCOUNT_ID);
     }
 
-    /**
-     * Test: order history returned successfully
-     */
+    //order history returned successfully
     @Test
     void getOrders_WithValidAccount_ReturnsOrderHistoryList() {
 
-        // Arrange
         AccountResponse accountResponse = createAccountResponse();
 
         OrderStatus filterStatus = OrderStatus.FILLED;
@@ -172,7 +152,6 @@ class AccountServiceTest {
                 to
         )).thenReturn(expectedOrders);
 
-        // Act
         List<OrderHistoryEntry> result =
                 accountService.getOrders(
                         ACCOUNT_ID,
@@ -181,7 +160,6 @@ class AccountServiceTest {
                         to
                 );
 
-        // Assert
         assertThat(result).isNotNull();
         assertThat(result).hasSize(2);
         assertThat(result.get(0).getOrderId()).isEqualTo(UUID.fromString("550e8400-e29b-41d4-a716-446655440000"));
@@ -199,17 +177,13 @@ class AccountServiceTest {
                 );
     }
 
-    /**
-     * Test: unknown account returns ACC-404
-     */
+    //unknown account returns ACC-404
     @Test
     void getAccount_WithUnknownAccountId_ThrowsAccountNotFoundException() {
 
-        // Arrange
         when(accountMapper.getAccountById(ACCOUNT_ID))
                 .thenReturn(null);
 
-        // Act & Assert
         assertThatThrownBy(
                 () -> accountService.getAccount(ACCOUNT_ID)
         )
@@ -217,51 +191,39 @@ class AccountServiceTest {
                 .hasMessageContaining("Account not found");
     }
 
-    /**
-     * Test: balance with unknown account returns ACC-404
-     */
+    //balance with unknown account returns ACC-404
     @Test
     void getBalance_WithUnknownAccountId_ThrowsAccountNotFoundException() {
 
-        // Arrange
         when(accountMapper.getAccountById(ACCOUNT_ID))
                 .thenReturn(null);
 
-        // Act & Assert
         assertThatThrownBy(
                 () -> accountService.getBalance(ACCOUNT_ID)
         )
                 .isInstanceOf(AccountNotFoundException.class);
     }
 
-    /**
-     * Test: positions with unknown account returns ACC-404
-     */
+    //positions with unknown account returns ACC-404
     @Test
     void getPositions_WithUnknownAccountId_ThrowsAccountNotFoundException() {
 
-        // Arrange
         when(accountMapper.getAccountById(ACCOUNT_ID))
                 .thenReturn(null);
 
-        // Act & Assert
         assertThatThrownBy(
                 () -> accountService.getPositions(ACCOUNT_ID)
         )
                 .isInstanceOf(AccountNotFoundException.class);
     }
 
-    /**
-     * Test: order history with unknown account returns ACC-404
-     */
+    // order history with unknown account returns ACC-404
     @Test
     void getOrders_WithUnknownAccountId_ThrowsAccountNotFoundException() {
 
-        // Arrange
         when(accountMapper.getAccountById(ACCOUNT_ID))
                 .thenReturn(null);
 
-        // Act & Assert
         assertThatThrownBy(
                 () -> accountService.getOrders(
                         ACCOUNT_ID,
@@ -273,9 +235,6 @@ class AccountServiceTest {
                 .isInstanceOf(AccountNotFoundException.class);
     }
 
-    /**
-     * Helper method
-     */
     private AccountResponse createAccountResponse() {
 
         return AccountResponse.builder()
@@ -289,9 +248,6 @@ class AccountServiceTest {
                 .build();
     }
 
-    /**
-     * Helper method
-     */
     private BalanceResponse createBalanceResponse() {
 
         return BalanceResponse.builder()
@@ -302,9 +258,6 @@ class AccountServiceTest {
                 .build();
     }
 
-    /**
-     * Helper method
-     */
     private PositionResponse createPositionResponse(
             String symbol,
             int quantity) {
@@ -317,9 +270,6 @@ class AccountServiceTest {
                 .build();
     }
 
-    /**
-     * Helper method
-     */
     private OrderHistoryEntry createOrderHistoryEntry(
             UUID orderId,
             String symbol) {
