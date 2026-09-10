@@ -25,11 +25,11 @@ public class PlaceOrderRequest {
         private OrderSide side;
 
         @NotNull(message = "Quantity is required")
-        @Min(value = 1, message = "Quantity must be at least 1")
+//        @Min(value = 1, message = "Quantity must be at least 1")
         private Integer quantity;
 
         @NotNull(message = "Price is required")
-        @DecimalMin(value = "0.0", inclusive = false, message = "Price must be greater than zero")
+//        @DecimalMin(value = "0.0", inclusive = false, message = "Price must be greater than zero")
         @Digits(integer = 10, fraction = 2, message = "Price must have at most 2 decimal places")
         private BigDecimal price;
 

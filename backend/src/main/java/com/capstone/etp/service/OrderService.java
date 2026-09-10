@@ -7,6 +7,8 @@ import com.capstone.etp.entity.Instrument;
 import com.capstone.etp.entity.Order;
 import com.capstone.etp.entity.PortfolioHolding;
 import com.capstone.etp.enums.OrderStatus;
+import com.capstone.etp.exception.AccountNotFoundException;
+import com.capstone.etp.exception.InstrumentNotFoundException;
 import com.capstone.etp.mapper.OrderMapper;
 import com.capstone.etp.security.AccountAuthorizer;
 import com.capstone.etp.validator.OrderValidator;
@@ -31,9 +33,18 @@ public class OrderService {
 
         // STEP 1: Fetch Account for validation
         Account account = orderMapper.findAccountById(request.getAccountId());
+        if (account == null) {
+            throw new AccountNotFoundException(
+                    request.getAccountId());
+        }
 
         // STEP 2: Fetch Instrument by Symbol for validation
         Instrument instrument = orderMapper.findInstrumentBySymbol(request.getSymbol());
+        if (instrument == null) {
+            throw new InstrumentNotFoundException(
+                    null,
+                    InstrumentNotFoundException.Reason.UNKNOWN_SYMBOL);
+        }
 
         // STEP 3: Fetch Portfolio Holding (needed for sell validation)
         PortfolioHolding holding = orderMapper.findPortfolioHolding(

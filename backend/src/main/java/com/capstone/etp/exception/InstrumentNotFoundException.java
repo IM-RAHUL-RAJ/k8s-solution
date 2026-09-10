@@ -10,7 +10,7 @@ public final class InstrumentNotFoundException extends ETPException {
     private final Reason reason;
 
     public InstrumentNotFoundException(String symbol, Reason reason) {
-        super("INS-404", "Instrument not found");
+        super("INS-404", "Instrument not found: "+reason.toString());
         this.symbol = symbol;
         this.reason = reason;
     }
