@@ -27,13 +27,13 @@ services:
       context: .
       dockerfile: services/auth-stub/Dockerfile
     environment:
-      PORT: 3000
+      PORT: 8081
       JWT_SECRET: ${JWT_SECRET}
       JWT_ISSUER: ${JWT_ISSUER:-auth-service}
     ports:
-      - "${AUTH_STUB_PORT:-3000}:3000"
+      - "${AUTH_STUB_PORT:-8081}:8081"
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/health"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8081/health"]
       interval: 10s
       timeout: 3s
       retries: 10
@@ -55,7 +55,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
       JWT_SECRET: ${JWT_SECRET}
       JWT_ISSUER: ${JWT_ISSUER:-auth-service}
-      AUTH_BASE_URL: http://auth-stub:3000
+      AUTH_BASE_URL: http://auth-stub:8081
     ports:
       - "${TRADE_API_PORT:-8084}:8084"
     depends_on:
