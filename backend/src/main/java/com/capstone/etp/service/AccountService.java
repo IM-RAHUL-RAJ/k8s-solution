@@ -32,7 +32,6 @@ public class AccountService {
     // Service method to retrieve account details by account ID
     public AccountResponse getAccount(Long accountId) {
         accountAuthorizer.ensureAccountAccess(accountId);
-        return accountMapper.getAccountById(accountId);
         AccountResponse account = accountMapper.getAccountById(accountId);
         validateAccountId(accountId);
         return account;
@@ -41,7 +40,6 @@ public class AccountService {
     //Retrieve account balance information
     public BalanceResponse getBalance(Long accountId) {
         accountAuthorizer.ensureAccountAccess(accountId);
-        return accountMapper.getBalance(accountId);
         validateAccountId(accountId);
         BalanceResponse balance = accountMapper.getBalance(accountId);
         return balance;

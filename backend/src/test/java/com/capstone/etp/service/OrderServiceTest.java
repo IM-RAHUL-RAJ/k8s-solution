@@ -11,6 +11,7 @@ import com.capstone.etp.enums.OrderStatus;
 import com.capstone.etp.exception.AccountNotFoundException;
 import com.capstone.etp.exception.InstrumentNotFoundException;
 import com.capstone.etp.mapper.OrderMapper;
+import com.capstone.etp.security.AccountAuthorizer;
 import com.capstone.etp.validator.OrderValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,6 +39,9 @@ class OrderServiceTest {
 
     @Mock
     private OrderValidator orderValidator;
+
+    @Mock
+    private AccountAuthorizer accountAuthorizer;
 
     @InjectMocks
     private OrderService orderService;
@@ -111,6 +115,8 @@ class OrderServiceTest {
 
         verify(orderMapper, times(1))
                 .insertOrder(any(Order.class));
+        verify(accountAuthorizer)
+                .ensureAccountAccess(1L);
     }
 
     @Test
@@ -136,6 +142,8 @@ class OrderServiceTest {
 
         verify(orderValidator, never())
                 .validate(any(), any(), any(), any(), any());
+        verify(accountAuthorizer)
+                .ensureAccountAccess(999L);
     }
 
     @Test
@@ -165,6 +173,8 @@ class OrderServiceTest {
 
         verify(orderValidator, never())
                 .validate(any(), any(), any(), any(), any());
+        verify(accountAuthorizer)
+                .ensureAccountAccess(1L);
     }
 
     @Test
@@ -221,6 +231,8 @@ class OrderServiceTest {
 
         verify(orderMapper, times(1))
                 .insertOrder(any(Order.class));
+        verify(accountAuthorizer)
+                .ensureAccountAccess(1L);
     }
 
     @Test
@@ -309,6 +321,8 @@ class OrderServiceTest {
         assertNotNull(
                 capturedOrder.getCreatedAt()
         );
+        verify(accountAuthorizer)
+                .ensureAccountAccess(1L);
     }
 
     @Test
@@ -366,6 +380,8 @@ class OrderServiceTest {
 
         verify(orderMapper, never())
                 .insertOrder(any(Order.class));
+        verify(accountAuthorizer)
+                .ensureAccountAccess(1L);
     }
 
     @Test
@@ -413,6 +429,8 @@ class OrderServiceTest {
                 eq(holding),
                 eq(existingOrders)
         );
+        verify(accountAuthorizer)
+                .ensureAccountAccess(1L);
     }
 
     @Test
@@ -424,6 +442,7 @@ class OrderServiceTest {
 
         when(orderMapper.findOrderById(orderId))
                 .thenReturn(order);
+        when(order.getAccountId()).thenReturn(1L);
 
         when(order.getStatus())
                 .thenReturn(OrderStatus.CANCELLED);
@@ -465,6 +484,8 @@ class OrderServiceTest {
                         OrderStatus.CANCELLED,
                         terminalAt
                 );
+        verify(accountAuthorizer)
+                .ensureAccountAccess(1L);
     }
 
     @Test
@@ -476,6 +497,7 @@ class OrderServiceTest {
 
         when(orderMapper.findOrderById(orderId))
                 .thenReturn(order);
+        when(order.getAccountId()).thenReturn(1L);
 
         doThrow(
                 new RuntimeException("Order already terminal")
@@ -503,5 +525,7 @@ class OrderServiceTest {
                         any(OrderStatus.class),
                         any(Instant.class)
                 );
+        verify(accountAuthorizer)
+                .ensureAccountAccess(1L);
     }
 }
