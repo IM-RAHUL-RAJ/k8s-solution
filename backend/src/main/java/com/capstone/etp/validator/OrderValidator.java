@@ -1,51 +1,62 @@
 package com.capstone.etp.validator;
 
-import com.capstone.etp.entity.*;
+import com.capstone.etp.entity.Account;
+import com.capstone.etp.entity.Instrument;
+import com.capstone.etp.entity.Order;
+import com.capstone.etp.entity.PortfolioHolding;
 import com.capstone.etp.enums.OrderSide;
 import com.capstone.etp.exception.*;
-
 import java.math.BigDecimal;
+import java.util.List;
 
+import org.springframework.stereotype.Service;
+
+@Service 
 public class OrderValidator {
 
-    public void validate(Order order) {
+    public void validate(
+            Order order,
+            Account account,
+            Instrument instrument,
+            PortfolioHolding holding,
+            List<Order> existingOrders) {
 
-        checkAccountExists(order);
+        checkAccountExists(order, account);
 
-        checkAccountActive(order);
+        checkAccountActive(account);
 
-        checkInstrument(order);
+        checkInstrument(instrument);
 
         checkQuantity(order);
 
         checkPrice(order);
 
         if (order.getSide() == OrderSide.BUY) {
-
-            checkFunds(order);
+            checkFunds(order, account);
         }
 
         if (order.getSide() == OrderSide.SELL) {
-
-            checkHoldings(order);
+            checkHoldings(order, account, instrument, holding);
         }
 
-        checkIdempotencyKey(order);
+        checkIdempotencyKey(order, existingOrders);
     }
+
 
     // Rule 1
-    private void checkAccountExists(Order order) {
+    private void checkAccountExists(
+            Order order,
+            Account account) {
 
-        if (order.getAccount() == null) {
-
-            throw new AccountNotFoundException(null);
+        if (account == null) {
+            throw new AccountNotFoundException(
+                    order.getAccountId());
         }
     }
 
-    // Rule 2
-    private void checkAccountActive(Order order) {
 
-        Account account = order.getAccount();
+    // Rule 2
+    private void checkAccountActive(Account account) {
 
         if (!account.isActive()) {
 
@@ -55,15 +66,14 @@ public class OrderValidator {
         }
     }
 
-    // Rule 3
-    private void checkInstrument(Order order) {
 
-        Instrument instrument = order.getInstrument();
+    // Rule 3
+    private void checkInstrument(Instrument instrument) {
 
         if (instrument == null) {
 
             throw new InstrumentNotFoundException(
-                    null,
+                    instrument.getSymbol(),
                     InstrumentNotFoundException.Reason.UNKNOWN_SYMBOL);
         }
 
@@ -75,6 +85,7 @@ public class OrderValidator {
         }
     }
 
+
     // Rule 4
     private void checkQuantity(Order order) {
 
@@ -84,6 +95,7 @@ public class OrderValidator {
                     "Invalid quantity");
         }
     }
+
 
     // Rule 5
     private void checkPrice(Order order) {
@@ -97,15 +109,17 @@ public class OrderValidator {
         }
     }
 
+
     // Rule 6
-    private void checkFunds(Order order) {
+    private void checkFunds(
+            Order order,
+            Account account) {
 
-        BigDecimal requiredAmount = order.getLimitPrice()
-                .multiply(
-                        BigDecimal.valueOf(
-                                order.getQuantity()));
-
-        Account account = order.getAccount();
+        BigDecimal requiredAmount =
+                order.getLimitPrice()
+                        .multiply(
+                                BigDecimal.valueOf(
+                                        order.getQuantity()));
 
         if (!account.canAfford(requiredAmount)) {
 
@@ -116,28 +130,13 @@ public class OrderValidator {
         }
     }
 
+
     // Rule 7
-    private void checkHoldings(Order order) {
-
-        Account account = order.getAccount();
-
-        if (account.getPortfolio() == null ||
-                account.getPortfolio().getHoldings() == null) {
-
-            throw new InsufficientHoldingsException(
-                    account.getId(),
-                    order.getInstrument().getSymbol(),
-                    (long) order.getQuantity(),
-                    0L);
-        }
-
-        PortfolioHolding holding = account.getPortfolio()
-                .getHoldings()
-                .stream()
-                .filter(h -> h.getInstrument()
-                        .equals(order.getInstrument()))
-                .findFirst()
-                .orElse(null);
+    private void checkHoldings(
+            Order order,
+            Account account,
+            Instrument instrument,
+            PortfolioHolding holding) {
 
         int heldQuantity = holding == null
                 ? 0
@@ -147,39 +146,33 @@ public class OrderValidator {
 
             throw new InsufficientHoldingsException(
                     account.getId(),
-                    order.getInstrument().getSymbol(),
+                    instrument.getSymbol(),
                     (long) order.getQuantity(),
                     (long) heldQuantity);
         }
     }
 
-    // Rule 8
 
     // Rule 8
-    private void checkIdempotencyKey(Order order) {
+    private void checkIdempotencyKey(
+            Order order,
+            List<Order> existingOrders) {
 
-        if (order.getAccount().getOrders() == null) {
-
+        if (existingOrders == null) {
             return;
         }
 
-        boolean duplicate = order.getAccount()
-                .getOrders()
+        boolean duplicate = existingOrders
                 .stream()
                 .anyMatch(existing ->
-
-                order.getIdempotencyKey()
-                        .equals(
-                                existing.getIdempotencyKey())
-
+                        order.getIdempotencyKey() != null &&
+                                order.getIdempotencyKey()
+                                        .equals(existing.getIdempotencyKey())
                 );
 
         if (duplicate) {
 
-            throw new DuplicateOrderException(
-                    order.getIdempotencyKey());
+            throw new DuplicateOrderException(order.getIdempotencyKey());
         }
-
     }
-
 }

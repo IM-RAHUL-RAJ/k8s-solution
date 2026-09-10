@@ -9,7 +9,6 @@ public final class AccountNotFoundException extends ETPException {
         this.accountId = accountId;
     }
 
-    /** For server-side logging only - never put this in the message. */
     public Long getAccountId() {
         return accountId;
     }
