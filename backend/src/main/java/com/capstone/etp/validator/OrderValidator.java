@@ -73,7 +73,7 @@ public class OrderValidator {
         if (instrument == null) {
 
             throw new InstrumentNotFoundException(
-                    null,
+                    instrument.getSymbol(),
                     InstrumentNotFoundException.Reason.UNKNOWN_SYMBOL);
         }
 
