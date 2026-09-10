@@ -9,6 +9,7 @@ import com.capstone.etp.enums.OrderSide;
 import com.capstone.etp.enums.OrderStatus;
 import com.capstone.etp.exception.AccountNotFoundException;
 import com.capstone.etp.mapper.AccountMapper;
+import com.capstone.etp.security.AccountAuthorizer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,6 +33,9 @@ class AccountServiceTest {
     @Mock
     private AccountMapper accountMapper;
 
+    @Mock
+    private AccountAuthorizer accountAuthorizer;
+
     private AccountService accountService;
 
     private static final Long ACCOUNT_ID = 1L;
@@ -39,7 +43,7 @@ class AccountServiceTest {
 
     @BeforeEach
     void setUp() {
-        accountService = new AccountService(accountMapper);
+        accountService = new AccountService(accountMapper, accountAuthorizer);
     }
 
     //account details returned successfully
@@ -59,6 +63,8 @@ class AccountServiceTest {
 
         verify(accountMapper, times(2))
                 .getAccountById(ACCOUNT_ID);
+        verify(accountAuthorizer)
+                .ensureAccountAccess(ACCOUNT_ID);
     }
 
     //balance returned successfully
@@ -86,6 +92,8 @@ class AccountServiceTest {
 
         verify(accountMapper)
                 .getBalance(ACCOUNT_ID);
+        verify(accountAuthorizer)
+                .ensureAccountAccess(ACCOUNT_ID);
     }
 
     //positions returned successfully
@@ -118,6 +126,8 @@ class AccountServiceTest {
 
         verify(accountMapper)
                 .getPositionsByAccountId(ACCOUNT_ID);
+        verify(accountAuthorizer)
+                .ensureAccountAccess(ACCOUNT_ID);
     }
 
     //order history returned successfully
@@ -175,6 +185,8 @@ class AccountServiceTest {
                         from,
                         to
                 );
+        verify(accountAuthorizer)
+                .ensureAccountAccess(ACCOUNT_ID);
     }
 
     //unknown account returns ACC-404
@@ -189,6 +201,8 @@ class AccountServiceTest {
         )
                 .isInstanceOf(AccountNotFoundException.class)
                 .hasMessageContaining("Account not found");
+        verify(accountAuthorizer)
+                .ensureAccountAccess(ACCOUNT_ID);
     }
 
     //balance with unknown account returns ACC-404
@@ -202,6 +216,8 @@ class AccountServiceTest {
                 () -> accountService.getBalance(ACCOUNT_ID)
         )
                 .isInstanceOf(AccountNotFoundException.class);
+        verify(accountAuthorizer)
+                .ensureAccountAccess(ACCOUNT_ID);
     }
 
     //positions with unknown account returns ACC-404
@@ -215,6 +231,8 @@ class AccountServiceTest {
                 () -> accountService.getPositions(ACCOUNT_ID)
         )
                 .isInstanceOf(AccountNotFoundException.class);
+        verify(accountAuthorizer)
+                .ensureAccountAccess(ACCOUNT_ID);
     }
 
     // order history with unknown account returns ACC-404
@@ -233,6 +251,8 @@ class AccountServiceTest {
                 )
         )
                 .isInstanceOf(AccountNotFoundException.class);
+        verify(accountAuthorizer)
+                .ensureAccountAccess(ACCOUNT_ID);
     }
 
     private AccountResponse createAccountResponse() {

@@ -19,8 +19,8 @@ RUN addgroup --system spring && adduser --system --ingroup spring spring
 
 COPY --from=build /workspace/target/trade-api-1.0.0-SNAPSHOT.jar app.jar
 
-EXPOSE 8080
+EXPOSE 8084
 USER spring:spring
-HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 CMD ["curl","--fail","--silent","http://127.0.0.1:8080/actuator/health"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 CMD sh -c "curl --fail --silent http://127.0.0.1:${SERVER_PORT:-8084}/actuator/health"
 
 ENTRYPOINT ["java","-jar","/app/app.jar"]
