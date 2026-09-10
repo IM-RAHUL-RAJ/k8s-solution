@@ -4,6 +4,6 @@ import java.util.List;
 
 public record AuthenticatedUser(
         String subject,
-        Long accountId,
+        List<Long> accountIds,
         List<String> roles) {
 }

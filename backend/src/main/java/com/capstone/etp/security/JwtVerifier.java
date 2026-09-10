@@ -80,6 +80,17 @@ public class JwtVerifier {
             throw new UnauthorizedException("Unauthorised");
         }
 
+        Object accountIdsRaw = claims.get("accountIds");
+        List<Long> accountIds;
+        if (accountIdsRaw instanceof List<?> rawAccountIds) {
+            accountIds = rawAccountIds.stream()
+                    .map(id -> id instanceof Number ? ((Number) id).longValue() : null)
+                    .filter(id -> id != null)
+                    .toList();
+        } else {
+            accountIds = List.of(accountIdNumber.longValue());
+        }
+
         Object rolesRaw = claims.get("roles");
         if (!(rolesRaw instanceof List<?> rawRoles) || rawRoles.isEmpty()) {
             throw new UnauthorizedException("Unauthorised");
@@ -94,6 +105,6 @@ public class JwtVerifier {
             throw new UnauthorizedException("Unauthorised");
         }
 
-        return new JwtClaims(subject, accountIdNumber.longValue(), roles);
+        return new JwtClaims(subject, accountIdNumber.longValue(), accountIds, roles);
     }
 }

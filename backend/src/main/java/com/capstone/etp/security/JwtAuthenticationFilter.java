@@ -55,7 +55,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
 
             JwtClaims claims = jwtVerifier.verify(token);
-            AuthenticatedUser user = new AuthenticatedUser(claims.subject(), claims.accountId(), claims.roles());
+            AuthenticatedUser user = new AuthenticatedUser(claims.subject(), claims.accountIds(), claims.roles());
             var authorities = claims.roles().stream()
                     .map(SimpleGrantedAuthority::new)
                     .toList();

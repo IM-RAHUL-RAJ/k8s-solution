@@ -14,7 +14,7 @@ public class AccountAuthorizer {
             throw new UnauthorizedException("Unauthorised");
         }
 
-        if (!accountId.equals(user.accountId())) {
+        if (!user.accountIds().contains(accountId)) {
             throw new AccountAccessDeniedException();
         }
     }
