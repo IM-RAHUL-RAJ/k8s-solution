@@ -5,7 +5,7 @@ const crypto = require("crypto");
 const app = express();
 app.use(express.json());
 
-const secret = process.env.JWT_SECRET;
+const secret = process.env.JWT_SECRET || "change-this-to-a-long-random-secret-at-least-32-bytes"; //process.env.JWT_SECRET;
 if (!secret) {
   throw new Error("JWT_SECRET must be set");
 }
@@ -17,12 +17,14 @@ const users = {
     id: "8f14e45f-ceea-4c1b-9d3b-1a2b3c4d5e6f",
     password: "correct horse battery staple",
     accountId: 1,
+    accountIds: [1, 2, 3],
     roles: ["CUSTOMER"]
   },
   "ops.admin": {
     id: "7ddfdd63-ec56-49fc-8ecf-e4127ff3f784",
     password: "admin passphrase 123",
     accountId: 2,
+    accountIds: [1, 2, 3, 4, 5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20],
     roles: ["ADMIN"]
   }
 };
@@ -32,6 +34,7 @@ function issueAccessToken(user) {
     {
       sub: user.id,
       accountId: user.accountId,
+      accountIds: user.accountIds,
       roles: user.roles,
       iss: issuer
     },
@@ -93,3 +96,4 @@ const port = Number(process.env.PORT || "3000");
 app.listen(port, () => {
   console.log(`auth-stub listening on ${port}`);
 });
+

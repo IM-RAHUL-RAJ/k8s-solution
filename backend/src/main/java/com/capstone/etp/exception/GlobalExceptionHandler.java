@@ -67,6 +67,16 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
     }
 
+    @ExceptionHandler(OptimisticLockException.class)
+    public ResponseEntity<ErrorResponse> handleOptimisticLock(OptimisticLockException ex) {
+        log.warn("Optimistic lock conflict: {}", ex.getMessage());
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .errorCode(ex.getCatalogueCode())
+                .message(ex.getMessage())
+                .build();
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+    }
+
     // InvalidOrderValueException - Returns VAL-422 with status 422.
     @ExceptionHandler(InvalidOrderValueException.class)
     public ResponseEntity<ErrorResponse> handleInvalidOrderValue(InvalidOrderValueException ex) {
@@ -89,4 +99,3 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
     }
 }
-

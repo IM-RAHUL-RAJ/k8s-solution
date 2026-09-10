@@ -10,6 +10,7 @@ import com.capstone.etp.enums.OrderSide;
 import com.capstone.etp.enums.OrderStatus;
 import com.capstone.etp.exception.AccountNotFoundException;
 import com.capstone.etp.exception.InstrumentNotFoundException;
+import com.capstone.etp.exception.OptimisticLockException;
 import com.capstone.etp.mapper.OrderMapper;
 import com.capstone.etp.security.AccountAuthorizer;
 import com.capstone.etp.validator.OrderValidator;
@@ -55,6 +56,8 @@ class OrderServiceTest {
         account = mock(Account.class);
         instrument = mock(Instrument.class);
         holding = mock(PortfolioHolding.class);
+        lenient().when(account.getId()).thenReturn(1L);
+        lenient().when(account.getVersion()).thenReturn(7L);
     }
 
     @Test
@@ -86,6 +89,8 @@ class OrderServiceTest {
 
         when(orderMapper.findExistingOrdersByAccount(1L))
                 .thenReturn(Collections.emptyList());
+        when(orderMapper.incrementAccountVersionIfVersionMatches(1L, 7L))
+                .thenReturn(1);
 
         OrderResponse response =
                 orderService.placeOrder(request);
@@ -115,6 +120,7 @@ class OrderServiceTest {
 
         verify(orderMapper, times(1))
                 .insertOrder(any(Order.class));
+        verify(orderMapper).incrementAccountVersionIfVersionMatches(1L, 7L);
         verify(accountAuthorizer)
                 .ensureAccountAccess(1L);
     }
@@ -206,6 +212,8 @@ class OrderServiceTest {
 
         when(orderMapper.findExistingOrdersByAccount(1L))
                 .thenReturn(Collections.emptyList());
+        when(orderMapper.incrementAccountVersionIfVersionMatches(1L, 7L))
+                .thenReturn(1);
 
         OrderResponse response =
                 orderService.placeOrder(request);
@@ -231,6 +239,7 @@ class OrderServiceTest {
 
         verify(orderMapper, times(1))
                 .insertOrder(any(Order.class));
+        verify(orderMapper).incrementAccountVersionIfVersionMatches(1L, 7L);
         verify(accountAuthorizer)
                 .ensureAccountAccess(1L);
     }
@@ -264,6 +273,8 @@ class OrderServiceTest {
 
         when(orderMapper.findExistingOrdersByAccount(1L))
                 .thenReturn(Collections.emptyList());
+        when(orderMapper.incrementAccountVersionIfVersionMatches(1L, 7L))
+                .thenReturn(1);
 
         ArgumentCaptor<Order> orderCaptor =
                 ArgumentCaptor.forClass(Order.class);
@@ -353,7 +364,6 @@ class OrderServiceTest {
 
         when(orderMapper.findExistingOrdersByAccount(1L))
                 .thenReturn(Collections.emptyList());
-
         RuntimeException validationException =
                 new RuntimeException("Validation failed");
 
@@ -416,6 +426,8 @@ class OrderServiceTest {
 
         when(orderMapper.findExistingOrdersByAccount(1L))
                 .thenReturn(existingOrders);
+        when(orderMapper.incrementAccountVersionIfVersionMatches(1L, 7L))
+                .thenReturn(1);
 
         orderService.placeOrder(request);
 
@@ -434,6 +446,38 @@ class OrderServiceTest {
     }
 
     @Test
+    void placeOrder_shouldRefuseConcurrentAccountTouch() {
+        UUID idempotencyKey =
+                UUID.fromString("a2f3c1e5-b0ff-4a33-8fb4-f86a6f1e2a90");
+
+        PlaceOrderRequest request = mock(PlaceOrderRequest.class);
+
+        when(request.getAccountId()).thenReturn(1L);
+        when(request.getSymbol()).thenReturn("AAPL");
+        when(request.getIdempotencyKey()).thenReturn(idempotencyKey);
+        when(request.getSide()).thenReturn(OrderSide.BUY);
+        when(request.getQuantity()).thenReturn(2);
+        when(request.getPrice()).thenReturn(new BigDecimal("100.00"));
+        when(instrument.getId()).thenReturn(100L);
+        when(orderMapper.findAccountById(1L)).thenReturn(account);
+        when(orderMapper.findInstrumentBySymbol("AAPL")).thenReturn(instrument);
+        when(orderMapper.findPortfolioHolding(1L, 100L)).thenReturn(holding);
+        when(orderMapper.findExistingOrdersByAccount(1L)).thenReturn(Collections.emptyList());
+        when(orderMapper.incrementAccountVersionIfVersionMatches(1L, 7L)).thenReturn(0);
+
+        OptimisticLockException exception = assertThrows(
+                OptimisticLockException.class,
+                () -> orderService.placeOrder(request)
+        );
+
+        assertEquals(
+                "Account version mismatch during order placement; concurrent modification detected",
+                exception.getMessage()
+        );
+        verify(orderMapper).insertOrder(any(Order.class));
+    }
+
+    @Test
     void cancelOrder_shouldCancelOrderSuccessfully() {
 
         UUID orderId = UUID.randomUUID();
@@ -443,14 +487,20 @@ class OrderServiceTest {
         when(orderMapper.findOrderById(orderId))
                 .thenReturn(order);
         when(order.getAccountId()).thenReturn(1L);
-
-        when(order.getStatus())
-                .thenReturn(OrderStatus.CANCELLED);
+        when(orderMapper.findAccountById(1L)).thenReturn(account);
+        when(order.getStatus()).thenReturn(OrderStatus.CANCELLED);
 
         Instant terminalAt = Instant.now();
 
         when(order.getTerminalAt())
                 .thenReturn(terminalAt);
+        when(orderMapper.updateOrderStatusIfCurrentStatusMatches(
+                orderId,
+                OrderStatus.NEW,
+                OrderStatus.CANCELLED,
+                terminalAt
+        )).thenReturn(1);
+        when(orderMapper.incrementAccountVersionIfVersionMatches(1L, 7L)).thenReturn(1);
 
         OrderResponse response =
                 orderService.cancelOrder(orderId);
@@ -479,11 +529,13 @@ class OrderServiceTest {
                 .cancel();
 
         verify(orderMapper, times(1))
-                .updateOrderStatus(
+                .updateOrderStatusIfCurrentStatusMatches(
                         orderId,
+                        OrderStatus.NEW,
                         OrderStatus.CANCELLED,
                         terminalAt
                 );
+        verify(orderMapper).incrementAccountVersionIfVersionMatches(1L, 7L);
         verify(accountAuthorizer)
                 .ensureAccountAccess(1L);
     }
@@ -498,6 +550,7 @@ class OrderServiceTest {
         when(orderMapper.findOrderById(orderId))
                 .thenReturn(order);
         when(order.getAccountId()).thenReturn(1L);
+        when(orderMapper.findAccountById(1L)).thenReturn(account);
 
         doThrow(
                 new RuntimeException("Order already terminal")
@@ -520,12 +573,43 @@ class OrderServiceTest {
                 .cancel();
 
         verify(orderMapper, never())
-                .updateOrderStatus(
+                .updateOrderStatusIfCurrentStatusMatches(
                         any(UUID.class),
+                        any(OrderStatus.class),
                         any(OrderStatus.class),
                         any(Instant.class)
                 );
         verify(accountAuthorizer)
                 .ensureAccountAccess(1L);
+    }
+
+    @Test
+    void cancelOrder_shouldRefuseConcurrentStateChange() {
+        UUID orderId = UUID.randomUUID();
+        Order order = mock(Order.class);
+        Instant terminalAt = Instant.now();
+
+        when(orderMapper.findOrderById(orderId)).thenReturn(order);
+        when(order.getAccountId()).thenReturn(1L);
+        when(orderMapper.findAccountById(1L)).thenReturn(account);
+        when(order.getStatus()).thenReturn(OrderStatus.CANCELLED);
+        when(order.getTerminalAt()).thenReturn(terminalAt);
+        when(orderMapper.updateOrderStatusIfCurrentStatusMatches(
+                orderId,
+                OrderStatus.NEW,
+                OrderStatus.CANCELLED,
+                terminalAt
+        )).thenReturn(0);
+
+        OptimisticLockException exception = assertThrows(
+                OptimisticLockException.class,
+                () -> orderService.cancelOrder(orderId)
+        );
+
+        assertEquals(
+                "Order status mismatch during cancellation; concurrent modification detected",
+                exception.getMessage()
+        );
+        verify(orderMapper, never()).incrementAccountVersionIfVersionMatches(anyLong(), anyLong());
     }
 }

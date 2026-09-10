@@ -165,14 +165,21 @@ public interface OrderMapper {
              #{order.side}::order_type_enum, #{order.quantity}, #{order.limitPrice}, #{order.status}:: order_status_enum, #{order.createdAt})""")
     void insertOrder(@Param("order") Order order);
 
-    //Update order status (e.g., to CANCELLED)
-
     @Update("""
         UPDATE orders
-        SET status = #{status}::order_status_enum, terminal_at = #{terminalAt}
-        WHERE id = #{orderId}""")
-    void updateOrderStatus(
+        SET status = #{newStatus}::order_status_enum, terminal_at = #{terminalAt}
+        WHERE id = #{orderId} AND status = #{expectedStatus}::order_status_enum""")
+    int updateOrderStatusIfCurrentStatusMatches(
             @Param("orderId") UUID orderId,
-            @Param("status") OrderStatus status,
+            @Param("expectedStatus") OrderStatus expectedStatus,
+            @Param("newStatus") OrderStatus newStatus,
             @Param("terminalAt") Instant terminalAt);
+
+    @Update("""
+        UPDATE accounts
+        SET version = version + 1, updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{accountId} AND version = #{version}""")
+    int incrementAccountVersionIfVersionMatches(
+            @Param("accountId") Long accountId,
+            @Param("version") Long version);
 }

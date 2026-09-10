@@ -61,7 +61,7 @@ class GlobalExceptionHandlerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().getErrorCode()).isEqualTo("INS-404");
-        assertThat(response.getBody().getMessage()).isEqualTo("Instrument not found");
+        assertThat(response.getBody().getMessage()).isEqualTo("Instrument not found: UNKNOWN_SYMBOL");
         assertThat(response.getBody().getMessage()).doesNotContain(symbol);
     }
 
@@ -96,6 +96,19 @@ class GlobalExceptionHandlerTest {
         assertThat(response.getBody().getErrorCode()).isEqualTo("ORD-409");
         assertThat(response.getBody().getMessage()).isEqualTo("Duplicate order");
         assertThat(response.getBody().getMessage()).doesNotContain(idempotencyKey.toString());
+    }
+
+    @Test
+    void handleOptimisticLock_MapsToORD409With409Status() {
+        OptimisticLockException exception = new OptimisticLockException(
+                "Account version mismatch during order placement; concurrent modification detected");
+        ResponseEntity<ErrorResponse> response = exceptionHandler.handleOptimisticLock(exception);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getErrorCode()).isEqualTo("ORD-409");
+        assertThat(response.getBody().getMessage())
+                .isEqualTo("Account version mismatch during order placement; concurrent modification detected");
     }
 
     //InvalidOrderValueException -> VAL-422
@@ -153,6 +166,10 @@ class GlobalExceptionHandlerTest {
         // ORD-409 → 409
         assertThat(exceptionHandler.handleDuplicateOrder(
                 new DuplicateOrderException(UUID.randomUUID())
+        ).getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+
+        assertThat(exceptionHandler.handleOptimisticLock(
+                new OptimisticLockException("Account version mismatch during order placement; concurrent modification detected")
         ).getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
 
         // VAL-422 → 422
