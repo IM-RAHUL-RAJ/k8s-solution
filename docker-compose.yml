@@ -1,0 +1,80 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    profiles: ["platform"]
+    environment:
+      POSTGRES_DB: ${DB_NAME:-springboot_db}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./backend/src/main/resources/schema/schema.sql:/docker-entrypoint-initdb.d/001_initial_schema.sql:ro
+      - ./postgres_database/migrations/002_add_query_indexes.sql:/docker-entrypoint-initdb.d/002_add_query_indexes.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-springboot_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - trading-net
+
+  auth-stub:
+    profiles: ["platform"]
+    build:
+      context: .
+      dockerfile: services/auth-stub/Dockerfile
+    environment:
+      PORT: 8081
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ISSUER: ${JWT_ISSUER:-auth-service}
+    ports:
+      - "${AUTH_STUB_PORT:-8081}:8081"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8081/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    networks:
+      - trading-net
+
+  backend:
+    profiles: ["platform"]
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      SERVER_PORT: 8084
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-springboot_db}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ISSUER: ${JWT_ISSUER:-auth-service}
+      AUTH_BASE_URL: http://auth-stub:8081
+    ports:
+      - "${TRADE_API_PORT:-8084}:8084"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-stub:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8084/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 30s
+    networks:
+      - trading-net
+
+volumes:
+  postgres-data:
+
+networks:
+  trading-net:
+    name: trading-net
