@@ -347,7 +347,6 @@ CREATE TABLE transactions (
 
 -- ---------------------------------------------------------------------
 -- WATCHLIST
--- Maximum 3 instruments per account
 -- ---------------------------------------------------------------------
 
 CREATE TABLE watchlist (
