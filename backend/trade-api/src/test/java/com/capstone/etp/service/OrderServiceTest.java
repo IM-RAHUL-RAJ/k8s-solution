@@ -11,6 +11,7 @@ import com.capstone.etp.enums.OrderStatus;
 import com.capstone.etp.exception.AccountNotFoundException;
 import com.capstone.etp.exception.InstrumentNotFoundException;
 import com.capstone.etp.exception.OptimisticLockException;
+import com.capstone.etp.kafka.producer.OrderEventProducer;
 import com.capstone.etp.mapper.OrderMapper;
 import com.capstone.etp.security.AccountAuthorizer;
 import com.capstone.etp.validator.OrderValidator;
@@ -43,6 +44,9 @@ class OrderServiceTest {
 
     @Mock
     private AccountAuthorizer accountAuthorizer;
+
+    @Mock
+    private OrderEventProducer orderEventProducer;
 
     @InjectMocks
     private OrderService orderService;
