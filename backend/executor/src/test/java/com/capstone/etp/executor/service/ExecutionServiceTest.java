@@ -23,6 +23,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -88,7 +89,7 @@ class ExecutionServiceTest {
 
         assertThat(result.alreadyHandled()).isTrue();
         verify(mapper, never()).updateAccountCashAndVersion(any(), any(), any());
-        verify(mapper, never()).insertTransaction(any(), any(), any(), any(), any(), any());
+        verify(mapper, never()).insertTransaction(any(), anyInt(), any(), any(), any(), any());
     }
 
     // -------------------------------------------------------------------------
@@ -262,7 +263,7 @@ class ExecutionServiceTest {
 
         // Holding decreased (not upserted)
         verify(mapper).decreaseHolding(eq(ACCOUNT_ID), eq(INSTR_ID), eq(50));
-        verify(mapper, never()).upsertHolding(any(), any(), any(), any());
+        verify(mapper, never()).upsertHolding(any(), any(), anyInt(), any());
 
         // cashDelta is positive for SELL
         assertThat(result.cashDelta()).isEqualByComparingTo("11632.50");
