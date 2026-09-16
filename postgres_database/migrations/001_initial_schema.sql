@@ -79,7 +79,8 @@ DROP TABLE IF EXISTS
     portfolios,
     account_preferences,
     accounts,
-    clients
+    clients,
+    watchlist
 CASCADE;
 
 
