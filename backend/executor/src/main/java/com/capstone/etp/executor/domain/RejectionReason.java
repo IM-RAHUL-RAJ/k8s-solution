@@ -1,0 +1,11 @@
+package com.capstone.etp.executor.domain;
+
+public enum RejectionReason {
+    LIMIT_NOT_MARKETABLE,
+    ACCOUNT_NOT_ACTIVE,
+    INSTRUMENT_NOT_TRADABLE,
+    INSUFFICIENT_FUNDS_AT_EXECUTION,
+    INSUFFICIENT_HOLDINGS_AT_EXECUTION,
+    PRICING_UNAVAILABLE,
+    ORDER_NOT_FOUND
+}
