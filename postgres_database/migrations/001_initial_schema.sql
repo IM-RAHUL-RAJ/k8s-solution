@@ -325,7 +325,7 @@ CREATE TABLE orders (
 -- TRANSACTIONS
 
 CREATE TABLE transactions (
-    id              BIGSERIAL PRIMARY KEY,
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     order_id        UUID NOT NULL UNIQUE
                         REFERENCES orders(id)
                         ON DELETE RESTRICT,
