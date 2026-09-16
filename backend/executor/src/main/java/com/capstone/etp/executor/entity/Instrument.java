@@ -1,4 +1,4 @@
-package com.capstone.etp.executor.domain;
+package com.capstone.etp.executor.entity;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,8 +11,9 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class InstrumentSnapshot {
+public class Instrument {
     private Long id;
     private String symbol;
     private boolean tradable;
 }
+

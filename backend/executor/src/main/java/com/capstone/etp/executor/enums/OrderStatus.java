@@ -1,4 +1,4 @@
-package com.capstone.etp.executor.domain;
+package com.capstone.etp.executor.enums;
 
 public enum OrderStatus {
     NEW,
@@ -6,3 +6,4 @@ public enum OrderStatus {
     CANCELLED,
     REJECTED
 }
+

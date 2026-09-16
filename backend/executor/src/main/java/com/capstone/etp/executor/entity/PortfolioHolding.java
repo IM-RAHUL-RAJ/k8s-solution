@@ -1,4 +1,4 @@
-package com.capstone.etp.executor.domain;
+package com.capstone.etp.executor.entity;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -13,8 +13,10 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class AccountSnapshot {
-    private Long id;
-    private AccountStatus status;
-    private BigDecimal cashBalance;
+public class PortfolioHolding {
+    private Long portfolioId;
+    private Long instrumentId;
+    private int quantity;
+    private BigDecimal avgPrice;
 }
+

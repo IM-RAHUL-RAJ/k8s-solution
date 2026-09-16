@@ -1,6 +1,7 @@
-package com.capstone.etp.executor.domain;
+package com.capstone.etp.executor.enums;
 
 public enum OrderSide {
     BUY,
     SELL
 }
+
