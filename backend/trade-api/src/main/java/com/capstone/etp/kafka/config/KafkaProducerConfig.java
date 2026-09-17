@@ -39,13 +39,4 @@ public class KafkaProducerConfig {
                 new DefaultKafkaProducerFactory<>(kafkaProperties.buildProducerProperties());
         return new KafkaTemplate<>(producerFactory);
     }
-
-    /**
-     * Provides ObjectMapper for JSON serialization of Kafka messages.
-     * Matches the executor's explicit serialization pattern.
-     */
-    @Bean
-    public ObjectMapper kafkaObjectMapper() {
-        return new ObjectMapper();
-    }
 }
