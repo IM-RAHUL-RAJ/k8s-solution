@@ -157,6 +157,19 @@ services:
     networks:
       - trading-net
 
+  kafbat-ui:
+    image: ghcr.io/kafbat/kafbat:latest
+    profiles: ["platform"]
+    ports:
+      - "8089:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+    depends_on:
+      - kafka
+    networks:
+      - trading-net
+
 volumes:
   postgres-data:
 
