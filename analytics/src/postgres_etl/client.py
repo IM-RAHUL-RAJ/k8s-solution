@@ -20,13 +20,13 @@ SELECT
     o.idempotency_key           AS source_order_id,
     o.order_type                AS side,
     o.quantity                  AS quantity,
-    o.price                     AS price,
+    o.limit_price               AS price,
     o.status                    AS status,
     o.created_at                AS created_at,
     o.terminal_at               AS terminal_at,
 
     -- Transaction (filled price) — NULL for unfilled orders
-    t.price                     AS executed_price,
+    t.executed_price            AS executed_price,
     t.executed_at               AS executed_at,
 
     -- Instrument
@@ -102,6 +102,7 @@ class PostgresClient:
             self._conn.close()
         except Exception:
             pass
+
 
     # Context manager support
     def __enter__(self) -> PostgresClient:
