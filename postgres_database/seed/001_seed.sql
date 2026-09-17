@@ -25,15 +25,15 @@ INSERT INTO clients (id, client_ref, name, email, password_hash, phone, date_of_
 
 INSERT INTO accounts (id, account_ref, client_id, account_type, currency, cash_balance, status, version, created_at, suspended_at, closed_at, updated_at) VALUES
 (1,  'ACC0000001', 1,  'US_EQUITY', 'USD', 15000.50, 'ACTIVE',    3, '2023-01-10 09:00:00+00', NULL,                     NULL,                     '2024-06-01 10:00:00+00'),
-(2,  'ACC0000002', 1,  'CRYPTO', 'USD', 500.00,   'ACTIVE',    1, '2023-02-15 09:00:00+00', NULL,                     NULL,                     NULL),
+(2,  'ACC0000002', 1,  'CRYPTO', 'USD', 11313500.00,   'ACTIVE',    1, '2023-02-15 09:00:00+00', NULL,                     NULL,                     NULL),
 (3,  'ACC0000003', 2,  'FOREX',  'EUR', 2000.00,  'ACTIVE',    2, '2023-03-01 09:00:00+00', NULL,                     NULL,                     '2024-05-20 08:30:00+00'),
 (4,  'ACC0000004', 3,  'INDIAN_EQUITY', 'INR', 0.00,     'SUSPENDED', 4, '2022-11-05 09:00:00+00', '2024-02-01 12:00:00+00', NULL,                     '2024-02-01 12:00:00+00'),
 (5,  'ACC0000005', 4,  'US_EQUITY', 'USD', 10000.00, 'ACTIVE',    5, '2023-04-18 09:00:00+00', NULL,                     NULL,                     '2024-07-12 14:00:00+00'),
 (6,  'ACC0000006', 5,  'US_EQUITY', 'USD', 0.00,     'CLOSED',    6, '2021-06-01 09:00:00+00', NULL,                     '2023-12-31 17:00:00+00', '2023-12-31 17:00:00+00'),
-(7,  'ACC0000007', 6,  'CRYPTO', 'USD', 250.75,   'ACTIVE',    2, '2023-05-22 09:00:00+00', NULL,                     NULL,                     NULL),
+(7,  'ACC0000007', 6,  'CRYPTO', 'EUR', 2222250.75,   'ACTIVE',    2, '2023-05-22 09:00:00+00', NULL,                     NULL,                     NULL),
 (8,  'ACC0000008', 7,  'FOREX',  'USD', 5000.00,  'ACTIVE',    3, '2023-06-30 09:00:00+00', NULL,                     NULL,                     '2024-03-11 09:20:00+00'),
 (9,  'ACC0000009', 8,  'INDIAN_EQUITY', 'INR', 1200.00,  'SUSPENDED', 2, '2022-09-14 09:00:00+00', '2024-01-15 11:00:00+00', NULL,                     '2024-01-15 11:00:00+00'),
-(10, 'ACC0000010', 9,  'CRYPTO', 'USD', 89.99,    'ACTIVE',    1, '2024-01-02 09:00:00+00', NULL,                     NULL,                     NULL),
+(10, 'ACC0000010', 9,  'CRYPTO', 'GBP', 13244389.99,    'ACTIVE',    1, '2024-01-02 09:00:00+00', NULL,                     NULL,                     NULL),
 (11, 'ACC0000011', 10, 'US_EQUITY', 'USD', 0.00,     'CLOSED',    5, '2020-03-01 09:00:00+00', NULL,                     '2022-08-19 16:45:00+00', '2022-08-19 16:45:00+00'),
 (12, 'ACC0000012', 11, 'US_EQUITY', 'USD', 30000.00, 'ACTIVE',    4, '2023-07-07 09:00:00+00', NULL,                     NULL,                     '2024-04-02 13:10:00+00'),
 (13, 'ACC0000013', 12, 'FOREX',  'GBP', 750.00,   'ACTIVE',    1, '2023-08-19 09:00:00+00', NULL,                     NULL,                     NULL),
@@ -113,6 +113,8 @@ VALUES
     (11, 'X:BTC-USD',   'CRYPTO', 'Bitcoin',                 'CRYPTO',        'USD', TRUE,  NULL),
     (12, 'X:ETH-USD',   'CRYPTO', 'Ethereum',                'CRYPTO',        'USD', TRUE,  NULL),
     (13, 'X:SOL-USD',   'CRYPTO', 'Solana',                  'CRYPTO',        'USD', TRUE,  NULL),
+    (16, 'X:BTC-EUR',   'CRYPTO', 'Bitcoin',                 'CRYPTO',        'EUR', TRUE,  NULL),
+    (17, 'X:BTC-GBP',   'CRYPTO', 'Bitcoin',                 'CRYPTO',        'GBP', TRUE,  NULL),
 
     (15, 'YESBANK.NS',  'NSE',  'Yes Bank Ltd.',             'INDIAN_EQUITY', 'INR', TRUE,  NULL);
 
