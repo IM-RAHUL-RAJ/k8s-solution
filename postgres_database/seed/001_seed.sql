@@ -36,8 +36,8 @@ INSERT INTO accounts (id, account_ref, client_id, account_type, currency, cash_b
 (10, 'ACC0000010', 9,  'CRYPTO', 'USD', 89.99,    'ACTIVE',    1, '2024-01-02 09:00:00+00', NULL,                     NULL,                     NULL),
 (11, 'ACC0000011', 10, 'US_EQUITY', 'USD', 0.00,     'CLOSED',    5, '2020-03-01 09:00:00+00', NULL,                     '2022-08-19 16:45:00+00', '2022-08-19 16:45:00+00'),
 (12, 'ACC0000012', 11, 'US_EQUITY', 'USD', 30000.00, 'ACTIVE',    4, '2023-07-07 09:00:00+00', NULL,                     NULL,                     '2024-04-02 13:10:00+00'),
-(13, 'ACC0000013', 12, 'FOREX',  'USD', 750.00,   'ACTIVE',    1, '2023-08-19 09:00:00+00', NULL,                     NULL,                     NULL),
-(14, 'ACC0000014', 13, 'CRYPTO', 'JPY', 100000.00,'ACTIVE',    2, '2023-09-25 09:00:00+00', NULL,                     NULL,                     '2024-08-01 07:00:00+00'),
+(13, 'ACC0000013', 12, 'FOREX',  'GBP', 750.00,   'ACTIVE',    1, '2023-08-19 09:00:00+00', NULL,                     NULL,                     NULL),
+(14, 'ACC0000014', 13, 'CRYPTO', 'USD', 100000.00,'ACTIVE',    2, '2023-09-25 09:00:00+00', NULL,                     NULL,                     '2024-08-01 07:00:00+00'),
 (15, 'ACC0000015', 14, 'INDIAN_EQUITY', 'INR', 4000.00,  'SUSPENDED', 3, '2022-12-12 09:00:00+00', '2024-03-05 10:15:00+00', NULL,                     '2024-03-05 10:15:00+00'),
 (16, 'ACC0000016', 15, 'US_EQUITY', 'USD', 0.00,     'ACTIVE',    0, '2024-08-20 09:00:00+00', NULL,                     NULL,                     NULL),
 (17, 'ACC0000017', 9,  'US_EQUITY', 'USD', 15000.00, 'ACTIVE',    1, '2024-02-10 09:00:00+00', NULL,                     NULL,                     NULL),
@@ -93,23 +93,28 @@ INSERT INTO portfolios (id, account_id, name, current_value, created_at, updated
 -- INSTRUMENTS 
 
 INSERT INTO instruments
-(id, symbol, exchange, name, asset_class, currency, is_tradable, stopped_at)
+    (id, symbol, exchange, name, asset_class, currency, is_tradable, stopped_at)
 VALUES
-(1,  'AAPL',        'NASDAQ', 'Apple Inc.',                  'US_EQUITY',     'USD', TRUE,  NULL),
-(2,  'MSFT',        'NASDAQ', 'Microsoft Corporation',       'US_EQUITY',     'USD', TRUE,  NULL),
-(3,  'GOOGL',       'NASDAQ', 'Alphabet Inc.',               'US_EQUITY',     'USD', TRUE,  NULL),
-(4,  'TSLA',        'NASDAQ', 'Tesla Inc.',                  'US_EQUITY',     'USD', TRUE,  NULL),
-(5,  'RELIANCE.NS', 'NSE',    'Reliance Industries Ltd.',    'INDIAN_EQUITY', 'INR', TRUE,  NULL),
-(6,  'TCS.NS',      'NSE',    'Tata Consultancy Services',   'INDIAN_EQUITY', 'INR', TRUE,  NULL),
-(7,  'INFY.NS',     'NSE',    'Infosys Ltd.',                'INDIAN_EQUITY', 'INR', TRUE,  NULL),
-(8,  'EURUSD=X',    'FX',     'Euro / US Dollar',            'FX',            'USD', TRUE,  NULL),
-(9,  'GBPUSD=X',    'FX',     'British Pound / US Dollar',   'FX',            'USD', TRUE,  NULL),
-(10, 'JPY=X',       'FX',     'US Dollar / Japanese Yen',    'FX',            'JPY', TRUE,  NULL),
-(11, 'BTC-USD',     'CRYPTO', 'Bitcoin',                     'CRYPTO',        'USD', TRUE,  NULL),
-(12, 'ETH-USD',     'CRYPTO', 'Ethereum',                    'CRYPTO',        'USD', TRUE,  NULL),
-(13, 'SOL-USD',     'CRYPTO', 'Solana',                      'CRYPTO',        'USD', TRUE,  NULL),
-(14, 'WCOM',        'NASDAQ', 'WorldCom Inc. (Delisted)',    'US_EQUITY',     'USD', FALSE, '2024-01-01 00:00:00+00'),
-(15, 'YESBANK.NS',  'NSE',    'Yes Bank Ltd.',               'INDIAN_EQUITY', 'INR', TRUE,  NULL);
+    (1,  'AAPL',        'NYSE', 'Apple Inc.',                'US_EQUITY',     'USD', TRUE,  NULL),
+    (2,  'MSFT',        'NYSE', 'Microsoft Corporation',     'US_EQUITY',     'USD', TRUE,  NULL),
+    (3,  'GOOGL',       'NYSE', 'Alphabet Inc.',              'US_EQUITY',     'USD', TRUE,  NULL),
+    (4,  'TSLA',        'NYSE', 'Tesla Inc.',                 'US_EQUITY',     'USD', TRUE,  NULL),
+
+    (14, 'WCOM',        'NYSE', 'WorldCom Inc. (Delisted)',  'US_EQUITY',     'USD', FALSE, '2024-01-01 00:00:00+00'),
+
+    (5,  'RELIANCE.NS', 'NSE',  'Reliance Industries Ltd.',  'INDIAN_EQUITY', 'INR', TRUE,  NULL),
+    (6,  'TCS.NS',      'NSE',  'Tata Consultancy Services', 'INDIAN_EQUITY', 'INR', TRUE,  NULL),
+    (7,  'INFY.NS',     'NSE',  'Infosys Ltd.',              'INDIAN_EQUITY', 'INR', TRUE,  NULL),
+
+    (8,  'FX:EURUSD',   'FX',   'Euro / US Dollar',          'FX',            'USD', TRUE,  NULL),
+    (9,  'FX:GBPUSD',   'FX',   'British Pound / US Dollar', 'FX',            'USD', TRUE,  NULL),
+    (10, 'FX:USDJPY',   'FX',   'US Dollar / Japanese Yen',  'FX',            'JPY', TRUE,  NULL),
+
+    (11, 'X:BTC-USD',   'CRYPTO', 'Bitcoin',                 'CRYPTO',        'USD', TRUE,  NULL),
+    (12, 'X:ETH-USD',   'CRYPTO', 'Ethereum',                'CRYPTO',        'USD', TRUE,  NULL),
+    (13, 'X:SOL-USD',   'CRYPTO', 'Solana',                  'CRYPTO',        'USD', TRUE,  NULL),
+
+    (15, 'YESBANK.NS',  'NSE',  'Yes Bank Ltd.',             'INDIAN_EQUITY', 'INR', TRUE,  NULL);
 
 
 -- PORTFOLIO HOLDINGS
