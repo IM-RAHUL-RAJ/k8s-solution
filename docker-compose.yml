@@ -158,10 +158,12 @@ services:
       - trading-net
 
   kafbat-ui:
-    image: xaana/kafka-ui:latest
+    image: ghcr.io/kafbat/kafka-ui:latest    
+    depends_on:
+      - kafka
     profiles: ["platform"]
     ports:
-      - "8089:8080"
+      - "8086:8080"
     environment:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
