@@ -12,15 +12,17 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 
 @Slf4j
@@ -54,12 +56,7 @@ public class FauxnanceClient {
 
         this.restClient = RestClient.builder()
                 .baseUrl(baseUrl)
-                .defaultHeader("X-Api-Key", apiKey)
-                .defaultHeader("x-api-key", apiKey)
-                .messageConverters(converters -> {
-                    converters.removeIf(c -> c instanceof MappingJackson2HttpMessageConverter);
-                    converters.add(new MappingJackson2HttpMessageConverter(objectMapper));
-                })
+                .defaultHeader("X-API-Key", apiKey)
                 .build();
     }
 
@@ -204,30 +201,9 @@ public class FauxnanceClient {
 
         throw new TransientNetworkException(symbolSet, maxAttempts,
                 lastError != null ? lastError : new RuntimeException("Request failed"));
-            }
-        }
-
-        log.warn("Fauxnance batch endpoint failed ({}), falling back to individual symbol quotes...",
-                lastError != null ? lastError.getMessage() : "empty");
-
-        // Fallback: query each symbol individually so market data poller continues to work
-        List<QuotePayload> individualQuotes = new ArrayList<>();
-        for (String sym : symbols) {
-            try {
-                QuotePayload q = getQuote(sym);
-                if (q != null) {
-                    individualQuotes.add(q);
-                }
-            } catch (Exception e) {
-                log.debug("Fallback quote for {} failed: {}", sym, e.getMessage());
-            }
-        }
-        return individualQuotes;
     }
 
 
-    // -------------------------------------------------------------------------
-    // Helper parsers: extracts "data" node and maps to FauxnanceQuoteResponse
     // -------------------------------------------------------------------------
 
     private FauxnanceQuoteResponse parseSingleQuote(String rawJson) throws Exception {
@@ -260,65 +236,6 @@ public class FauxnanceClient {
         return resp;
     }
 
-    private List<QuotePayload> parseBatchQuotes(String rawJson) {
-        List<QuotePayload> list = new ArrayList<>();
-        try {
-            JsonNode root = objectMapper.readTree(rawJson);
-
-            // Handle direct array: [ { "symbol": ... } ]
-            if (root.isArray()) {
-                for (JsonNode item : root) {
-                    JsonNode quoteNode = item.has("data") ? item.get("data") : item;
-                    FauxnanceQuoteResponse resp = objectMapper.treeToValue(quoteNode, FauxnanceQuoteResponse.class);
-                    if (resp != null && resp.getSymbol() != null) {
-                        list.add(toPayload(resp));
-                    }
-                }
-                return list;
-            }
-
-            // Handle wrapped array: { "data": [ ... ] } or { "quotes": [ ... ] }
-            JsonNode arrayNode = root.has("data") ? root.get("data") : root.get("quotes");
-            if (arrayNode != null && arrayNode.isArray()) {
-                for (JsonNode item : arrayNode) {
-                    FauxnanceQuoteResponse resp = objectMapper.treeToValue(item, FauxnanceQuoteResponse.class);
-                    if (resp != null && resp.getSymbol() != null) {
-                        list.add(toPayload(resp));
-                    }
-                }
-                return list;
-            }
-
-            // Handle single quote returned
-            if (root.has("data") && root.get("data").has("symbol")) {
-                FauxnanceQuoteResponse resp = objectMapper.treeToValue(root.get("data"), FauxnanceQuoteResponse.class);
-                if (resp != null && resp.getSymbol() != null) {
-                    list.add(toPayload(resp));
-                }
-                return list;
-            }
-
-            // Handle map of symbol -> quote: { "AAPL": { ... } } or { "data": { "AAPL": { ... } } }
-            JsonNode mapNode = (arrayNode != null && arrayNode.isObject()) ? arrayNode : root;
-            mapNode.fields().forEachRemaining(entry -> {
-                try {
-                    JsonNode node = entry.getValue();
-                    if (node.isObject()) {
-                        FauxnanceQuoteResponse resp = objectMapper.treeToValue(node, FauxnanceQuoteResponse.class);
-                        if (resp != null) {
-                            if (resp.getSymbol() == null) resp.setSymbol(entry.getKey());
-                            list.add(toPayload(resp));
-                        }
-                    }
-                } catch (Exception ignored) {}
-            });
-
-        } catch (Exception e) {
-            log.warn("Failed to parse batch quotes JSON: {}", e.getMessage());
-        }
-        return list;
-    }
-
     private QuotePayload toPayload(FauxnanceQuoteResponse r) {
         QuotePayload q = new QuotePayload();
         q.setSymbol(r.getSymbol());
@@ -334,6 +251,7 @@ public class FauxnanceClient {
         q.setQuoteAsOf(r.getQuoteAsOf());
         return q;
     }
+
 
     private List<QuotePayload> parseBatchQuoteResponse(String body) {
         if (body == null || body.isBlank()) {
@@ -358,14 +276,43 @@ public class FauxnanceClient {
                 return Collections.emptyList();
             }
 
-            return Arrays.stream(objectMapper.treeToValue(quotes, BatchQuoteEntry[].class))
-                    .map(this::toPayload)
-                    .collect(Collectors.toList());
+            List<QuotePayload> payloads = new ArrayList<>();
+            for (JsonNode item : quotes) {
+                JsonNode error = item.get("error");
+                if (error != null && !error.isNull()) {
+                    continue;
+                }
+
+                JsonNode quoteNode = item.get("quote");
+                if (quoteNode == null || quoteNode.isNull()) {
+                    continue;
+                }
+
+                FauxnanceQuoteResponse quote = objectMapper.treeToValue(quoteNode, FauxnanceQuoteResponse.class);
+                if (quote == null) {
+                    continue;
+                }
+
+                JsonNode symbolNode = item.get("symbol");
+                if ((quote.getSymbol() == null || quote.getSymbol().isBlank()) && symbolNode != null && !symbolNode.isNull()) {
+                    quote.setSymbol(symbolNode.asText());
+                }
+
+                JsonNode staleNode = item.get("stale");
+                if (staleNode != null && staleNode.isBoolean()) {
+                    quote.setStale(staleNode.asBoolean());
+                }
+
+                QuotePayload payload = toPayload(quote);
+                if (payload.getSymbol() != null && !payload.getSymbol().isBlank()) {
+                    payloads.add(payload);
+                }
+            }
+            return payloads;
         } catch (Exception e) {
             throw new RuntimeException("Failed to parse Fauxnance batch response", e);
         }
     }
-
     private QuotePayload toPayload(BatchQuoteEntry entry) {
         if (entry == null) {
             return null;
@@ -413,5 +360,10 @@ public class FauxnanceClient {
             Thread.currentThread().interrupt();
         }
     }
-}
 
+    private static final class BatchQuoteEntry {
+        public String symbol;
+        public Boolean stale;
+        public FauxnanceQuoteResponse quote;
+    }
+}
