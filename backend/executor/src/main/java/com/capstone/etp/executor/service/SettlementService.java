@@ -17,13 +17,14 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.util.Locale;
 
 /**
  * Encapsulates the single atomic settlement transaction described in the spec:
  *
  * <ol>
  *   <li>Guarded state transition on {@code orders} (WHERE status = 'NEW')</li>
- *   <li>Fresh account read and runtime re-checks</li>
+ *   <li>Fresh account read and runtime re-checks (account state, currency, funds/holdings)</li>
  *   <li>Cash debit/credit with optimistic lock</li>
  *   <li>Holdings upsert or decrease</li>
  *   <li>Transaction record insert</li>
@@ -64,6 +65,10 @@ public class SettlementService {
             if (!account.isActive()) {
                 // Account was suspended or closed after the order was accepted.
                 finalDecision = FillDecision.reject("ACCOUNT_NOT_ACTIVE");
+            } else if (!currencyMatches(account.getCurrency(), instrument.getCurrency())) {
+                log.info("Order {} rejected due to currency mismatch: accountCurrency={} instrumentCurrency={}",
+                        order.getId(), account.getCurrency(), instrument.getCurrency());
+                finalDecision = FillDecision.reject("CURRENCY_MISMATCH");
             } else if (order.getSide() == OrderSide.BUY) {
                 // Rule 6 re-check: funds at limit price (not executed price).
                 BigDecimal required = order.getLimitPrice()
@@ -87,7 +92,8 @@ public class SettlementService {
         // Returns 0 when a prior delivery already settled this order.
         int updated = mapper.settleOrderStatus(order.getId(), finalStatus, now);
         if (updated == 0) {
-            log.info("Order {} already settled by a prior delivery — skipping duplicate", order.getId());
+            log.info("Order {} already settled by a prior delivery — skipping duplicate (accountId={})",
+                    order.getId(), order.getAccountId());
             return SettlementResult.alreadyHandled(order.getId());
         }
 
@@ -117,6 +123,10 @@ public class SettlementService {
         BigDecimal cashDelta  = order.getSide() == OrderSide.BUY ? tradeValue.negate() : tradeValue;
         BigDecimal newBalance = account.getCashBalance().add(cashDelta);
 
+        // Log balance pre-change to make replay demos and audits straightforward
+        log.info("Account {} balance before {} — applying cash delta {} => proposed balance {}",
+                account.getId(), account.getCashBalance(), cashDelta, newBalance);
+
         // Optimistic-locked cash update
         int rows = mapper.updateAccountCashAndVersion(account.getId(), newBalance, account.getVersion());
         if (rows == 0) {
@@ -124,6 +134,10 @@ public class SettlementService {
             throw new OptimisticLockRetryException(
                     "Account " + account.getId() + " version conflict — will retry");
         }
+
+        // Log successful cash update (still inside the DB transaction)
+        log.info("Account {} cash updated to {} (applied by order {})",
+                account.getId(), newBalance, order.getId());
 
         // Holdings
         Long portfolioId = mapper.findPortfolioIdByAccountId(account.getId());
@@ -172,7 +186,8 @@ public class SettlementService {
         int posQtyAfter    = holding != null ? holding.getQuantity() : 0;
         BigDecimal avgCost = holding != null ? holding.getAvgPrice()  : BigDecimal.ZERO;
 
-        log.info("Order {} REJECTED — reason: {}", order.getId(), reason);
+        log.info("Order {} REJECTED — reason: {} — account {} balance remains {}",
+                order.getId(), reason, account.getId(), account.getCashBalance());
 
         return new SettlementResult(
                 order.getId(), order.getAccountId(), symbol,
@@ -180,5 +195,15 @@ public class SettlementService {
                 null, OrderStatus.REJECTED, reason,
                 BigDecimal.ZERO, posQtyAfter, avgCost, now, false);
     }
-}
 
+    private boolean currencyMatches(String accountCurrency, String instrumentCurrency) {
+        if (accountCurrency == null || instrumentCurrency == null) {
+            return false;
+        }
+        String normalizedAccountCurrency = accountCurrency.trim().toUpperCase(Locale.ROOT);
+        String normalizedInstrumentCurrency = instrumentCurrency.trim().toUpperCase(Locale.ROOT);
+        return !normalizedAccountCurrency.isEmpty()
+                && !normalizedInstrumentCurrency.isEmpty()
+                && normalizedAccountCurrency.equals(normalizedInstrumentCurrency);
+    }
+}
