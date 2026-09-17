@@ -249,4 +249,29 @@ public class OrderValidator {
                 .trim()
                 .toUpperCase(Locale.ROOT);
     }
+
+    // Rule 10
+    private void checkIdempotencyKey(
+            Order order,
+            List<Order> existingOrders) {
+
+        if (existingOrders == null) {
+            return;
+        }
+
+        boolean duplicate = existingOrders
+                .stream()
+                .anyMatch(existing ->
+                        order.getIdempotencyKey() != null &&
+                                order.getIdempotencyKey()
+                                        .equals(existing.getIdempotencyKey())
+                );
+
+        if (duplicate) {
+
+            throw new DuplicateOrderException(
+                    order.getIdempotencyKey()
+            );
+        }
+    }
 }

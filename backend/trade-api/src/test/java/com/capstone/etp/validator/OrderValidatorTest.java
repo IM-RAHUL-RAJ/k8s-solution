@@ -21,53 +21,179 @@ class OrderValidatorTest {
 
     private final OrderValidator orderValidator = new OrderValidator();
 
+
     @Test
     void validate_throwsCurrencyMismatch_whenAccountTypeAndAssetClassDiffer() {
+
         Order order = baseOrder(new BigDecimal("150.00"));
-        Account account = baseAccount(AccountType.US_EQUITY, "USD", "10000.00");
-        Instrument instrument = baseInstrument("RELIANCE.NS", AssetClass.INDIAN_EQUITY, "INR");
 
-        CurrencyMismatchException exception = assertThrows(CurrencyMismatchException.class,
-                () -> orderValidator.validate(order, account, instrument, null, Collections.emptyList()));
+        Account account =
+                baseAccount(
+                        AccountType.US_EQUITY,
+                        "USD",
+                        "10000.00"
+                );
 
-        assertEquals("CUR-422", exception.getCatalogueCode());
+        Instrument instrument =
+                baseInstrument(
+                        "RELIANCE.NS",
+                        AssetClass.INDIAN_EQUITY,
+                        "INR"
+                );
+
+
+        CurrencyMismatchException exception =
+                assertThrows(
+                        CurrencyMismatchException.class,
+                        () -> orderValidator.validate(
+                                order,
+                                account,
+                                instrument,
+                                null,
+                                Collections.emptyList()
+                        )
+                );
+
+
+        assertEquals(
+                "CUR-422",
+                exception.getCatalogueCode()
+        );
     }
+
 
     @Test
-    void validate_convertsForexLimitPriceFromAccountCurrencyToQuoteCurrency() {
-        Order order = baseOrder(new BigDecimal("100.00"));
-        Account account = baseAccount(AccountType.FOREX, "INR", "10000.00");
-        Instrument instrument = baseInstrument("FX:INRUSD", AssetClass.FX, "USD");
+    void validate_acceptsForex_whenAccountCurrencyMatchesQuoteCurrency() {
 
-        orderValidator.validate(order, account, instrument, null, Collections.emptyList());
+        Order order =
+                baseOrder(
+                        new BigDecimal("1.20")
+                );
 
-        assertEquals(new BigDecimal("1.20"), order.getLimitPrice());
+
+        Account account =
+                baseAccount(
+                        AccountType.FOREX,
+                        "USD",
+                        "10000.00"
+                );
+
+
+        Instrument instrument =
+                baseInstrument(
+                        "FX:INRUSD",
+                        AssetClass.FX,
+                        "USD"
+                );
+
+
+        orderValidator.validate(
+                order,
+                account,
+                instrument,
+                null,
+                Collections.emptyList()
+        );
+
+
+        // FX:INRUSD means 1 INR = X USD.
+        // Validator only checks currency compatibility.
+        // It does not convert price anymore.
+        assertEquals(
+                new BigDecimal("1.20"),
+                order.getLimitPrice()
+        );
     }
+
 
     @Test
-    void validate_throwsCurrencyMismatch_whenForexAccountCurrencyDoesNotMatchPairBase() {
-        Order order = baseOrder(new BigDecimal("100.00"));
-        Account account = baseAccount(AccountType.FOREX, "EUR", "10000.00");
-        Instrument instrument = baseInstrument("FX:INRUSD", AssetClass.FX, "USD");
+    void validate_throwsCurrencyMismatch_whenForexAccountCurrencyDoesNotMatchQuoteCurrency() {
 
-        CurrencyMismatchException exception = assertThrows(CurrencyMismatchException.class,
-                () -> orderValidator.validate(order, account, instrument, null, Collections.emptyList()));
+        Order order =
+                baseOrder(
+                        new BigDecimal("100.00")
+                );
 
-        assertEquals("CUR-422", exception.getCatalogueCode());
+
+        Account account =
+                baseAccount(
+                        AccountType.FOREX,
+                        "EUR",
+                        "10000.00"
+                );
+
+
+        Instrument instrument =
+                baseInstrument(
+                        "FX:INRUSD",
+                        AssetClass.FX,
+                        "USD"
+                );
+
+
+        CurrencyMismatchException exception =
+                assertThrows(
+                        CurrencyMismatchException.class,
+                        () -> orderValidator.validate(
+                                order,
+                                account,
+                                instrument,
+                                null,
+                                Collections.emptyList()
+                        )
+                );
+
+
+        assertEquals(
+                "CUR-422",
+                exception.getCatalogueCode()
+        );
     }
+
 
     @Test
     void validate_keepsNonForexLimitPriceUnchanged() {
-        Order order = baseOrder(new BigDecimal("250.50"));
-        Account account = baseAccount(AccountType.US_EQUITY, "USD", "10000.00");
-        Instrument instrument = baseInstrument("AAPL", AssetClass.US_EQUITY, "USD");
 
-        orderValidator.validate(order, account, instrument, null, Collections.emptyList());
+        Order order =
+                baseOrder(
+                        new BigDecimal("250.50")
+                );
 
-        assertEquals(new BigDecimal("250.50"), order.getLimitPrice());
+
+        Account account =
+                baseAccount(
+                        AccountType.US_EQUITY,
+                        "USD",
+                        "10000.00"
+                );
+
+
+        Instrument instrument =
+                baseInstrument(
+                        "AAPL",
+                        AssetClass.US_EQUITY,
+                        "USD"
+                );
+
+
+        orderValidator.validate(
+                order,
+                account,
+                instrument,
+                null,
+                Collections.emptyList()
+        );
+
+
+        assertEquals(
+                new BigDecimal("250.50"),
+                order.getLimitPrice()
+        );
     }
 
+
     private Order baseOrder(BigDecimal price) {
+
         return Order.builder()
                 .id(UUID.randomUUID())
                 .accountId(1L)
@@ -79,7 +205,12 @@ class OrderValidatorTest {
                 .build();
     }
 
-    private Account baseAccount(AccountType type, String currency, String balance) {
+
+    private Account baseAccount(
+            AccountType type,
+            String currency,
+            String balance) {
+
         return Account.builder()
                 .id(1L)
                 .accountType(type)
@@ -89,7 +220,12 @@ class OrderValidatorTest {
                 .build();
     }
 
-    private Instrument baseInstrument(String symbol, AssetClass assetClass, String currency) {
+
+    private Instrument baseInstrument(
+            String symbol,
+            AssetClass assetClass,
+            String currency) {
+
         return Instrument.builder()
                 .id(1L)
                 .symbol(symbol)
