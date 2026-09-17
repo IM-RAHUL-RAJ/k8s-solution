@@ -34,7 +34,7 @@ public class OrderValidator {
 
         checkAccountTypeAndAssetClassCompatibility(account, instrument);
 
-        checkForexCurrencyCompatibility(account, instrument);
+        checkForexCryptoCurrencyCompatibility(account, instrument);
 
         checkQuantity(order);
 
@@ -186,27 +186,46 @@ public class OrderValidator {
 
 
     // Rule 9
-    private void checkForexCurrencyCompatibility(
+    private void checkForexCryptoCurrencyCompatibility(
             Account account,
             Instrument instrument) {
 
-        if (instrument.getAssetClass() != AssetClass.FX) {
+        AssetClass assetClass = instrument.getAssetClass();
+
+        // Only validate FX and CRYPTO instruments
+        if (assetClass != AssetClass.FX &&
+                assetClass != AssetClass.CRYPTO) {
             return;
         }
 
         String symbol = instrument.getSymbol();
 
-        String quoteCurrency = extractQuoteCurrency(symbol);
+        String settlementCurrency;
+
+        if (assetClass == AssetClass.FX) {
+
+            // FX:<BASE><QUOTE>
+            // Example:
+            // FX:EURUSD -> USD
+            settlementCurrency = extractQuoteCurrency(symbol);
+
+        } else {
+
+            // CRYPTO format:
+            // X:BTC-USD -> USD
+            settlementCurrency = extractCryptoCurrency(symbol);
+        }
+
 
         String accountCurrency =
                 normalizeCurrency(account.getCurrency());
 
 
-        if (!quoteCurrency.equals(accountCurrency)) {
+        if (!settlementCurrency.equals(accountCurrency)) {
 
             throw new CurrencyMismatchException(
-                    "FX instrument " + symbol
-                            + " settles in " + quoteCurrency
+                    "Instrument " + symbol
+                            + " settles in " + settlementCurrency
                             + " but account currency is "
                             + accountCurrency
             );
@@ -248,6 +267,35 @@ public class OrderValidator {
         return currency
                 .trim()
                 .toUpperCase(Locale.ROOT);
+    }
+
+    private String extractCryptoCurrency(String symbol) {
+
+        if (symbol == null ||
+                !symbol.startsWith("X:") ||
+                !symbol.contains("-")) {
+
+            throw new CurrencyMismatchException(
+                    "Invalid crypto symbol format: " + symbol
+            );
+        }
+
+
+        String[] parts =
+                symbol.substring(2)
+                        .toUpperCase(Locale.ROOT)
+                        .split("-");
+
+
+        if (parts.length != 2) {
+
+            throw new CurrencyMismatchException(
+                    "Invalid crypto symbol format: " + symbol
+            );
+        }
+
+
+        return parts[1];
     }
 
     // Rule 10
