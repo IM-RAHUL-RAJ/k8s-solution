@@ -22,7 +22,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-//HTTP client for the Fauxnance price API.
 
 @Slf4j
 @Component
@@ -46,7 +45,6 @@ public class FauxnanceClient {
         this.initialBackoffMs = initialBackoffMs;
         this.objectMapper = objectMapper;
 
-            // Log initialization details
         log.info("========================================");
         log.info("FauxnanceClient INITIALIZED");
         log.info("Base URL: {}", baseUrl);
@@ -61,7 +59,7 @@ public class FauxnanceClient {
     }
 
 
-    // Fetches a single-symbol quote. Used by the fill path.
+    // Fetches a single-symbol quote-used by the fill path.
     public QuotePayload getQuote(String symbol) {
         Exception lastError = null;
         for (int attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -92,7 +90,7 @@ public class FauxnanceClient {
     }
 
 
-    /** Fetches up to 25 symbols in a single API call. Used by the market-data poller. */
+    // Fetches up to 25 symbols in a single API call-used by the market-data poller.
     public List<QuotePayload> getBatchQuotes(List<String> symbols) {
         if (symbols == null || symbols.isEmpty()) {
             return Collections.emptyList();
