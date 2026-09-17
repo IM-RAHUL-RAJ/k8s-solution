@@ -23,6 +23,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.RecoverableDataAccessException;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.Acknowledgment;
 
@@ -31,6 +32,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -249,6 +251,102 @@ class OrderConsumerIntegrationTest {
         verify(kafkaTemplate).send(any(org.apache.kafka.clients.producer.ProducerRecord.class));
         verify(acknowledgment).acknowledge();
         verify(mapper, never()).findOrderById(any());
+    }
+
+    @Test
+    void testEndToEnd_UnknownOrderId_DeadLettersAndAcks() {
+        OrderPlacedPayload payload = new OrderPlacedPayload(ORDER_ID, ACCOUNT_ID, SYMBOL, "BUY", 10,
+                new BigDecimal("150.00"), UUID.randomUUID().toString(), Instant.now());
+        KafkaMessageEnvelope<OrderPlacedPayload> envelope = new KafkaMessageEnvelope<>(UUID.randomUUID(),
+                "ORDER_PLACED", Instant.now(), "trade-api", 1, payload);
+
+        when(mapper.findOrderById(ORDER_ID)).thenReturn(null);
+
+        ConsumerRecord<String, String> record = new ConsumerRecord<>("orders", 0, 1L, ACCOUNT_ID.toString(), writeJson(envelope));
+
+        orderConsumer.consume(record, acknowledgment);
+
+        ArgumentCaptor<org.apache.kafka.clients.producer.ProducerRecord<String, String>> dltCaptor =
+                ArgumentCaptor.forClass(org.apache.kafka.clients.producer.ProducerRecord.class);
+        verify(kafkaTemplate).send(dltCaptor.capture());
+        assertThat(new String(dltCaptor.getValue().headers().lastHeader("X-DLT-Reason").value()))
+                .contains("Order not found in DB");
+        verify(acknowledgment).acknowledge();
+    }
+
+    @Test
+    void testEndToEnd_TransientFailure_IsRetriedByContainer() {
+        Order order = Order.builder()
+                .id(ORDER_ID)
+                .accountId(ACCOUNT_ID)
+                .instrumentId(INSTR_ID)
+                .side(OrderSide.BUY)
+                .quantity(10)
+                .limitPrice(new BigDecimal("150.00"))
+                .status(OrderStatus.NEW)
+                .build();
+        when(mapper.findOrderById(ORDER_ID)).thenReturn(order);
+        when(mapper.findInstrumentById(INSTR_ID)).thenReturn(Instrument.builder().id(INSTR_ID).symbol(SYMBOL).tradable(true).build());
+        when(fauxnanceClient.getQuote(SYMBOL)).thenThrow(new RecoverableDataAccessException("db down"));
+
+        ConsumerRecord<String, String> record = new ConsumerRecord<>("orders", 0, 1L, ACCOUNT_ID.toString(),
+                writeJson(new KafkaMessageEnvelope<>(UUID.randomUUID(), "ORDER_PLACED", Instant.now(), "trade-api", 1,
+                        new OrderPlacedPayload(ORDER_ID, ACCOUNT_ID, SYMBOL, "BUY", 10, new BigDecimal("150.00"),
+                                UUID.randomUUID().toString(), Instant.now()))));
+
+        assertThatThrownBy(() -> orderConsumer.consume(record, acknowledgment))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Transient failure processing order");
+        verify(acknowledgment, never()).acknowledge();
+    }
+
+    @Test
+    void testEndToEnd_PoisonMessageDoesNotBlockNextMessage() {
+        ConsumerRecord<String, String> poison = new ConsumerRecord<>("orders", 0, 1L, "key", "not-a-valid-json");
+        orderConsumer.consume(poison, acknowledgment);
+
+        reset(acknowledgment, kafkaTemplate);
+
+        Order nextOrder = Order.builder()
+                .id(ORDER_ID)
+                .accountId(ACCOUNT_ID)
+                .instrumentId(INSTR_ID)
+                .side(OrderSide.BUY)
+                .quantity(10)
+                .limitPrice(new BigDecimal("150.00"))
+                .status(OrderStatus.NEW)
+                .build();
+        when(mapper.findOrderById(ORDER_ID)).thenReturn(nextOrder);
+        when(mapper.findInstrumentById(INSTR_ID)).thenReturn(Instrument.builder().id(INSTR_ID).symbol(SYMBOL).tradable(true).build());
+        QuotePayload quote = new QuotePayload();
+        quote.setSymbol(SYMBOL);
+        quote.setAsk(new BigDecimal("148.50"));
+        quote.setBid(new BigDecimal("148.20"));
+        when(fauxnanceClient.getQuote(SYMBOL)).thenReturn(quote);
+        when(mapper.findAccountById(ACCOUNT_ID)).thenReturn(Account.builder()
+                .id(ACCOUNT_ID).cashBalance(new BigDecimal("2000.00")).status(AccountStatus.ACTIVE).version(1L).build());
+        when(mapper.settleOrderStatus(eq(ORDER_ID), eq(OrderStatus.FILLED), any())).thenReturn(1);
+        when(mapper.findHolding(ACCOUNT_ID, INSTR_ID)).thenReturn(null);
+        when(mapper.findPortfolioIdByAccountId(ACCOUNT_ID)).thenReturn(50L);
+        when(mapper.updateAccountCashAndVersion(eq(ACCOUNT_ID), any(), eq(1L))).thenReturn(1);
+
+        ConsumerRecord<String, String> healthy = new ConsumerRecord<>("orders", 0, 2L, ACCOUNT_ID.toString(),
+                writeJson(new KafkaMessageEnvelope<>(UUID.randomUUID(), "ORDER_PLACED", Instant.now(), "trade-api", 1,
+                        new OrderPlacedPayload(ORDER_ID, ACCOUNT_ID, SYMBOL, "BUY", 10, new BigDecimal("150.00"),
+                                UUID.randomUUID().toString(), Instant.now()))));
+
+        orderConsumer.consume(healthy, acknowledgment);
+
+        verify(kafkaTemplate).send(eq("trade-events"), eq(ACCOUNT_ID.toString()), anyString());
+        verify(acknowledgment).acknowledge();
+    }
+
+    private String writeJson(Object value) {
+        try {
+            return objectMapper.writeValueAsString(value);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private static void setField(Object target, String name, Object value) {

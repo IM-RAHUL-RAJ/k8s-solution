@@ -15,6 +15,7 @@ import com.capstone.etp.executor.rule.FillRule;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.RecoverableDataAccessException;
 import org.springframework.stereotype.Service;
 
 /**
@@ -107,7 +108,7 @@ public class ExecutionService {
                 log.warn("Optimistic lock conflict for order {}, attempt {}/{}",
                         order.getId(), attempt, maxLockAttempts);
                 if (attempt == maxLockAttempts) {
-                    throw new RuntimeException(
+                    throw new RecoverableDataAccessException(
                             "Exhausted optimistic lock retry budget for order " + order.getId(), e);
                 }
             }
@@ -115,4 +116,3 @@ public class ExecutionService {
         throw new IllegalStateException("Unreachable");
     }
 }
-

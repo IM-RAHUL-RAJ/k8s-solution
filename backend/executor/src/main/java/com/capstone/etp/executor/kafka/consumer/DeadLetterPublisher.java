@@ -33,6 +33,8 @@ import java.time.Instant;
 @RequiredArgsConstructor
 public class DeadLetterPublisher {
 
+    public static final String RETRY_BUDGET_EXHAUSTED = "RETRY_BUDGET_EXHAUSTED";
+
     private final KafkaTemplate<String, String> kafkaTemplate;
 
     public void publish(ConsumerRecord<String, String> original, String reason, Exception cause) {
@@ -57,4 +59,3 @@ public class DeadLetterPublisher {
                 dltTopic, reason, exceptionClass);
     }
 }
-

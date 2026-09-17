@@ -8,6 +8,7 @@ import com.capstone.etp.executor.entity.PortfolioHolding;
 import com.capstone.etp.executor.enums.AccountStatus;
 import com.capstone.etp.executor.enums.OrderSide;
 import com.capstone.etp.executor.enums.OrderStatus;
+import com.capstone.etp.executor.exception.OptimisticLockRetryException;
 import com.capstone.etp.executor.exception.PriceUnavailableException;
 import com.capstone.etp.executor.kafka.models.OrderPlacedPayload;
 import com.capstone.etp.executor.kafka.models.QuotePayload;
@@ -17,11 +18,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.RecoverableDataAccessException;
 
 import java.math.BigDecimal;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
@@ -270,6 +273,44 @@ class ExecutionServiceTest {
         assertThat(result.positionQuantityAfter()).isEqualTo(150); // 200 - 50
     }
 
+    @Test
+    void optimisticLockConflict_retriesAndThenSucceeds() {
+        stubNewBuyOrder("235.00", 100);
+        stubTradableInstrument();
+        stubQuote("232.77", "232.65");
+
+        Account staleAccount = activeAccount("50000.00");
+        Account freshAccount = activeAccount("50000.00");
+        freshAccount.setVersion(1L);
+        when(mapper.findAccountById(ACCOUNT_ID)).thenReturn(staleAccount, freshAccount);
+        when(mapper.findHolding(ACCOUNT_ID, INSTR_ID)).thenReturn(null);
+        when(mapper.findPortfolioIdByAccountId(ACCOUNT_ID)).thenReturn(99L);
+        when(mapper.settleOrderStatus(eq(ORDER_ID), eq(OrderStatus.FILLED), any())).thenReturn(1, 1);
+        when(mapper.updateAccountCashAndVersion(eq(ACCOUNT_ID), any(), eq(0L))).thenReturn(0);
+        when(mapper.updateAccountCashAndVersion(eq(ACCOUNT_ID), any(), eq(1L))).thenReturn(1);
+
+        SettlementResult result = executionService.execute(payload());
+
+        assertThat(result.status()).isEqualTo(OrderStatus.FILLED);
+        verify(mapper).updateAccountCashAndVersion(eq(ACCOUNT_ID), eq(new BigDecimal("26723.00")), eq(1L));
+    }
+
+    @Test
+    void optimisticLockBudgetExhausted_throwsRecoverableDataAccessException() {
+        stubNewBuyOrder("235.00", 100);
+        stubTradableInstrument();
+        stubQuote("232.77", "232.65");
+        when(mapper.findAccountById(ACCOUNT_ID)).thenReturn(activeAccount("50000.00"));
+        when(mapper.findHolding(ACCOUNT_ID, INSTR_ID)).thenReturn(null);
+        when(mapper.settleOrderStatus(eq(ORDER_ID), eq(OrderStatus.FILLED), any())).thenReturn(1, 1, 1);
+        when(mapper.updateAccountCashAndVersion(eq(ACCOUNT_ID), any(), any())).thenReturn(0);
+
+        assertThatThrownBy(() -> executionService.execute(payload()))
+                .isInstanceOf(RecoverableDataAccessException.class)
+                .hasCauseInstanceOf(OptimisticLockRetryException.class)
+                .hasMessageContaining("Exhausted optimistic lock retry budget");
+    }
+
     // =========================================================================
     // Stub helpers
     // =========================================================================
@@ -347,4 +388,3 @@ class ExecutionServiceTest {
         }
     }
 }
-
