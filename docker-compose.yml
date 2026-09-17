@@ -158,7 +158,7 @@ services:
       - trading-net
 
   kafbat-ui:
-    image: ghcr.io/kafbat/kafbat:latest
+    image: xaana/kafka-ui:latest
     profiles: ["platform"]
     ports:
       - "8089:8080"
