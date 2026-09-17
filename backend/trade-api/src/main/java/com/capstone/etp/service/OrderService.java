@@ -11,6 +11,7 @@ import com.capstone.etp.exception.AccountNotFoundException;
 import com.capstone.etp.exception.IllegalOrderStateException;
 import com.capstone.etp.exception.InstrumentNotFoundException;
 import com.capstone.etp.exception.OptimisticLockException;
+import com.capstone.etp.kafka.producer.OrderEventProducer;
 import com.capstone.etp.mapper.OrderMapper;
 import com.capstone.etp.security.AccountAuthorizer;
 import com.capstone.etp.validator.OrderValidator;
@@ -29,10 +30,29 @@ public class OrderService {
     private final OrderMapper orderMapper;
     private final OrderValidator orderValidator;
     private final AccountAuthorizer accountAuthorizer;
+    private final OrderEventProducer orderEventProducer;
 
     // create a new order
-    @Transactional
     public OrderResponse placeOrder(PlaceOrderRequest request) {
+        // Perform database operations in a transaction
+        PlaceOrderInfo info = persistOrder(request);
+
+        // Publish event AFTER transaction commits
+        orderEventProducer.publishOrderPlaced(info.order, info.instrument.getSymbol());
+
+        return OrderResponse.builder()
+                .orderId(info.order.getId())
+                .status(info.order.getStatus())
+                .message("Order created successfully")
+                .symbol(info.instrument.getSymbol())
+                .side(info.order.getSide())
+                .quantity(info.order.getQuantity())
+                .price(info.order.getLimitPrice())
+                .build();
+    }
+
+    @Transactional
+    private PlaceOrderInfo persistOrder(PlaceOrderRequest request) {
         accountAuthorizer.ensureAccountAccess(request.getAccountId());
 
         Account account = orderMapper.findAccountById(request.getAccountId());
@@ -78,15 +98,7 @@ public class OrderService {
                     "Account version mismatch during order placement; concurrent modification detected");
         }
 
-        return OrderResponse.builder()
-                .orderId(order.getId())
-                .status(order.getStatus())
-                .message("Order created successfully")
-                .symbol(instrument.getSymbol())
-                .side(order.getSide())
-                .quantity(order.getQuantity())
-                .price(order.getLimitPrice())
-                .build();
+        return new PlaceOrderInfo(order, instrument);
     }
 
    @Transactional
@@ -127,5 +139,19 @@ public class OrderService {
                .status(order.getStatus())
                .message("Order cancelled successfully")
                .build();
+    }
+
+    /**
+     * Helper class to hold order and instrument information
+     * needed after the transaction commits.
+     */
+    private static class PlaceOrderInfo {
+        final Order order;
+        final Instrument instrument;
+
+        PlaceOrderInfo(Order order, Instrument instrument) {
+            this.order = order;
+            this.instrument = instrument;
+        }
     }
 }
