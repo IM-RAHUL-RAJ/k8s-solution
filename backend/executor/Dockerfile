@@ -16,6 +16,9 @@ RUN apt-get update \
 
 RUN addgroup --system spring && adduser --system --ingroup spring spring
 
+RUN mkdir -p /app/logs \
+    && chown -R spring:spring /app/logs
+
 COPY --from=build /workspace/target/trade-executor-1.0.0-SNAPSHOT.jar app.jar
 
 EXPOSE 8085
