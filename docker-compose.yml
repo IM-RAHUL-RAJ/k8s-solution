@@ -10,8 +10,9 @@ services:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ./backend/trade-api/src/main/resources/schema/schema.sql:/docker-entrypoint-initdb.d/001_initial_schema.sql:ro
+      - ./postgres_database/migrations/001_initial_schema.sql:/docker-entrypoint-initdb.d/001_initial_schema.sql:ro
       - ./postgres_database/migrations/002_add_query_indexes.sql:/docker-entrypoint-initdb.d/002_add_query_indexes.sql:ro
+      - ./postgres_database/seed/001_seed.sql:/docker-entrypoint-initdb.d/003_seed.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-springboot_db}"]
       interval: 10s
