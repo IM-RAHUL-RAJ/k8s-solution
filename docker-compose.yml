@@ -73,6 +73,38 @@ services:
     networks:
       - trading-net
 
+  trade-executor:
+    profiles: ["platform"]
+    build:
+      context: ./backend/executor
+      dockerfile: Dockerfile
+    environment:
+      SERVER_PORT: 8085
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-springboot_db}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      FAUXNANCE_API_KEY: ${FAUXNANCE_API_KEY}
+      FAUXNANCE_BASE_URL: ${FAUXNANCE_BASE_URL:-http://localhost:8080}
+      POLL_INTERVAL_SECONDS: ${POLL_INTERVAL_SECONDS:-60}
+    ports:
+      - "${EXECUTOR_PORT:-8085}:8085"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8085/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 30s
+    networks:
+      - trading-net
+
   kafka:
     image: apache/kafka:3.8.0
     profiles: [ "platform" ]
@@ -117,7 +149,7 @@ services:
       - kafka
 
     volumes:
-      - ./kafka/create-topics.sh:/create-topics.sh:ro
+      - ./infra/kafka/create-topics.sh:/create-topics.sh:ro
 
     entrypoint: ["/bin/bash", "/create-topics.sh"]
 

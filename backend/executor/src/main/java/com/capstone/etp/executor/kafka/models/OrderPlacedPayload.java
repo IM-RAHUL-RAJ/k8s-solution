@@ -13,6 +13,7 @@ import java.util.UUID;
  * Payload of an ORDER_PLACED message on the {@code orders} topic.
  * Field names must match the trade-api's OrderPlacedPayload exactly.
  */
+
 @Getter
 @Setter
 @NoArgsConstructor
