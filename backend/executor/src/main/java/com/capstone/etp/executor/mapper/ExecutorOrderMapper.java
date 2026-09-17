@@ -97,9 +97,40 @@ public interface ExecutorOrderMapper {
     @Select("SELECT id FROM portfolios WHERE account_id = #{accountId}")
     Long findPortfolioIdByAccountId(@Param("accountId") Long accountId);
 
-    /** Symbol list for the market-data poller. */
-    @Select("SELECT symbol FROM instruments WHERE is_tradable = true")
-    List<String> findAllTradableSymbols();
+                /**
+                 * Symbol list for the market-data poller.
+                 * Includes instruments that are currently:
+                 * 1) on any account watchlist,
+                 * 2) held in any portfolio,
+                 * 3) referenced by NEW orders.
+                 */
+                @Select("""
+                                                SELECT DISTINCT s.symbol
+                                                FROM (
+                                                                SELECT i.symbol
+                                                                FROM watchlist w
+                                                                JOIN instruments i ON i.id = w.instrument_id
+                                                                WHERE i.is_tradable = true
+
+                                                                UNION
+
+                                                                SELECT i.symbol
+                                                                FROM portfolio_holdings ph
+                                                                JOIN instruments i ON i.id = ph.instrument_id
+                                                                WHERE i.is_tradable = true
+                                                                        AND ph.quantity > 0
+
+                                                                UNION
+
+                                                                SELECT i.symbol
+                                                                FROM orders o
+                                                                JOIN instruments i ON i.id = o.instrument_id
+                                                                WHERE i.is_tradable = true
+                                                                        AND o.status = 'NEW'
+                                                ) s
+                                                ORDER BY s.symbol
+                                                """)
+                List<String> findSymbolsForMarketDataPoller();
 
     // -------------------------------------------------------------------------
     // Writes — settlement transaction
