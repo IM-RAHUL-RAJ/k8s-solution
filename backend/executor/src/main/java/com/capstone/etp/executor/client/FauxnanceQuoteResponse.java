@@ -1,5 +1,6 @@
 package com.capstone.etp.executor.client;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -8,7 +9,7 @@ import lombok.Setter;
 import java.math.BigDecimal;
 import java.time.Instant;
 
-/** Raw JSON response from {@code GET /quotes/{symbol}} or the batch endpoint. */
+/** DTO representing the quote data from Fauxnance. */
 @Getter
 @Setter
 @NoArgsConstructor
@@ -24,6 +25,7 @@ public class FauxnanceQuoteResponse {
     private BigDecimal previousClose;
     private String marketState;
     private Boolean stale;
+
+    @JsonAlias({"asOf", "quoteAsOf"})
     private Instant quoteAsOf;
 }
-

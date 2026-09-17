@@ -13,6 +13,7 @@ import com.capstone.etp.exception.InsufficientFundsException;
 import com.capstone.etp.exception.InsufficientHoldingsException;
 import com.capstone.etp.exception.InstrumentNotFoundException;
 import com.capstone.etp.exception.InvalidOrderValueException;
+import com.capstone.etp.kafka.producer.OrderEventProducer;
 import com.capstone.etp.mapper.OrderMapper;
 import com.capstone.etp.security.AccountAuthorizer;
 import com.capstone.etp.service.OrderService;
@@ -53,6 +54,9 @@ class OrderPlacementCharacterisationTest {
 
     @Mock
     private AccountAuthorizer accountAuthorizer;
+
+    @Mock
+    private OrderEventProducer orderEventProducer;
 
     @InjectMocks
     private OrderService orderService;
