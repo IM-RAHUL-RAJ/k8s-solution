@@ -106,13 +106,39 @@ CREATE TABLE IF NOT EXISTS fact_trades (
 );
 
 
+-- -----------------------------------------------------------------------------
+-- DIM_BATCH
+-- One row per ETL execution/batch.
+-- Used to identify which pipeline run produced a dead-letter record.
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS dim_batch (
+    batch_id       VARCHAR(36) NOT NULL,
+    started_at     TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT pk_dim_batch PRIMARY KEY (batch_id)
+);
+
 -- =============================================================================
--- ANALYTICS THIS MODEL SUPPORTS
--- (answerable with one join per dimension and no subquery)
+-- DEAD_LETTER_TRADES
+-- One row per row that failed data quality checks and could not be loaded.
 --
---   Trade volume by date  : COUNT(*) and SUM(trade_value) GROUP BY date_key
---   Most active accounts  : COUNT(*) GROUP BY account_key JOIN dim_account
---   Fill rate by month    : SUM(status='FILLED') / COUNT(*) GROUP BY year, month
---   Exposure by instrument: SUM(trade_value) GROUP BY instrument_key, side
---   Average trade size    : AVG(trade_value) over a date range
+-- Dead-lettering prevents data loss: a row that fails validation is recorded
+-- with the reason and the batch UUID, so it can be investigated and replayed.
+--
+-- Idempotent: the unique constraint on source_order_id prevents duplicate
+-- dead-letter records if the same order fails validation twice.
 -- =============================================================================
+CREATE TABLE IF NOT EXISTS dead_letter_trades (
+    dead_letter_key    BIGINT       NOT NULL,
+    source_order_id    VARCHAR(36)  NOT NULL,
+    failure_reason     VARCHAR(1024) NOT NULL,
+    batch_id           VARCHAR(36),
+    raw_row            VARCHAR,
+    failed_at          TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT pk_dead_letter_trades PRIMARY KEY (dead_letter_key),
+    CONSTRAINT uq_dead_letter_source UNIQUE (source_order_id),
+    CONSTRAINT fk_dead_letter_trades_batch
+        FOREIGN KEY (batch_id) REFERENCES dim_batch (batch_id)
+);
+
