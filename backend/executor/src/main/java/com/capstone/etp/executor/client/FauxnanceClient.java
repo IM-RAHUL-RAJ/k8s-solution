@@ -206,34 +206,39 @@ public class FauxnanceClient {
 
     // -------------------------------------------------------------------------
 
-    private FauxnanceQuoteResponse parseSingleQuote(String rawJson) throws Exception {
-        JsonNode root = objectMapper.readTree(rawJson);
-        JsonNode targetNode = root;
-        Boolean isStale = null;
+    private FauxnanceQuoteResponse parseSingleQuote(String rawJson) {
+        try {
+            JsonNode root = objectMapper.readTree(rawJson);
+            JsonNode targetNode = root;
+            Boolean isStale = null;
 
-        // Check if there is a "meta" node containing "stale"
-        if (root.has("meta") && root.get("meta").has("stale")) {
-            isStale = root.get("meta").get("stale").asBoolean();
-        }
-
-        // Extract "data" if present
-        if (root.has("data")) {
-            targetNode = root.get("data");
-        }
-
-        FauxnanceQuoteResponse resp = objectMapper.treeToValue(targetNode, FauxnanceQuoteResponse.class);
-        if (resp != null) {
-            if (isStale != null) {
-                resp.setStale(isStale);
+            // Check if there is a "meta" node containing "stale"
+            if (root.has("meta") && root.get("meta").has("stale")) {
+                isStale = root.get("meta").get("stale").asBoolean();
             }
-            // If "asOf" was present in targetNode and quoteAsOf wasn't mapped directly
-            if (resp.getQuoteAsOf() == null && targetNode.has("asOf")) {
-                try {
-                    resp.setQuoteAsOf(Instant.parse(targetNode.get("asOf").asText()));
-                } catch (Exception ignored) {}
+
+            // Extract "data" if present
+            if (root.has("data")) {
+                targetNode = root.get("data");
             }
+
+            FauxnanceQuoteResponse resp = objectMapper.treeToValue(targetNode, FauxnanceQuoteResponse.class);
+            if (resp != null) {
+                if (isStale != null) {
+                    resp.setStale(isStale);
+                }
+                // If "asOf" was present in targetNode and quoteAsOf wasn't mapped directly
+                if (resp.getQuoteAsOf() == null && targetNode.has("asOf")) {
+                    try {
+                        resp.setQuoteAsOf(Instant.parse(targetNode.get("asOf").asText()));
+                    } catch (Exception ignored) {
+                    }
+                }
+            }
+            return resp;
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to parse Fauxnance single quote response", e);
         }
-        return resp;
     }
 
     private QuotePayload toPayload(FauxnanceQuoteResponse r) {
