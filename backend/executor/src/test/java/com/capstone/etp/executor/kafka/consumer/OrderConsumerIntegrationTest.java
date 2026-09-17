@@ -92,7 +92,12 @@ class OrderConsumerIntegrationTest {
                 .build();
         when(mapper.findOrderById(ORDER_ID)).thenReturn(order);
 
-        Instrument instrument = Instrument.builder().id(INSTR_ID).symbol(SYMBOL).tradable(true).build();
+        Instrument instrument = Instrument.builder()
+                .id(INSTR_ID)
+                .symbol(SYMBOL)
+                .currency("USD")
+                .tradable(true)
+                .build();
         when(mapper.findInstrumentById(INSTR_ID)).thenReturn(instrument);
 
         QuotePayload quote = new QuotePayload();
@@ -103,6 +108,7 @@ class OrderConsumerIntegrationTest {
 
         Account account = Account.builder()
                 .id(ACCOUNT_ID)
+                .currency("USD")
                 .cashBalance(new BigDecimal("2000.00"))
                 .status(AccountStatus.ACTIVE)
                 .version(1L)
@@ -157,7 +163,12 @@ class OrderConsumerIntegrationTest {
                 .build();
         when(mapper.findOrderById(ORDER_ID)).thenReturn(order);
 
-        Instrument instrument = Instrument.builder().id(INSTR_ID).symbol(SYMBOL).tradable(true).build();
+        Instrument instrument = Instrument.builder()
+                .id(INSTR_ID)
+                .symbol(SYMBOL)
+                .currency("USD")
+                .tradable(true)
+                .build();
         when(mapper.findInstrumentById(INSTR_ID)).thenReturn(instrument);
 
         QuotePayload quote = new QuotePayload();
@@ -166,7 +177,13 @@ class OrderConsumerIntegrationTest {
         quote.setBid(new BigDecimal("148.20"));
         when(fauxnanceClient.getQuote(SYMBOL)).thenReturn(quote);
 
-        Account account = Account.builder().id(ACCOUNT_ID).cashBalance(new BigDecimal("2000.00")).status(AccountStatus.ACTIVE).version(1L).build();
+        Account account = Account.builder()
+                .id(ACCOUNT_ID)
+                .currency("USD")
+                .cashBalance(new BigDecimal("2000.00"))
+                .status(AccountStatus.ACTIVE)
+                .version(1L)
+                .build();
         when(mapper.findAccountById(ACCOUNT_ID)).thenReturn(account);
         when(mapper.settleOrderStatus(eq(ORDER_ID), eq(OrderStatus.REJECTED), any())).thenReturn(1);
 
@@ -208,12 +225,23 @@ class OrderConsumerIntegrationTest {
                 .build();
         when(mapper.findOrderById(ORDER_ID)).thenReturn(order);
 
-        Instrument instrument = Instrument.builder().id(INSTR_ID).symbol(SYMBOL).tradable(true).build();
+        Instrument instrument = Instrument.builder()
+                .id(INSTR_ID)
+                .symbol(SYMBOL)
+                .currency("USD")
+                .tradable(true)
+                .build();
         when(mapper.findInstrumentById(INSTR_ID)).thenReturn(instrument);
 
         when(fauxnanceClient.getQuote(SYMBOL)).thenThrow(new PriceUnavailableException("Fauxnance service unavailable"));
 
-        Account account = Account.builder().id(ACCOUNT_ID).cashBalance(new BigDecimal("2000.00")).status(AccountStatus.ACTIVE).version(1L).build();
+        Account account = Account.builder()
+                .id(ACCOUNT_ID)
+                .currency("USD")
+                .cashBalance(new BigDecimal("2000.00"))
+                .status(AccountStatus.ACTIVE)
+                .version(1L)
+                .build();
         when(mapper.findAccountById(ACCOUNT_ID)).thenReturn(account);
         when(mapper.settleOrderStatus(eq(ORDER_ID), eq(OrderStatus.REJECTED), any())).thenReturn(1);
 
