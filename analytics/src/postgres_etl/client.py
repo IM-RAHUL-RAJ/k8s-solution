@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 _EXTRACT_SQL = """
 SELECT
     o.id                        AS order_id,
-    o.idempotency_key           AS source_order_id,
+    o.id::text                 AS source_order_id,
     o.order_type                AS side,
     o.quantity                  AS quantity,
     o.limit_price               AS price,
