@@ -25,17 +25,7 @@ public class OrderEventProducer {
     private static final String EVENT_TYPE = "ORDER_PLACED";
     private static final int SCHEMA_VERSION = 1;
 
-    /**
-     * Publishes an ORDER_PLACED event to the orders topic.
-     * This method should be called AFTER the database transaction commits.
-     * The account ID is used as the message key to ensure per-account ordering.
-     * 
-     * Serialization is explicit: message is converted to JSON before sending,
-     * matching the Trade Executor's producer pattern for consistency.
-     *
-     * @param order the order to publish
-     * @param instrumentSymbol the symbol of the instrument
-     */
+    
     public void publishOrderPlaced(Order order, String instrumentSymbol) {
         try {
             OrderPlacedPayload payload = OrderPlacedPayload.builder()
