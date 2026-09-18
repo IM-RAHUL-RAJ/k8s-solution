@@ -62,13 +62,14 @@ public interface ExecutorOrderMapper {
     Account findAccountById(@Param("accountId") Long accountId);
 
     @Select("""
-            SELECT id, symbol, is_tradable AS tradable
+            SELECT id, symbol, currency, is_tradable AS tradable
             FROM instruments
             WHERE id = #{instrumentId}
             """)
     @Results({
         @Result(property = "id",      column = "id"),
         @Result(property = "symbol",  column = "symbol"),
+        @Result(property = "currency", column = "currency"),
         @Result(property = "tradable", column = "tradable")
     })
     Instrument findInstrumentById(@Param("instrumentId") Long instrumentId);
@@ -223,4 +224,3 @@ public interface ExecutorOrderMapper {
                            @Param("reason")         String reason,
                            @Param("executedAt")     Instant executedAt);
 }
-

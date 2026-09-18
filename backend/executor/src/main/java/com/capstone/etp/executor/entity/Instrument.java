@@ -14,6 +14,6 @@ import lombok.Setter;
 public class Instrument {
     private Long id;
     private String symbol;
+    private String currency;
     private boolean tradable;
 }
-

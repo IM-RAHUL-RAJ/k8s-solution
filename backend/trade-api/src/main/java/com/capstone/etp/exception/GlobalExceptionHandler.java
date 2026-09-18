@@ -98,6 +98,16 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
 
+    @ExceptionHandler(CurrencyMismatchException.class)
+    public ResponseEntity<ErrorResponse> handleCurrencyMismatch(CurrencyMismatchException ex) {
+        log.warn("Currency mismatch: {}", ex.getDetail());
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .errorCode(ex.getCatalogueCode())
+                .message(ex.getMessage())
+                .build();
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(errorResponse);
+    }
+
     //handler for any generic ETPException
     @ExceptionHandler(ETPException.class)
     public ResponseEntity<ErrorResponse> handleETPException(ETPException ex) {
