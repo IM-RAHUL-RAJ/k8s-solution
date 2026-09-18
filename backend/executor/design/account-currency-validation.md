@@ -13,8 +13,8 @@ The validation ensures:
 
 | Account Type | Allowed Asset Class |
 |--------------|---------------------|
-| `US_EQUITY` | `EQUITY` |
-| `INDIAN_EQUITY` | `EQUITY` |
+| `US_EQUITY` | `US_EQUITY` |
+| `INDIAN_EQUITY` | `INDIAN_EQUITY` |
 | `FOREX` | `FX` |
 | `CRYPTO` | `CRYPTO` |
 
@@ -192,7 +192,7 @@ FOREX → FX
 
 ### Scenario
 
-A Forex account attempts to trade an equity instrument.
+A Forex account attempts to trade an instrument with a different base currency.
 
 ### Request
 
