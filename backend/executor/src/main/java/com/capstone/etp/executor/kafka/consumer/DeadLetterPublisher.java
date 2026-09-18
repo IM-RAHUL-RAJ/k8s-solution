@@ -11,23 +11,7 @@ import org.springframework.stereotype.Component;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 
-/**
- * Sends a failed message to its dead-letter topic ({@code <original-topic>.DLT}).
- *
- * <p>DLT envelope decision: the original message bytes are preserved as the value
- * so the message can be replayed or inspected without any information loss. The
- * failure context is encoded as Kafka headers rather than modifying the payload,
- * which keeps the DLT consumer simple — it can deserialize the same envelope as
- * the live topic.
- *
- * <p>Headers written:
- * <ul>
- *   <li>{@code X-DLT-Reason}         — short failure reason string</li>
- *   <li>{@code X-DLT-Exception}      — exception class name (if any)</li>
- *   <li>{@code X-DLT-Original-Topic} — source topic</li>
- *   <li>{@code X-DLT-Timestamp}      — ISO-8601 time of failure</li>
- * </ul>
- */
+//Publishes a message to its dead-letter topic with failure context encoded in headers.
 @Slf4j
 @Component
 @RequiredArgsConstructor

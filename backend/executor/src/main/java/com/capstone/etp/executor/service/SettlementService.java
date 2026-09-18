@@ -19,31 +19,7 @@ import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.Locale;
 
-/**
- * Encapsulates the single atomic settlement transaction described in the spec:
- *
- * <ol>
- *   <li>Guarded state transition on {@code orders} (WHERE status = 'NEW')</li>
- *   <li>Fresh account read and runtime re-checks (account state, currency, funds/holdings)</li>
- *   <li>Cash debit/credit with optimistic lock</li>
- *   <li>Holdings upsert or decrease</li>
- *   <li>Transaction record insert</li>
- * </ol>
- *
- * <p>Steps 1–5 share one Postgres transaction.  Publishing to Kafka and
- * acknowledging the Kafka offset happen AFTER this method returns (i.e., after
- * the commit), in the caller ({@link com.capstone.etp.executor.kafka.consumer.OrderConsumer}).
- *
- * <p><strong>Optimistic lock retry:</strong> if step 3 finds that the account
- * version has changed concurrently, it throws {@link OptimisticLockRetryException}
- * (unchecked), which causes Spring to roll back the whole transaction — including
- * the order status update in step 1.  The outer retry loop in
- * {@link ExecutionService} then re-invokes this method.
- *
- * <p><strong>Duplicate delivery:</strong> if the guarded UPDATE in step 1
- * returns 0 rows the order is already settled; this method returns
- * {@link SettlementResult#alreadyHandled(java.util.UUID)} immediately.
- */
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -55,7 +31,6 @@ public class SettlementService {
     public SettlementResult settle(Order order, FillDecision initialDecision, Instrument instrument) {
         Instant now = Instant.now();
 
-        // --- Re-checks inside the transaction with fresh account state --------
 
         Account account = mapper.findAccountById(order.getAccountId());
 
@@ -97,7 +72,7 @@ public class SettlementService {
             return SettlementResult.alreadyHandled(order.getId());
         }
 
-        // --- Apply writes based on final decision -----------------------------
+        // --- Apply writes based on final decision --------
 
         if (finalDecision.isFill()) {
             return applyFill(order, account, instrument, finalDecision.getExecutedPrice(), now);
@@ -106,10 +81,7 @@ public class SettlementService {
         }
     }
 
-    // =========================================================================
-    // Private helpers
-    // =========================================================================
-
+    
     private SettlementResult applyFill(Order order, Account account,
                                        Instrument instrument, BigDecimal executedPrice,
                                        Instant now) {

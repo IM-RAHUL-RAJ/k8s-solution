@@ -9,7 +9,7 @@ import lombok.Setter;
 import java.math.BigDecimal;
 import java.time.Instant;
 
-/** DTO representing the quote data from Fauxnance. */
+//Fauxnance quote response.
 @Getter
 @Setter
 @NoArgsConstructor

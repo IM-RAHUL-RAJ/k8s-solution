@@ -1,8 +1,6 @@
 package com.capstone.etp.executor.exception;
 
-/**
- * Raised when a retriable Fauxnance call fails after all retry attempts.
- */
+
 public class TransientNetworkException extends RuntimeException {
 
     private final String symbol;

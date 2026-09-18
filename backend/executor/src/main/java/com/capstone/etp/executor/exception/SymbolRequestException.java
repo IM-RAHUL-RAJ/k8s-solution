@@ -1,8 +1,6 @@
 package com.capstone.etp.executor.exception;
 
-/**
- * Raised for non-retriable HTTP 4xx responses (except 429) from Fauxnance.
- */
+
 public class SymbolRequestException extends RuntimeException {
 
     private final String symbol;
