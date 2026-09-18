@@ -9,10 +9,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Payload of an ORDER_PLACED message on the {@code orders} topic.
- * Field names must match the trade-api's OrderPlacedPayload exactly.
- */
+//Payload of an ORDER_PLACED message on the 'orders' topic.
 
 @Getter
 @Setter
@@ -26,12 +23,10 @@ public class OrderPlacedPayload {
 
     private String symbol;
 
-    /** "BUY" or "SELL" */
     private String side;
 
     private Integer quantity;
 
-    /** Limit price from the original order request. */
     private BigDecimal price;
 
     private String idempotencyKey;

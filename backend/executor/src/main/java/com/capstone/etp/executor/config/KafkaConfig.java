@@ -15,12 +15,7 @@ import org.springframework.kafka.support.ExponentialBackOffWithMaxRetries;
 import com.capstone.etp.executor.exception.DeadLetterException;
 import com.capstone.etp.executor.kafka.consumer.DeadLetterPublisher;
 
-/**
- * Overrides the Spring Boot auto-configured listener container factory to use
- * MANUAL_IMMEDIATE acknowledgement. The consumer commits the offset only after
- * it has processed the record and published to trade-events, so a crash between
- * the DB commit and the offset commit replays the message rather than losing it.
- */
+
 @EnableKafka
 @Configuration
 public class KafkaConfig {

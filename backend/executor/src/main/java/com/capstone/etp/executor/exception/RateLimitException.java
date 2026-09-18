@@ -1,9 +1,6 @@
 package com.capstone.etp.executor.exception;
 
-/**
- * Raised when Fauxnance returns HTTP 429 and the caller must stop sending
- * further requests for the current poll cycle.
- */
+//Exception thrown when Fauxnance rate limit is reached, indicating the caller should stop sending requests for the current poll cycle.
 public class RateLimitException extends RuntimeException {
 
     private final Integer retryAfterSeconds;

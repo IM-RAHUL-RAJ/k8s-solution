@@ -18,23 +18,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.RecoverableDataAccessException;
 import org.springframework.stereotype.Service;
 
-/**
- * Orchestrates the seven-step execution flow described in the sprint brief.
- *
- * <p><strong>Transaction boundary:</strong> this class itself is NOT @Transactional.
- * The database writes happen inside {@link SettlementService#settle}, which IS
- * @Transactional and is a separate Spring bean (so its proxy is active). Kafka
- * publish and offset commit happen in the consumer, after {@code settle} returns
- * (and the DB transaction has committed). This ordering guarantees the recoverable
- * failure: a committed order that was never published can be replayed from the
- * orders table, whereas an event for a rolled-back order cannot be undone.
- *
- * <p><strong>Optimistic lock retry:</strong> if the account version changes
- * concurrently, {@link SettlementService} throws
- * {@link OptimisticLockRetryException}, rolling the transaction back. The retry
- * loop here catches it and re-invokes settle. Only the DB settlement retries; the
- * Fauxnance call and fill-rule evaluation are reused.
- */
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -47,13 +31,6 @@ public class ExecutionService {
     @Value("${app.executor.optimistic-lock.max-attempts:3}")
     private int maxLockAttempts;
 
-    /**
-     * Executes one ORDER_PLACED message end-to-end and returns the settlement result.
-     * The caller (OrderConsumer) must publish the trade-event and ack the offset
-     * AFTER this method returns — not before, not inside.
-     *
-     * @throws DeadLetterException if the payload is irrecoverably invalid
-     */
     public SettlementResult execute(OrderPlacedPayload payload) {
         // Step 1 – load the order from Postgres
         Order order = mapper.findOrderById(payload.getOrderId());
@@ -97,7 +74,7 @@ public class ExecutionService {
         return settleWithRetry(order, initialDecision, instrument);
     }
 
-    // -------------------------------------------------------------------------
+    
 
     private SettlementResult settleWithRetry(Order order, FillDecision decision,
                                               Instrument instrument) {

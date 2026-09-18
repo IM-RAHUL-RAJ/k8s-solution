@@ -2,10 +2,7 @@ package com.capstone.etp.executor.rule;
 
 import java.math.BigDecimal;
 
-/**
- * The outcome of applying the fill rule to a single order and quote.
- * Immutable; use the static factory methods.
- */
+
 public final class FillDecision {
 
     private final boolean fill;

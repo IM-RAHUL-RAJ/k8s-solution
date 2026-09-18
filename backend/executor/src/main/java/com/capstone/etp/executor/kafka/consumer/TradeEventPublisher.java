@@ -13,16 +13,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.util.UUID;
-
-/**
- * Builds and publishes an {@code ORDER_FILLED} or {@code ORDER_REJECTED} message
- * to the {@code trade-events} topic, keyed by {@code accountId} as a string.
- *
- * <p>Called by the consumer AFTER the settlement transaction has committed and
- * BEFORE the Kafka offset is acknowledged. This ordering ensures that a crash
- * between commit and publish results in a replayable message rather than a
- * silently lost event.
- */
+//Builds and publishes an ORDER_FILLED or ORDER_REJECTED message to the trade-events topic, keyed by accountId.
 @Slf4j
 @Component
 @RequiredArgsConstructor

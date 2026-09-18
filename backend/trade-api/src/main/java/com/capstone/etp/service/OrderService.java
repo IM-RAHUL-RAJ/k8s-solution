@@ -141,10 +141,6 @@ public class OrderService {
                .build();
     }
 
-    /**
-     * Helper class to hold order and instrument information
-     * needed after the transaction commits.
-     */
     private static class PlaceOrderInfo {
         final Order order;
         final Instrument instrument;

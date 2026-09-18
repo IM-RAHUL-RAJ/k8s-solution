@@ -21,10 +21,7 @@ import java.util.UUID;
 @Mapper
 public interface ExecutorOrderMapper {
 
-    // -------------------------------------------------------------------------
-    // Reads
-    // -------------------------------------------------------------------------
-
+   
     @Select("""
             SELECT id, account_id, instrument_id, idempotency_key,
                    order_type AS side, quantity, limit_price, status, created_at, terminal_at
@@ -74,10 +71,7 @@ public interface ExecutorOrderMapper {
     })
     Instrument findInstrumentById(@Param("instrumentId") Long instrumentId);
 
-    /**
-     * Returns the current holding for an account+instrument, or null if none exists.
-     * Joined through portfolios because portfolio_holdings keys on portfolio_id, not account_id.
-     */
+
     @Select("""
             SELECT ph.portfolio_id, ph.instrument_id, ph.quantity, ph.avg_price
             FROM portfolio_holdings ph
@@ -94,17 +88,10 @@ public interface ExecutorOrderMapper {
     PortfolioHolding findHolding(@Param("accountId") Long accountId,
                                  @Param("instrumentId") Long instrumentId);
 
-    /** Each account has exactly one portfolio (UNIQUE constraint on portfolios.account_id). */
+
     @Select("SELECT id FROM portfolios WHERE account_id = #{accountId}")
     Long findPortfolioIdByAccountId(@Param("accountId") Long accountId);
 
-                /**
-                 * Symbol list for the market-data poller.
-                 * Includes instruments that are currently:
-                 * 1) on any account watchlist,
-                 * 2) held in any portfolio,
-                 * 3) referenced by NEW orders.
-                 */
                 @Select("""
                                                 SELECT DISTINCT s.symbol
                                                 FROM (
@@ -133,16 +120,7 @@ public interface ExecutorOrderMapper {
                                                 """)
                 List<String> findSymbolsForMarketDataPoller();
 
-    // -------------------------------------------------------------------------
-    // Writes — settlement transaction
-    // -------------------------------------------------------------------------
 
-    /**
-     * Guarded state transition. Returns 1 if the order was NEW and is now settled,
-     * 0 if it was already in a terminal state (duplicate delivery — do nothing).
-     * The WHERE clause makes two concurrent deliveries race safely: the second
-     * UPDATE finds 0 rows and the transaction returns without writing anything.
-     */
     @Update("""
             UPDATE orders
                SET status      = #{status}::order_status_enum,
@@ -154,11 +132,7 @@ public interface ExecutorOrderMapper {
                           @Param("status")     OrderStatus status,
                           @Param("terminalAt") Instant terminalAt);
 
-    /**
-     * Cash debit/credit with optimistic lock. Returns 1 on success, 0 on version conflict.
-     * The caller throws {@link com.capstone.etp.executor.exception.OptimisticLockRetryException}
-     * on 0, rolling back the transaction and retrying.
-     */
+    
     @Update("""
             UPDATE accounts
                SET cash_balance = #{newCashBalance},
@@ -171,10 +145,7 @@ public interface ExecutorOrderMapper {
                                     @Param("newCashBalance")  BigDecimal newCashBalance,
                                     @Param("expectedVersion") Long expectedVersion);
 
-    /**
-     * INSERT … ON CONFLICT upsert for BUY fills. Weighted-average price is computed
-     * in SQL so the update is atomic: no read-modify-write race.
-     */
+
     @Insert("""
             INSERT INTO portfolio_holdings
                         (portfolio_id, instrument_id, quantity, avg_price, updated_at)
@@ -192,7 +163,7 @@ public interface ExecutorOrderMapper {
                        @Param("quantity")      int quantity,
                        @Param("avgPrice")      BigDecimal avgPrice);
 
-    /** Decrease held quantity on a SELL fill. */
+
     @Update("""
             UPDATE portfolio_holdings
                SET quantity   = quantity - #{quantity},
@@ -204,13 +175,6 @@ public interface ExecutorOrderMapper {
                         @Param("instrumentId") Long instrumentId,
                         @Param("quantity")     int quantity);
 
-    /**
-     * Records the execution result in the transactions table.
-     * For fills: status = 'EXECUTED', reason = null.
-     * For rejects: status = 'FAILED', reason = rejection code string.
-     * The executed_price column is NOT NULL; for rejects the limit price is stored
-     * as the "attempted" price so the constraint is satisfied.
-     */
     @Insert("""
             INSERT INTO transactions
                         (order_id, quantity, executed_price, status, reason, executed_at)

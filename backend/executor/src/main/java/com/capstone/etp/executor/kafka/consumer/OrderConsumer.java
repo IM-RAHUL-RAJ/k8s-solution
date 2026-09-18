@@ -14,29 +14,7 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.stereotype.Component;
 
-/**
- * Consumes messages from the {@code orders} topic, delegates execution to
- * {@link ExecutionService}, then publishes the trade-event and acknowledges
- * the offset.
- *
- * <h3>Ordering guarantee</h3>
- * <pre>
- *   1. ExecutionService.execute()      — DB transaction commits here
- *   2. TradeEventPublisher.publish()   — Kafka send (fire-and-forget with producer acks=all)
- *   3. ack.acknowledge()               — offset committed
- * </pre>
- *
- * A crash between (1) and (2) replays the message from Kafka; the executor
- * sees status != NEW on reload and returns {@code alreadyHandled} — idempotent.
- * A crash between (2) and (3) replays the message and publishes a second
- * trade-event (at-least-once); consumers of that topic must be idempotent too.
- *
- * <h3>Error handling</h3>
- * <ul>
- *   <li>{@link DeadLetterException} — message is poisonous; dead-letter and ack.</li>
- *   <li>Any other exception — do NOT ack; Spring Kafka retries the listener.</li>
- * </ul>
- */
+//Consumes messages from the 'orders' topic, delegates execution to ExecutionService,
 @Slf4j
 @Component
 @RequiredArgsConstructor

@@ -6,13 +6,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Carries everything the consumer needs to publish a trade-event after the
- * settlement transaction has committed.
- *
- * @param alreadyHandled true when the guarded UPDATE found 0 rows — the order
- *                       was already settled by a prior delivery. No event is published.
- */
+
 public record SettlementResult(
         UUID orderId,
         Long accountId,
@@ -29,7 +23,7 @@ public record SettlementResult(
         Instant executedOn,
         boolean alreadyHandled
 ) {
-    /** Convenience factory for the duplicate-delivery fast path. */
+   
     public static SettlementResult alreadyHandled(UUID orderId) {
         return new SettlementResult(
                 orderId, null, null, null, 0,

@@ -20,18 +20,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Polls Fauxnance for live quotes and publishes each as a {@code QUOTE} message
- * to the {@code market-data} topic, keyed by symbol.
- *
- * <p>The batch endpoint accepts at most 25 symbols per request so large symbol
- * lists are chunked automatically.  Fauxnance failures are logged and skipped —
- * a missing poll cycle does not crash the executor.
- *
- * <p>Interval: {@code POLL_INTERVAL_SECONDS} env-var (default 60 s via
- * {@code app.poller.interval-seconds}).  The annotation expression multiplies
- * by 1000 to convert to milliseconds.
- */
+
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -56,11 +45,6 @@ public class MarketDataPoller {
     @Value("${app.poller.interval-seconds:60}")
     private int pollIntervalSeconds;
 
-    /**
-     * Spring EL multiplies the interval-seconds property by 1000 to get ms.
-     * fixedDelay = time between end of last execution and start of next,
-     * which avoids pile-up when a poll takes longer than the interval.
-     */
     @Scheduled(fixedDelayString = "#{${app.poller.interval-seconds:60} * 1000}")
     public void poll() {
         List<String> symbols = mapper.findSymbolsForMarketDataPoller();

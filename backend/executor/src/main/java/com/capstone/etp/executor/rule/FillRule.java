@@ -7,26 +7,7 @@ import com.capstone.etp.executor.kafka.models.QuotePayload;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
-/**
- * Pure fill rule — no database access, no network calls.
- *
- * <h3>Side and price semantics</h3>
- * <ul>
- *   <li>A BUY fills when {@code limitPrice >= ask}.  Execution price = ask.</li>
- *   <li>A SELL fills when {@code limitPrice <= bid}.  Execution price = bid.</li>
- *   <li>{@code price} (last trade) is never used for settlement.</li>
- * </ul>
- *
- * <h3>Rounding</h3>
- * Fauxnance quotes carry more than two decimal places. Both sides of the
- * comparison use the same 2-dp rounded value so an order can never fill at a
- * price that failed its own check. Rounding mode is HALF_UP, matching the
- * column type {@code NUMERIC(10,2)}.
- *
- * <h3>Partial fills</h3>
- * Out of scope: the order status enumeration has no working state between NEW
- * and a terminal status. An unmarketable order is rejected, not rested.
- */
+
 public final class FillRule {
 
     private FillRule() {
