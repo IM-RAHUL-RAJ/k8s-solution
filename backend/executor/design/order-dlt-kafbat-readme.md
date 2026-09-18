@@ -162,3 +162,70 @@ not-a-valid-json
   "payload": {}
 }
 ```
+
+# Duplicate Order Event Delivery (Idempotency Validation)
+
+Verifies that replaying the same order event does not create a duplicate trade execution. The executor identifies the duplicate using `idempotencyKey` / `eventId` and ignores the second delivery.
+
+
+## First Delivery
+
+**Key:** `1`
+
+**Value:**
+```json
+{
+	"eventId": "78a76829-1f48-4760-b061-8d5ac3a880df",
+	"eventType": "ORDER_PLACED",
+	"eventTime": "2026-09-17T18:42:28.520023633Z",
+	"source": "trade-api",
+	"schemaVersion": 1,
+	"payload": {
+		"orderId": "cef4daa9-01bd-4835-97c2-a80c1b1bfb38",
+		"accountId": 1,
+		"symbol": "AAPL",
+		"side": "BUY",
+		"quantity": 1,
+		"price": 500,
+		"idempotencyKey": "d178d159-4cb1-4fee-9fd5-094972cd124d",
+		"createdOn": "2026-09-17T18:42:28.506770047Z"
+	}
+}
+```
+
+**Expected Result:**
+```
+Order processed successfully.
+Account balance updated.
+Trade event published.
+Order execution completed.
+```
+
+## Second Delivery (Same Message Replay)
+
+Send the exact same key and value again.
+
+**Expected Duplicate Handling:**
+```
+Duplicate order event detected.
+No second account debit performed.
+No duplicate trade event published.
+Existing execution result reused/ignored.
+```
+
+**Example log:**
+```
+Duplicate event detected: eventId=10000000-0000-0000-0000-000000000016
+Skipping order execution.
+```
+
+## Screenshots
+
+Account balance before duplicate delivery
+![Account balance before duplicate delivery](./images/account_balance_before.png)
+
+Account balance after duplicate delivery
+![Account balance after duplicate delivery](./images/account_balance_after.png)
+
+Console Message
+![Console message for duplicate delivery](./images/console_message.png)
