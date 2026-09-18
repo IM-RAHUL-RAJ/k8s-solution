@@ -40,3 +40,8 @@ Example C: 50 symbols
 - requests per poll = ceil(50 / 25) = 2
 - required interval from quota = ceil((86400 * 2) / 2000) = 87
 - enforced required interval = max(45, 87) = 87 seconds
+
+
+## Screenshot 
+![Market Data Topic Messages](./images/market_data_topic.png)
+
