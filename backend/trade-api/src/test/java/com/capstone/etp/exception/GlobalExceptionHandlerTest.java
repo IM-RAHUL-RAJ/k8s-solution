@@ -177,4 +177,37 @@ class GlobalExceptionHandlerTest {
                 new InvalidOrderValueException("Invalid value")
         ).getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
     }
+
+        @Test
+        void handleIllegalState_MapsToOrd409With400Status() {
+                ResponseEntity<ErrorResponse> response = exceptionHandler.handleIllegalState(
+                                new IllegalOrderStateException("terminal order")
+                );
+
+                assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+                assertThat(response.getBody()).isNotNull();
+                assertThat(response.getBody().getErrorCode()).isEqualTo("ORD-409");
+        }
+
+        @Test
+        void handleCurrencyMismatch_MapsToCur422With422Status() {
+                CurrencyMismatchException exception = new CurrencyMismatchException("account USD vs symbol INR");
+                ResponseEntity<ErrorResponse> response = exceptionHandler.handleCurrencyMismatch(exception);
+
+                assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+                assertThat(response.getBody()).isNotNull();
+                assertThat(response.getBody().getErrorCode()).isEqualTo("CUR-422");
+                assertThat(response.getBody().getMessage()).contains("Currency mapping validation failed");
+        }
+
+        @Test
+        void handleEtpException_DefaultsTo500() {
+                ETPException exception = new ETPException("GEN-500", "Generic failure") {};
+                ResponseEntity<ErrorResponse> response = exceptionHandler.handleETPException(exception);
+
+                assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+                assertThat(response.getBody()).isNotNull();
+                assertThat(response.getBody().getErrorCode()).isEqualTo("GEN-500");
+                assertThat(response.getBody().getMessage()).isEqualTo("Generic failure");
+        }
 }
