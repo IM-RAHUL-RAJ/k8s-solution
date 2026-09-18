@@ -27,3 +27,9 @@ data/
 
 #Analytics egg info
 sprint_04_analytics_etl.egg-info/
+
+
+pytest_output.txt
+*.txt
+
+duckdb

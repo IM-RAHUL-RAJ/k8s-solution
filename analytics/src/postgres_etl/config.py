@@ -34,3 +34,13 @@ def get_postgres_dsn() -> str:
 TRADES_DUCKDB_PATH: str = os.environ.get(
     "TRADES_DUCKDB_PATH", "data/trades.duckdb"
 )
+
+# Kafka configuration for trade-events consumer
+KAFKA_BROKER = os.environ.get("KAFKA_BROKER", "localhost:9092")
+KAFKA_TRADE_EVENTS_TOPIC = os.environ.get("KAFKA_TRADE_EVENTS_TOPIC", "trade-events")
+KAFKA_CONSUMER_GROUP = os.environ.get("KAFKA_CONSUMER_GROUP", "analytics-loader")
+
+# Watermark tracking for incremental loads
+WATERMARK_FILE: str = os.environ.get(
+    "WATERMARK_FILE", "data/.watermark"
+)
