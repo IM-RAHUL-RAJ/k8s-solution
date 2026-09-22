@@ -7,8 +7,12 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
+# From trade-events schema
 VALID_SIDES    = {"BUY", "SELL"}
-VALID_STATUSES = {"NEW", "OPEN", "RECEIVED", "FILLED", "CANCELLED", "REJECTED"}
+VALID_STATUSES = {"FILLED", "REJECTED", "CANCELLED"}
+
+# From orders table (may come pre-filled or via Kafka)
+OPERATIONAL_STATUSES = {"NEW", "OPEN", "RECEIVED", "FILLED", "CANCELLED", "REJECTED"}
 
 
 def _require_str(value: Any, field: str) -> str:
@@ -54,20 +58,41 @@ def _require_datetime(value: Any, field: str) -> datetime:
 
 
 def _date_key(dt: datetime) -> int:
+    # Convert a datetime to a date_key in YYYYMMDD format
     return int(dt.strftime("%Y%m%d"))
 
+
+def _validate_trade_value(
+    quantity: int,
+    price: Decimal,
+    executed_price: Decimal | None,
+    trade_value: Decimal,
+) -> None:
+    effective_price = executed_price if executed_price is not None else price
+    expected_trade_value = Decimal(quantity) * effective_price
+
+    if abs(trade_value - expected_trade_value) > Decimal("0.01"):
+        raise ValueError(
+            f"trade_value mismatch: expected {expected_trade_value}, got {trade_value}"
+        )
 
 
 def transform_row(row: dict[str, Any]) -> dict[str, Any]:
     source_order_id = _require_str(row.get("source_order_id"), "source_order_id")
+
     side = _require_str(row.get("side"), "side").upper()
     if side not in VALID_SIDES:
-        raise ValueError(f"'side' must be BUY or SELL, got {side!r}")
+        raise ValueError(
+            f"'side' must be one of {VALID_SIDES}, got {side!r}"
+        )
 
     status = _require_str(row.get("status"), "status").upper()
-    if status not in VALID_STATUSES:
-        raise ValueError(f"'status' must be one of {VALID_STATUSES}, got {status!r}")
-
+    # Accept both operational statuses (from Postgres) and terminal statuses (from Kafka)
+    if status not in OPERATIONAL_STATUSES:
+        raise ValueError(
+            f"'status' must be one of {OPERATIONAL_STATUSES}, got {status!r}"
+        )
+        
     quantity = _require_int(row.get("quantity"), "quantity")
     if quantity <= 0:
         raise ValueError(f"'quantity' must be > 0, got {quantity}")
@@ -78,47 +103,58 @@ def transform_row(row: dict[str, Any]) -> dict[str, Any]:
     effective_price = executed_price if executed_price is not None else price
     trade_value = Decimal(quantity) * effective_price
 
+    if row.get("trade_value") is not None:
+        provided_trade_value = _require_positive_decimal(
+            row.get("trade_value"), "trade_value"
+        )
+        _validate_trade_value(quantity, price, executed_price, provided_trade_value)
+        trade_value = provided_trade_value
+
     created_at = _require_datetime(row.get("created_at"), "created_at")
     date_key_val = _date_key(created_at)
 
-    symbol      = _require_str(row.get("symbol"), "symbol")
+    symbol = _require_str(row.get("symbol"), "symbol")
     instrument_id = _require_int(row.get("instrument_id"), "instrument_id")
 
-    account_id  = _require_str(str(row.get("account_id")), "account_id")
+    account_id = _require_str(str(row.get("account_id")), "account_id")
     account_ref = _require_str(row.get("account_ref"), "account_ref")
     holder_name = _require_str(row.get("holder_name"), "holder_name")
     account_status = _require_str(row.get("account_status"), "account_status")
 
     return {
+        # Identity
         "source_order_id": source_order_id,
-        "side":            side,
-        "status":          status,
-        "quantity":        quantity,
-        "price":           price,
-        "executed_price":  executed_price,
-        "trade_value":     trade_value,
-        "created_at":      created_at,
-        "date_key":        date_key_val,
 
-        "instrument_id":   instrument_id,
-        "symbol":          symbol,
+        # Transaction fields
+        "side": side,
+        "status": status,
+        "quantity": quantity,
+        "price": price,
+        "executed_price": executed_price,
+        "trade_value": trade_value,
+        "created_at": created_at,
+        "date_key": date_key_val,
+
+        # Instrument (for dimension lookup)
+        "instrument_id": instrument_id,
+        "symbol": symbol,
         "instrument_name": row.get("instrument_name"),
-        "asset_class":     row.get("asset_class"),
-        "currency":        row.get("currency"),
-        "exchange":        row.get("exchange"),
-        "tradable":        row.get("tradable"),
+        "asset_class": row.get("asset_class"),
+        "currency": row.get("currency"),
+        "exchange": row.get("exchange"),
+        "tradable": row.get("tradable"),
 
-        "account_id":      account_id,
-        "account_ref":     account_ref,
-        "holder_name":     holder_name,
-        "account_status":  account_status,
+        # Account (for dimension lookup)
+        "account_id": account_id,
+        "account_ref": account_ref,
+        "holder_name": holder_name,
+        "account_status": account_status,
         "account_created_at": row.get("account_created_at"),
     }
 
 
-
 def transform(raw_rows: list[dict[str, Any]]) -> dict[str, Any]:
-    clean     : list[dict] = []
+    clean: list[dict] = []
     quarantine: list[dict] = []
 
     for i, row in enumerate(raw_rows, start=1):
@@ -127,12 +163,16 @@ def transform(raw_rows: list[dict[str, Any]]) -> dict[str, Any]:
         except ValueError as exc:
             logger.warning(
                 "QUARANTINE row=%d source_order_id=%r reason=%s",
-                i, row.get("source_order_id"), exc,
+                i,
+                row.get("source_order_id"),
+                exc,
             )
             quarantine.append({"row": row, "reason": str(exc)})
 
     logger.info(
         "TRANSFORM complete: %d clean, %d quarantined",
-        len(clean), len(quarantine),
+        len(clean),
+        len(quarantine),
     )
     return {"clean": clean, "quarantine": quarantine}
+
