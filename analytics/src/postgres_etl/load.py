@@ -1,28 +1,3 @@
-"""
-Incremental load of FACT_TRADES and dimensions from Postgres to DuckDB.
-
-Loading sequence (respects foreign key constraints):
-  1. Create schema if needed
-  2. Load DIM_DATE for all years in the batch (pre-populate)
-  3. Load DIM_INSTRUMENT (Type 1 - overwrite in place)
-  4. Load DIM_ACCOUNT (Type 2 - slowly changing dimension)
-  5. Load FACT_TRADES with referential integrity checks
-
-Idempotency:
-  - DIM_INSTRUMENT and DIM_ACCOUNT merge on natural key
-  - FACT_TRADES has a unique constraint on source_order_id
-  - Re-running a load cannot double-count
-
-Data quality:
-  - Referential integrity is checked before insert
-  - Rows that fail are dead-lettered with the reason
-  - Dead-lettering is idempotent via unique constraint on source_order_id
-
-Watermarking:
-  - get_watermark() returns the max created_at from fact_trades
-  - Used by extract to know which orders to fetch
-"""
-
 from __future__ import annotations
 
 import hashlib
@@ -47,7 +22,6 @@ SCHEMA_FILE = BASE_DIR / "contracts" / "trades-schema.sql"
 
 
 def _create_schema(conn: duckdb.DuckDBPyConnection) -> None:
-    """Create or verify the analytical schema."""
     if not SCHEMA_FILE.exists():
         raise LoadError(f"Schema file not found: {SCHEMA_FILE}")
     sql = SCHEMA_FILE.read_text(encoding="utf-8")
@@ -56,12 +30,6 @@ def _create_schema(conn: duckdb.DuckDBPyConnection) -> None:
 
 
 def _load_dim_date(conn: duckdb.DuckDBPyConnection, year: int) -> int:
-    """
-    Populate DIM_DATE for an entire year.
-
-    Idempotent: existing rows are not re-inserted due to the unique constraint
-    on full_date.
-    """
     start = date(year, 1, 1)
     end = date(year, 12, 31)
     current = start
@@ -103,14 +71,6 @@ def _load_dim_date(conn: duckdb.DuckDBPyConnection, year: int) -> int:
 
 
 def _upsert_instrument(conn: duckdb.DuckDBPyConnection, row: dict) -> int:
-    """
-    Upsert into DIM_INSTRUMENT (Type 1: overwrite in place).
-
-    Type 1 dimension: instrument attributes are overwritten. A company changing
-    its name does not change the meaning of a trade from two years ago.
-
-    Returns the instrument_key, which is idempotent.
-    """
     existing = conn.execute(
         "SELECT instrument_key FROM dim_instrument WHERE symbol = ?",
         [row["symbol"]],
@@ -171,16 +131,6 @@ def _upsert_instrument(conn: duckdb.DuckDBPyConnection, row: dict) -> int:
 
 
 def _upsert_account(conn: duckdb.DuckDBPyConnection, row: dict) -> int:
-    """
-    Upsert into DIM_ACCOUNT (Type 2: slowly changing dimension).
-
-    Type 2 SCD: when an account changes status, create a new row. The old row
-    is marked not current, with an end_date. This preserves historical state:
-    a trade placed while ACTIVE should report as placed on an ACTIVE account,
-    not rewritten to report as SUSPENDED.
-
-    Returns the account_key for the current version of the account.
-    """
     current_version = conn.execute(
         """
         SELECT account_key, status
@@ -248,21 +198,6 @@ def _insert_trade(
     instrument_key: int,
     batch_id: str,
 ) -> bool:
-    """
-    Insert into FACT_TRADES with referential integrity checks.
-
-    Idempotent: the unique constraint on source_order_id prevents re-insertion.
-
-    Args:
-        conn: DuckDB connection
-        row: Transformed and validated row
-        account_key: Foreign key to dim_account
-        instrument_key: Foreign key to dim_instrument
-        batch_id: UUID of the load batch (for dead-lettering)
-
-    Returns:
-        True if inserted, False if already present or FK check failed
-    """
     # Generate deterministic trade_key from source_order_id
     trade_key = int(
         hashlib.sha256(row["source_order_id"].encode("utf-8")).hexdigest()[:15], 16
@@ -369,24 +304,6 @@ def _insert_trade(
         return False
 
 def load(transformed_data: dict[str, Any], db_path: str | None = None) -> int:
-    """
-    Load transformed order data into the analytical schema.
-
-    Sequence:
-      1. Create schema
-      2. Populate DIM_DATE for all years in the batch
-      3. Upsert DIM_INSTRUMENT rows
-      4. Upsert DIM_ACCOUNT rows
-      5. Insert FACT_TRADES rows with referential integrity checks
-      6. Dead-letter rows that fail any check
-
-    Args:
-        transformed_data: Dict with 'clean' and 'quarantine' lists
-        db_path: Path to DuckDB file (defaults to config)
-
-    Returns:
-        Number of rows successfully inserted into fact_trades
-    """
     clean: list[dict] = transformed_data.get("clean", [])
     batch_id = str(uuid4())
 
@@ -400,7 +317,6 @@ def load(transformed_data: dict[str, Any], db_path: str | None = None) -> int:
         logger.info("Batch ID: %s", batch_id)
         logger.info("=" * 60)
 
-        # ===== 1. Create schema =====
         _create_schema(conn)
         
         conn.execute(
@@ -416,12 +332,10 @@ def load(transformed_data: dict[str, Any], db_path: str | None = None) -> int:
             logger.info("No clean rows to load")
             return 0
 
-        # ===== 2. Populate DIM_DATE for all years in the batch =====
         years = {row["created_at"].year for row in clean}
         for year in sorted(years):
             _load_dim_date(conn, year)
 
-        # ===== 3–5. Process each row =====
         rows_inserted = 0
         for row in clean:
             try:
@@ -440,7 +354,6 @@ def load(transformed_data: dict[str, Any], db_path: str | None = None) -> int:
                     row,
                 )
                 logger.error("DEAD_LETTER: %s", reason)
-                # Continue processing other rows
 
         conn.commit()
 

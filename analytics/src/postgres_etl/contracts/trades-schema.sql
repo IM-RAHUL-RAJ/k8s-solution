@@ -1,22 +1,5 @@
--- =============================================================================
--- trades.duckdb schema — operational trade data from Postgres
--- =============================================================================
---
--- This schema is owned exclusively by the postgres_etl pipeline.
--- It lives in trades.duckdb, a DuckDB file that is COMPLETELY SEPARATE
--- from analytics.duckdb (which is owned by the Fauxnance candle pipeline).
---
--- NEVER run this file against analytics.duckdb.
---
--- Star schema — same dimensional modelling conventions as analytics-schema.sql
--- but only the tables needed by the Postgres ETL are present here.
--- fact_candles does NOT exist in this file.
--- =============================================================================
-
-
 -- -----------------------------------------------------------------------------
 -- DIM_ACCOUNT
--- One row per account per version (Slowly Changing Dimension Type 2).
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS dim_account (
     account_key     BIGINT       NOT NULL,
@@ -35,7 +18,6 @@ CREATE TABLE IF NOT EXISTS dim_account (
 
 -- -----------------------------------------------------------------------------
 -- DIM_INSTRUMENT
--- One row per tradable instrument (Type 1 — overwrite in place).
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS dim_instrument (
     instrument_key  BIGINT       NOT NULL,
@@ -54,7 +36,6 @@ CREATE TABLE IF NOT EXISTS dim_instrument (
 
 -- -----------------------------------------------------------------------------
 -- DIM_DATE
--- One row per calendar day. Pre-populated by the ETL before fact load.
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS dim_date (
     date_key    INTEGER     NOT NULL,
@@ -75,9 +56,6 @@ CREATE TABLE IF NOT EXISTS dim_date (
 
 -- -----------------------------------------------------------------------------
 -- FACT_TRADES
--- One row per order in whatever status it reached.
--- Grain: one order, not one execution.
--- Rejected and cancelled orders are included so fill-rate analytics work.
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS fact_trades (
     trade_key       BIGINT        NOT NULL,
@@ -108,8 +86,6 @@ CREATE TABLE IF NOT EXISTS fact_trades (
 
 -- -----------------------------------------------------------------------------
 -- DIM_BATCH
--- One row per ETL execution/batch.
--- Used to identify which pipeline run produced a dead-letter record.
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS dim_batch (
     batch_id       VARCHAR(36) NOT NULL,
@@ -120,13 +96,6 @@ CREATE TABLE IF NOT EXISTS dim_batch (
 
 -- =============================================================================
 -- DEAD_LETTER_TRADES
--- One row per row that failed data quality checks and could not be loaded.
---
--- Dead-lettering prevents data loss: a row that fails validation is recorded
--- with the reason and the batch UUID, so it can be investigated and replayed.
---
--- Idempotent: the unique constraint on source_order_id prevents duplicate
--- dead-letter records if the same order fails validation twice.
 -- =============================================================================
 CREATE TABLE IF NOT EXISTS dead_letter_trades (
     dead_letter_key    BIGINT       NOT NULL,
