@@ -1,7 +1,8 @@
 import {
   IsNotEmpty,
   IsString,
-  MaxLength
+  MaxLength,
+  MinLength
 } from 'class-validator';
 
 
@@ -9,12 +10,14 @@ export class LoginRequestDto {
 
   @IsString()
   @IsNotEmpty()
-  @MaxLength(64)
+  @MinLength(3)
+  @MaxLength(12)
   username!: string;
 
 
   @IsString()
   @IsNotEmpty()
-  @MaxLength(128)
+  @MinLength(8)
+  @MaxLength(12)
   password!: string;
 }
