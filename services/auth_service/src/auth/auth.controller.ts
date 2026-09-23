@@ -4,7 +4,9 @@ import {
     Body,
     Logger,
     UseGuards,
-    Get
+    Get,
+    HttpCode,
+    HttpStatus
 } from '@nestjs/common';
 
 
@@ -16,6 +18,8 @@ import {
 import {
     LoginRequestDto
 } from './dto/login-request.dto';
+import { RegisterRequestDto } from './dto/register-request.dto';
+import { RefreshRequestDto } from './dto/refresh-request.dto';
 import { JwtPayload } from './types/jwt-payload';
 import { CurrentUser } from './decorator/current-user.decorator';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
@@ -34,9 +38,25 @@ export class AuthController {
         private service: AuthService
     ) { }
 
+    @Post("register")
+    @HttpCode(HttpStatus.CREATED)
+    register(
+        @Body() dto: RegisterRequestDto
+    ) {
+        this.logger.log(
+            `[AUTH_EVENT] register_request_received username=${dto.username} accountId=${dto.accountId}`
+        );
 
+        return this.service.register(
+            dto.username,
+            dto.password,
+            dto.accountId,
+            dto.roles
+        );
+    }
 
     @Post("login")
+    @HttpCode(HttpStatus.OK)
     login(
         @Body() dto: LoginRequestDto
     ) {
@@ -52,17 +72,30 @@ export class AuthController {
 
     }
 
+    @Post('refresh')
+    @HttpCode(HttpStatus.OK)
+    refresh(
+        @Body() dto: RefreshRequestDto
+    ) {
+        this.logger.log(
+            `[AUTH_EVENT] refresh_request_received`
+        );
+
+        return this.service.refresh(
+            dto.refreshToken
+        );
+    }
+
     @Get('me')
     @UseGuards(JwtAuthGuard)
     me(
         @CurrentUser() user: JwtPayload,
     ) {
-        return {
-            userId: user.sub,
-            accountId: user.accountId,
-            roles: user.roles,
-        };
-    }
+        this.logger.log(
+            `[AUTH_EVENT] me_request_received userId=${user.sub}`
+        );
 
+        return this.service.getCurrentUser(user.sub);
+    }
 
 }

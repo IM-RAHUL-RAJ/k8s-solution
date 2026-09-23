@@ -33,4 +33,27 @@ export class AuthUserRepository {
 
   }
 
+  async findById(id: string) {
+    return this.repo.findOne({
+      where: { id }
+    });
+  }
+
+  async existsByUsername(username: string): Promise<boolean> {
+    const count = await this.repo.count({
+      where: { username }
+    });
+    return count > 0;
+  }
+
+  async create(authUser: AuthUser): Promise<AuthUser> {
+    return this.repo.save(authUser);
+  }
+
+  async findByAccountId(accountId: number): Promise<AuthUser | null> {
+    return this.repo.findOne({
+      where: { accountId }
+    });
+  }
+
 }

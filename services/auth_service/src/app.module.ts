@@ -4,6 +4,7 @@ import {
     ConfigModule,
     ConfigService,
 } from '@nestjs/config';
+import { configuration } from './config/configuration';
 
 import {
     TypeOrmModule,
@@ -21,6 +22,7 @@ import { RefreshToken } from './auth/entity/refresh-token.entity';
 
         ConfigModule.forRoot({
             isGlobal: true,
+            load: [configuration],
         }),
 
 
@@ -41,30 +43,28 @@ import { RefreshToken } from './auth/entity/refresh-token.entity';
                 type: 'postgres',
 
                 host:
-                    config.getOrThrow<string>(
-                        'DB_HOST',
+                    config.get<string>(
+                        'database.host',
                     ),
 
                 port:
-                    Number(
-                        config.getOrThrow<string>(
-                            'DB_PORT',
-                        ),
+                    config.get<number>(
+                        'database.port',
                     ),
 
                 username:
-                    config.getOrThrow<string>(
-                        'DB_USERNAME',
+                    config.get<string>(
+                        'database.user',
                     ),
 
                 password:
-                    config.getOrThrow<string>(
-                        'DB_PASSWORD',
+                    config.get<string>(
+                        'database.password',
                     ),
 
                 database:
-                    config.getOrThrow<string>(
-                        'DB_NAME',
+                    config.get<string>(
+                        'database.database',
                     ),
 
                 entities: [

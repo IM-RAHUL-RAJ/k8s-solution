@@ -73,7 +73,7 @@ export class JwtAuthGuard implements CanActivate {
                     {
                         secret:
                             this.configService.getOrThrow<string>(
-                                'JWT_SECRET',
+                                'auth.jwtSecret',
                             ),
 
                         algorithms: ['HS256'],

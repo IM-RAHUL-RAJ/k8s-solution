@@ -1,23 +1,25 @@
 import {
     Injectable,
     UnauthorizedException,
-    Logger
+    Logger,
+    ConflictException,
+    BadRequestException
 } from '@nestjs/common';
 
 
 import * as argon2 from 'argon2';
 
-
 import { AuthUserRepository }
     from './repository/auth-user.repository';
-
 
 import { RefreshTokenService }
     from './services/refresh-token.service';
 
-
 import { JwtTokenService }
     from './services/jwt-token.service';
+
+import { AuthUser } from './entity/auth-user.entity';
+import { RefreshTokenRepository } from './repository/refresh-token.repository';
 
 
 
@@ -35,7 +37,9 @@ export class AuthService {
 
         private jwtService: JwtTokenService,
 
-        private refreshService: RefreshTokenService
+        private refreshService: RefreshTokenService,
+
+        private refreshTokenRepo: RefreshTokenRepository
 
     ) { }
 
@@ -134,8 +138,180 @@ export class AuthService {
 
         };
 
-
     }
 
+    async register(username: string, password: string, accountId: number, roles?: string[]) {
+        this.logger.log(
+            `[AUTH_EVENT] register_attempt_started username=${username} accountId=${accountId}`
+        );
+
+        // Check if username already exists
+        const exists = await this.userRepo.existsByUsername(username);
+        if (exists) {
+            this.logger.warn(
+                `[AUTH_EVENT] register_rejected_duplicate_username username=${username}`
+            );
+            throw new ConflictException({
+                errorCode: 'AUTH-409',
+                message: 'Registration failed',
+            });
+        }
+
+        // Hash the password with argon2
+        const passwordHash = await argon2.hash(password, {
+            type: argon2.argon2id,
+            memoryCost: 65536,
+            timeCost: 3,
+            parallelism: 4,
+        });
+
+        // Create the user entity
+        const authUser = new AuthUser();
+        authUser.username = username;
+        authUser.passwordHash = passwordHash;
+        authUser.accountId = accountId;
+        authUser.roles = roles && roles.length > 0 ? roles : ['CUSTOMER'];
+
+        try {
+            const savedUser = await this.userRepo.create(authUser);
+            this.logger.log(
+                `[AUTH_EVENT] register_succeeded userId=${savedUser.id} username=${username} accountId=${accountId}`
+            );
+
+            return {
+                id: savedUser.id,
+                username: savedUser.username,
+                accountId: savedUser.accountId,
+                roles: savedUser.roles,
+                createdOn: new Date().toISOString(),
+            };
+        } catch (error) {
+            this.logger.error(
+                `[AUTH_EVENT] register_failed_database_error username=${username} error=${error}`
+            );
+            throw new ConflictException({
+                errorCode: 'AUTH-409',
+                message: 'Registration failed',
+            });
+        }
+    }
+
+    async refresh(refreshToken: string) {
+        this.logger.log(
+            `[AUTH_EVENT] refresh_attempt_started`
+        );
+
+        // Find and verify the refresh token
+        const tokenRecord = await this.refreshTokenRepo.verifyAndFindToken(refreshToken);
+        
+        if (!tokenRecord) {
+            this.logger.warn(
+                `[AUTH_EVENT] refresh_rejected_token_not_found`
+            );
+            throw new UnauthorizedException({
+                errorCode: 'AUTH-401',
+                message: 'Unauthorised',
+            });
+        }
+
+        // Check if token has been consumed
+        if (tokenRecord.consumedAt) {
+            this.logger.error(
+                `[AUTH_EVENT] refresh_rejected_token_reuse userId=${tokenRecord.userId}`
+            );
+            // Token reuse detected - revoke all tokens for this user
+            await this.refreshTokenRepo.revokeAllUserTokens(tokenRecord.userId);
+            throw new UnauthorizedException({
+                errorCode: 'AUTH-401',
+                message: 'Unauthorised',
+            });
+        }
+
+        // Check if token has been revoked
+        if (tokenRecord.revokedAt) {
+            this.logger.warn(
+                `[AUTH_EVENT] refresh_rejected_token_revoked userId=${tokenRecord.userId}`
+            );
+            throw new UnauthorizedException({
+                errorCode: 'AUTH-401',
+                message: 'Unauthorised',
+            });
+        }
+
+        // Check if token has expired
+        if (new Date() > tokenRecord.expiresAt) {
+            this.logger.warn(
+                `[AUTH_EVENT] refresh_rejected_token_expired userId=${tokenRecord.userId}`
+            );
+            throw new UnauthorizedException({
+                errorCode: 'AUTH-401',
+                message: 'Unauthorised',
+            });
+        }
+
+        // Mark the old token as consumed
+        await this.refreshTokenRepo.markAsConsumed(tokenRecord.id);
+
+        // Get the user details
+        const user = await this.userRepo.findById(tokenRecord.userId);
+        if (!user) {
+            this.logger.error(
+                `[AUTH_EVENT] refresh_failed_user_not_found userId=${tokenRecord.userId}`
+            );
+            throw new UnauthorizedException({
+                errorCode: 'AUTH-401',
+                message: 'Unauthorised',
+            });
+        }
+
+        // Generate new tokens
+        const accessToken = this.jwtService.generateAccessToken(
+            user.id,
+            user.accountId,
+            user.roles
+        );
+
+        const newRefreshToken = await this.refreshService.create(user.id);
+
+        this.logger.log(
+            `[AUTH_EVENT] refresh_succeeded userId=${user.id} accountId=${user.accountId}`
+        );
+
+        return {
+            accessToken,
+            refreshToken: newRefreshToken,
+            tokenType: 'Bearer',
+            expiresIn: 900,
+        };
+    }
+
+    async getCurrentUser(userId: string) {
+        this.logger.log(
+            `[AUTH_EVENT] get_current_user_started userId=${userId}`
+        );
+
+        const user = await this.userRepo.findById(userId);
+        if (!user) {
+            this.logger.warn(
+                `[AUTH_EVENT] get_current_user_rejected_user_not_found userId=${userId}`
+            );
+            throw new UnauthorizedException({
+                errorCode: 'AUTH-401',
+                message: 'Unauthorised',
+            });
+        }
+
+        this.logger.log(
+            `[AUTH_EVENT] get_current_user_succeeded userId=${userId}`
+        );
+
+        return {
+            id: user.id,
+            username: user.username,
+            accountId: user.accountId,
+            roles: user.roles,
+            createdOn: new Date().toISOString(),
+        };
+    }
 
 }

@@ -70,7 +70,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
             useFactory: (config: ConfigService) => ({
 
                 secret:
-                    config.get<string>('JWT_SECRET'),
+                    config.get<string>('auth.jwtSecret'),
 
 
                 signOptions: {
