@@ -2,7 +2,9 @@ import {
     Controller,
     Post,
     Body,
-    Logger
+    Logger,
+    UseGuards,
+    Get
 } from '@nestjs/common';
 
 
@@ -14,6 +16,9 @@ import {
 import {
     LoginRequestDto
 } from './dto/login-request.dto';
+import { JwtPayload } from './types/jwt-payload';
+import { CurrentUser } from './decorator/current-user.decorator';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 
 
@@ -45,6 +50,18 @@ export class AuthController {
             dto.password
         );
 
+    }
+
+    @Get('me')
+    @UseGuards(JwtAuthGuard)
+    me(
+        @CurrentUser() user: JwtPayload,
+    ) {
+        return {
+            userId: user.sub,
+            accountId: user.accountId,
+            roles: user.roles,
+        };
     }
 
 
