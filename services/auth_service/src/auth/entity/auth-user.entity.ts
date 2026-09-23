@@ -40,4 +40,11 @@ export class AuthUser {
   })
   roles!: string[];
 
+  @Column({
+    name: "created_at",
+    type: "timestamptz",
+    default: () => "CURRENT_TIMESTAMP"
+  })
+  createdAt!: Date;
+
 }
