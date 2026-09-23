@@ -1,6 +1,7 @@
 import {
     Injectable,
-    UnauthorizedException
+    UnauthorizedException,
+    Logger
 } from '@nestjs/common';
 
 
@@ -24,6 +25,10 @@ import { JwtTokenService }
 export class AuthService {
 
 
+    private readonly logger =
+        new Logger(AuthService.name);
+
+
     constructor(
 
         private userRepo: AuthUserRepository,
@@ -39,6 +44,10 @@ export class AuthService {
 
     async login(username: string, password: string) {
 
+        this.logger.log(
+            `[AUTH_EVENT] login_attempt_started username=${username}`
+        );
+
 
         const user =
             await this.userRepo.findByUsername(username);
@@ -46,6 +55,10 @@ export class AuthService {
 
 
         if (!user) {
+
+            this.logger.warn(
+                `[AUTH_EVENT] login_rejected_user_not_found username=${username}`
+            );
 
             throw new UnauthorizedException({
 
@@ -68,6 +81,10 @@ export class AuthService {
 
 
         if (!valid) {
+
+            this.logger.warn(
+                `[AUTH_EVENT] login_rejected_invalid_password username=${username} userId=${user.id}`
+            );
 
             throw new UnauthorizedException({
 
@@ -101,6 +118,9 @@ export class AuthService {
             );
 
 
+        this.logger.log(
+            `[AUTH_EVENT] login_succeeded userId=${user.id} accountId=${user.accountId} roles=${user.roles.join(',')}`
+        );
 
         return {
 

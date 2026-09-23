@@ -1,7 +1,8 @@
 import {
     Controller,
     Post,
-    Body
+    Body,
+    Logger
 } from '@nestjs/common';
 
 
@@ -20,6 +21,10 @@ import {
 export class AuthController {
 
 
+    private readonly logger =
+        new Logger(AuthController.name);
+
+
     constructor(
         private service: AuthService
     ) { }
@@ -30,6 +35,10 @@ export class AuthController {
     login(
         @Body() dto: LoginRequestDto
     ) {
+
+        this.logger.log(
+            `[AUTH_EVENT] login_request_received username=${dto.username}`
+        );
 
         return this.service.login(
             dto.username,
