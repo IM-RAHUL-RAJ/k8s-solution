@@ -12,6 +12,20 @@ import { Response } from 'express';
 @Catch(BadRequestException, HttpException)
 export class GlobalExceptionFilter implements ExceptionFilter {
   private logger = new Logger(GlobalExceptionFilter.name);
+  private sensitiveFields = ['password', 'token', 'secret', 'apiKey'];
+
+  private redactSensitive(obj: any): any {
+    if (typeof obj !== 'object' || obj === null) return obj;
+    const redacted: any = Array.isArray(obj) ? [...obj] : { ...obj };
+    for (const key in redacted) {
+      if (this.sensitiveFields.some((f) => key.toLowerCase().includes(f.toLowerCase()))) {
+        redacted[key] = '***REDACTED***';
+      } else if (typeof redacted[key] === 'object') {
+        redacted[key] = this.redactSensitive(redacted[key]);
+      }
+    }
+    return redacted;
+  }
 
   catch(exception: BadRequestException | HttpException, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
@@ -31,13 +45,12 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         message: 'Invalid input',
       };
       this.logger.warn(
-        `[AUTH_EVENT] validation_error path=${request.url} errors=${JSON.stringify(exception.getResponse())}`
+        `[AUTH_EVENT] validation_error path=${request.url} errors=${JSON.stringify(this.redactSensitive(exception.getResponse()))}`
       );
     } else if (exception instanceof HttpException) {
       status = exception.getStatus();
       const exceptionResponse = exception.getResponse();
 
-      // If it's already in the format we want (has errorCode), use it as is
       if (
         typeof exceptionResponse === 'object' &&
         exceptionResponse !== null &&
