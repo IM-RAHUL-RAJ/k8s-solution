@@ -52,7 +52,7 @@ export class AuthService {
 
     ) { 
         // Clean up expired throttle entries periodically
-        setInterval(() => {
+        const throttleCleanupTimer = setInterval(() => {
             const now = Date.now();
             for (const [username, data] of this.loginAttempts.entries()) {
                 if (now - data.firstAttempt > this.LOGIN_THROTTLE_WINDOW_MS) {
@@ -60,6 +60,8 @@ export class AuthService {
                 }
             }
         }, this.LOGIN_THROTTLE_WINDOW_MS);
+
+        throttleCleanupTimer.unref?.();
     }
 
     private isThrottled(username: string): boolean {
