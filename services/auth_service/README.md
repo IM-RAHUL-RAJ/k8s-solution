@@ -19,14 +19,6 @@ The Auth Service handles registration, login, token refresh, and current-user pr
 # Install dependencies
 npm install
 
-# Copy environment file
-cp .env.example .env
-
-# Configure .env with your database and JWT_SECRET
-# JWT_SECRET should be at least 64 characters
-# Generate one with: openssl rand -base64 48
-```
-
 ### Database Setup
 
 ```bash
@@ -215,15 +207,47 @@ Example decoded token:
 - Tokens are signed with HS256 and a shared secret
 
 ### Threat Mitigations
-- **User enumeration**: Same response for unknown user and wrong password
+
+#### 1. Unified Login Failure Response (Timing-Attack Mitigation)
+**Problem**: Unknown username and wrong password can be distinguished by response time.
+- Unknown user path returns immediately after failed lookup (fast, ~1ms)
+- Wrong password path verifies hash (slow, ~100ms)
+- Attacker with username list uses stopwatch to enumerate valid accounts
+
+**Solution**: 
+- When username is **not found**, verify password against a dummy hash (using same argon2id parameters)
+- Result is discarded, but operation takes ~100ms (same as real password verification)
+- Both paths now return identical status (401), identical message ("Unauthorised"), and comparable timing
+- Response variance between paths is deterministically masked
+
+#### 2. Login Throttle (Brute-Force Protection)
+**Configuration**:
+- **Max attempts**: 5 failed login attempts
+- **Cooldown window**: 15 minutes (900 seconds)
+- **Tracking**: Per-username
+- **Behavior**: Both unknown-user and wrong-password paths count as failures
+
+**How it works**:
+- Records timestamp of each failed login attempt
+- Blocks new attempts if 5 failures recorded within cooldown window
+- Automatically clears old attempts after cooldown expires
+- Neither path returns early during throttle (maintains timing consistency)
+
+**Important Notes**:
+- Throttle is applied **after** timing-attack mitigation
+- Throttle itself is not a timing oracle—it just blocks attempts
+- The dummy password verification still runs even during throttle
+- Distributed systems: Current implementation is single-instance in-memory (suitable for auth service with session affinity)
+
+#### 3. Other Protections
 - **Token reuse**: Consuming a token twice revokes all tokens for that user
-- **Timing attacks**: Uniform response times for success and failure
+- **Uniform responses**: Same response for unknown user, wrong password, expired token, invalid signature, malformed header
 - **Privilege escalation**: Clients cannot self-assign roles during registration
 
 ### Logging
 - All auth events logged with `[AUTH_EVENT]` prefix
 - Never logs passwords, tokens, or PII
-- Events include: `register_attempt`, `login_attempt`, `refresh_attempt`, `token_reuse_detected`
+- Events include: `register_attempt`, `login_attempt`, `login_throttled`, `refresh_attempt`, `token_reuse_detected`
 
 ## Database Schema
 
@@ -306,9 +330,10 @@ if (payload.accountId !== requestedAccountId) {
 - [ ] Database created with proper schema
 - [ ] Environment variables set (especially JWT_SECRET)
 - [ ] Service can connect to database
-- [ ] Rate limiting configured (recommended: 5 login attempts per minute)
+- [ ] **Login throttle configured**: 5 attempts per 15 minutes (900 seconds)
+- [ ] **Timing-attack mitigation verified**: Test unknown-user and wrong-password paths take comparable time
 - [ ] CORS configured for UI domain
-- [ ] Monitoring alerts set for auth failures
+- [ ] Monitoring alerts set for auth failures and throttle events
 - [ ] JWT_SECRET rotation procedure documented
 - [ ] Logs captured and retained per compliance requirements
 
