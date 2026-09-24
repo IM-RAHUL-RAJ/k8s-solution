@@ -32,9 +32,9 @@ public class OrderValidator {
 
         checkInstrument(instrument);
 
-        checkAccountTypeAndAssetClassCompatibility(account, instrument);
+        //checkAccountTypeAndAssetClassCompatibility(account, instrument);
 
-        checkForexCryptoCurrencyCompatibility(account, instrument);
+        //checkForexCryptoCurrencyCompatibility(account, instrument);
 
         checkQuantity(order);
 
