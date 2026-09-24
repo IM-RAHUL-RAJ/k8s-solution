@@ -7,11 +7,12 @@ import {
   HttpStatus,
   Logger,
 } from '@nestjs/common';
+import { RedactedLogger } from '../../common/redacted-logger';
 import { Response } from 'express';
 
 @Catch(BadRequestException, HttpException)
 export class GlobalExceptionFilter implements ExceptionFilter {
-  private logger = new Logger(GlobalExceptionFilter.name);
+  private logger = new RedactedLogger(GlobalExceptionFilter.name);
   private sensitiveFields = ['password', 'token', 'secret', 'apiKey'];
 
   private redactSensitive(obj: any): any {
@@ -44,9 +45,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         errorCode: 'VAL-422',
         message: 'Invalid input',
       };
-      this.logger.warn(
-        `[AUTH_EVENT] validation_error path=${request.url} errors=${JSON.stringify(this.redactSensitive(exception.getResponse()))}`
-      );
+      this.logger.warnRedacted('[AUTH_EVENT] validation_error', { path: request.url, errors: this.redactSensitive(exception.getResponse()) });
     } else if (exception instanceof HttpException) {
       status = exception.getStatus();
       const exceptionResponse = exception.getResponse();

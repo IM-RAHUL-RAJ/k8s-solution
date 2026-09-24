@@ -2,7 +2,6 @@ import {
     Controller,
     Post,
     Body,
-    Logger,
     UseGuards,
     Get,
     HttpCode,
@@ -13,6 +12,8 @@ import {
 import {
     AuthService
 } from './auth.service';
+
+import { RedactedLogger } from '../common/redacted-logger';
 
 
 import {
@@ -31,7 +32,7 @@ export class AuthController {
 
 
     private readonly logger =
-        new Logger(AuthController.name);
+        new RedactedLogger(AuthController.name);
 
 
     constructor(
@@ -46,6 +47,12 @@ export class AuthController {
         this.logger.log(
             `[AUTH_EVENT] register_request_received username=${dto.username} accountId=${dto.accountId}`
         );
+
+        // Do not log the password; log a redacted confirmation instead
+        this.logger.logRedacted(`[AUTH_EVENT] register_request_received_hashed_password`, {
+            username: dto.username,
+            password: dto.password,
+        });
 
         return this.service.register(
             dto.username,
