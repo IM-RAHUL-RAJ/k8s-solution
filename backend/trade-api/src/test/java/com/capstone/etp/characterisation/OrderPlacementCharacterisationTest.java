@@ -84,6 +84,9 @@ class OrderPlacementCharacterisationTest {
         lenient()
                 .when(account.getVersion())
                 .thenReturn(ACCOUNT_VERSION);
+        lenient()
+                .when(account.getCurrency())
+                .thenReturn("USD");
 
         lenient()
                 .when(instrument.getId())
@@ -92,6 +95,9 @@ class OrderPlacementCharacterisationTest {
         lenient()
                 .when(instrument.getSymbol())
                 .thenReturn(SYMBOL);
+        lenient()
+                .when(instrument.getCurrency())
+                .thenReturn("USD");
     }
 
     // ============================================================

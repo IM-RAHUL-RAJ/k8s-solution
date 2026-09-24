@@ -6,9 +6,11 @@ import com.capstone.etp.executor.entity.Order;
 import com.capstone.etp.executor.entity.PortfolioHolding;
 import com.capstone.etp.executor.enums.OrderSide;
 import com.capstone.etp.executor.enums.OrderStatus;
+import com.capstone.etp.executor.exception.DeadLetterException;
 import com.capstone.etp.executor.exception.OptimisticLockRetryException;
 import com.capstone.etp.executor.mapper.ExecutorOrderMapper;
 import com.capstone.etp.executor.rule.FillDecision;
+import com.capstone.etp.executor.util.CurrencyConverter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,7 +19,6 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
-import java.util.Locale;
 
 
 @Slf4j
@@ -40,15 +41,14 @@ public class SettlementService {
             if (!account.isActive()) {
                 // Account was suspended or closed after the order was accepted.
                 finalDecision = FillDecision.reject("ACCOUNT_NOT_ACTIVE");
-            } else if (!currencyMatches(account.getCurrency(), instrument.getCurrency())) {
-                log.info("Order {} rejected due to currency mismatch: accountCurrency={} instrumentCurrency={}",
-                        order.getId(), account.getCurrency(), instrument.getCurrency());
-                finalDecision = FillDecision.reject("CURRENCY_MISMATCH");
             } else if (order.getSide() == OrderSide.BUY) {
-                // Rule 6 re-check: funds at limit price (not executed price).
-                BigDecimal required = order.getLimitPrice()
+                BigDecimal requiredInInstrumentCurrency = order.getLimitPrice()
                         .multiply(BigDecimal.valueOf(order.getQuantity()));
-                if (!account.canAfford(required)) {
+                BigDecimal requiredInAccountCurrency = convertAmount(
+                        requiredInInstrumentCurrency,
+                        instrument.getCurrency(),
+                        account.getCurrency());
+                if (!account.canAfford(requiredInAccountCurrency)) {
                     finalDecision = FillDecision.reject("INSUFFICIENT_FUNDS");
                 }
             } else {
@@ -91,8 +91,14 @@ public class SettlementService {
         BigDecimal existingAvg = currentHolding != null ? currentHolding.getAvgPrice() : BigDecimal.ZERO;
 
         // Cash delta
-        BigDecimal tradeValue = executedPrice.multiply(BigDecimal.valueOf(order.getQuantity()));
-        BigDecimal cashDelta  = order.getSide() == OrderSide.BUY ? tradeValue.negate() : tradeValue;
+        BigDecimal tradeValueInInstrumentCurrency = executedPrice.multiply(BigDecimal.valueOf(order.getQuantity()));
+        BigDecimal tradeValueInAccountCurrency = convertAmount(
+                tradeValueInInstrumentCurrency,
+                instrument.getCurrency(),
+                account.getCurrency());
+        BigDecimal cashDelta  = order.getSide() == OrderSide.BUY
+                ? tradeValueInAccountCurrency.negate()
+                : tradeValueInAccountCurrency;
         BigDecimal newBalance = account.getCashBalance().add(cashDelta);
 
         // Log balance pre-change to make replay demos and audits straightforward
@@ -168,14 +174,7 @@ public class SettlementService {
                 BigDecimal.ZERO, posQtyAfter, avgCost, now, false);
     }
 
-    private boolean currencyMatches(String accountCurrency, String instrumentCurrency) {
-        if (accountCurrency == null || instrumentCurrency == null) {
-            return false;
-        }
-        String normalizedAccountCurrency = accountCurrency.trim().toUpperCase(Locale.ROOT);
-        String normalizedInstrumentCurrency = instrumentCurrency.trim().toUpperCase(Locale.ROOT);
-        return !normalizedAccountCurrency.isEmpty()
-                && !normalizedInstrumentCurrency.isEmpty()
-                && normalizedAccountCurrency.equals(normalizedInstrumentCurrency);
+    private BigDecimal convertAmount(BigDecimal amount, String fromCurrency, String toCurrency) {
+        return CurrencyConverter.convert(fromCurrency, toCurrency, amount);
     }
 }

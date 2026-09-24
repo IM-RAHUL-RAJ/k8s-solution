@@ -19,6 +19,8 @@ import org.springframework.dao.RecoverableDataAccessException;
 import org.springframework.stereotype.Service;
 
 
+import java.math.RoundingMode;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -56,6 +58,13 @@ public class ExecutionService {
         if (!instrument.isTradable()) {
             log.info("Instrument {} not tradable, rejecting order {}", instrument.getSymbol(), order.getId());
             return settleWithRetry(order, FillDecision.reject("INSTRUMENT_NOT_TRADABLE"), instrument);
+        }
+
+        if (payload.getPrice() != null) {
+            if (payload.getPrice().signum() <= 0) {
+                throw new DeadLetterException("Invalid limit_price in order payload: " + payload.getPrice());
+            }
+            order.setLimitPrice(payload.getPrice().setScale(2, RoundingMode.HALF_UP));
         }
 
         // Step 4 – fetch a live quote and step 5 – apply the fill rule

@@ -62,6 +62,8 @@ class OrderServiceTest {
         holding = mock(PortfolioHolding.class);
         lenient().when(account.getId()).thenReturn(1L);
         lenient().when(account.getVersion()).thenReturn(7L);
+        lenient().when(account.getCurrency()).thenReturn("USD");
+        lenient().when(instrument.getCurrency()).thenReturn("USD");
     }
 
     @Test
