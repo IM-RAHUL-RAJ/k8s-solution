@@ -77,7 +77,7 @@ public class SettlementService {
         if (finalDecision.isFill()) {
             return applyFill(order, account, instrument, finalDecision.getExecutedPrice(), now);
         } else {
-            return applyReject(order, account, instrument.getSymbol(), finalDecision.getReason(), now);
+            return applyReject(order, account, instrument, finalDecision.getReason(), now);
         }
     }
 
@@ -89,6 +89,15 @@ public class SettlementService {
         PortfolioHolding currentHolding = mapper.findHolding(order.getAccountId(), order.getInstrumentId());
         int existingQty      = currentHolding != null ? currentHolding.getQuantity() : 0;
         BigDecimal existingAvg = currentHolding != null ? currentHolding.getAvgPrice() : BigDecimal.ZERO;
+
+        BigDecimal limitPriceInAccountCurrency = convertAmount(
+                order.getLimitPrice(),
+                instrument.getCurrency(),
+                account.getCurrency());
+        BigDecimal executedPriceInAccountCurrency = convertAmount(
+                executedPrice,
+                instrument.getCurrency(),
+                account.getCurrency());
 
         // Cash delta
         BigDecimal tradeValueInInstrumentCurrency = executedPrice.multiply(BigDecimal.valueOf(order.getQuantity()));
@@ -140,24 +149,29 @@ public class SettlementService {
 
         // Transaction record
         mapper.insertTransaction(order.getId(), order.getQuantity(),
-                executedPrice, "EXECUTED", null, now);
+                executedPriceInAccountCurrency, "EXECUTED", null, now);
 
         log.info("Order {} FILLED at {} — cash delta {}, position after {}",
                 order.getId(), executedPrice, cashDelta, posQtyAfter);
 
         return new SettlementResult(
                 order.getId(), order.getAccountId(), instrument.getSymbol(),
-                order.getSide().name(), order.getQuantity(), order.getLimitPrice(),
-                executedPrice, OrderStatus.FILLED, null,
+                order.getSide().name(), order.getQuantity(), limitPriceInAccountCurrency,
+                executedPriceInAccountCurrency, OrderStatus.FILLED, null,
                 cashDelta, posQtyAfter, avgCostAfter, now, false);
     }
 
     private SettlementResult applyReject(Order order, Account account,
-                                         String symbol, String reason, Instant now) {
+                                         Instrument instrument, String reason, Instant now) {
+        BigDecimal attemptedPriceInAccountCurrency = convertAmount(
+                order.getLimitPrice(),
+                instrument.getCurrency(),
+                account.getCurrency());
+
         // executed_price is NOT NULL with CHECK > 0; store the limit price as the
         // "attempted" price so the constraint is satisfied.
         mapper.insertTransaction(order.getId(), order.getQuantity(),
-                order.getLimitPrice(), "FAILED", reason, now);
+                attemptedPriceInAccountCurrency, "FAILED", reason, now);
 
         // Current holding for positionQuantityAfter / averageCostAfter in the event
         PortfolioHolding holding = mapper.findHolding(order.getAccountId(), order.getInstrumentId());
@@ -168,8 +182,8 @@ public class SettlementService {
                 order.getId(), reason, account.getId(), account.getCashBalance());
 
         return new SettlementResult(
-                order.getId(), order.getAccountId(), symbol,
-                order.getSide().name(), order.getQuantity(), order.getLimitPrice(),
+                order.getId(), order.getAccountId(), instrument.getSymbol(),
+                order.getSide().name(), order.getQuantity(), attemptedPriceInAccountCurrency,
                 null, OrderStatus.REJECTED, reason,
                 BigDecimal.ZERO, posQtyAfter, avgCost, now, false);
     }

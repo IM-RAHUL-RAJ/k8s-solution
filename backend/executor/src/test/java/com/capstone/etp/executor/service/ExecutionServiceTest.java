@@ -135,7 +135,7 @@ class ExecutionServiceTest {
         SettlementResult result = executionService.execute(payload("96.00"));
 
         assertThat(result.status()).isEqualTo(OrderStatus.FILLED);
-        assertThat(result.executedPrice()).isEqualByComparingTo("95.00");
+        assertThat(result.executedPrice()).isEqualByComparingTo("1.00");
         verify(mapper).updateAccountCashAndVersion(
                 eq(ACCOUNT_ID),
                 eq(new BigDecimal("990.00")),
