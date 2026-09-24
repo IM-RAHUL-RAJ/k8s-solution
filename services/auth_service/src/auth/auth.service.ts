@@ -158,6 +158,7 @@ export class AuthService {
         }
 
         // Hash the password with argon2
+        // Argon2id: memory-hard to resist GPU attacks. Cost: ~100ms verification on standard hardware.
         const passwordHash = await argon2.hash(password, {
             type: argon2.argon2id,
             memoryCost: 65536,
@@ -187,7 +188,7 @@ export class AuthService {
             };
         } catch (error) {
             this.logger.error(
-                `[AUTH_EVENT] register_failed_database_error username=${username} error=${error}`
+                `[AUTH_EVENT] register_failed_database_error username=${username}`
             );
             throw new ConflictException({
                 errorCode: 'AUTH-409',
