@@ -16,7 +16,7 @@ export class RegisterRequestDto {
   @IsString()
   @IsNotEmpty()
   @MinLength(3)
-  @MaxLength(12)
+  @MaxLength(64)
   @Matches(/^[a-zA-Z0-9._-]+$/, {
     message:
       'username must contain only letters, numbers, dots, underscores, and hyphens',
@@ -25,8 +25,8 @@ export class RegisterRequestDto {
 
   @IsString()
   @IsNotEmpty()
-  @MinLength(8)
-  @MaxLength(12)
+  @MinLength(12)
+  @MaxLength(128)
   password!: string;
 
   @IsNumber()

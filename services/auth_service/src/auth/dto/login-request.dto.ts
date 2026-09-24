@@ -11,13 +11,13 @@ export class LoginRequestDto {
   @IsString()
   @IsNotEmpty()
   @MinLength(3)
-  @MaxLength(12)
+  @MaxLength(64)
   username!: string;
 
 
   @IsString()
   @IsNotEmpty()
-  @MinLength(8)
-  @MaxLength(12)
+  @MinLength(12)
+  @MaxLength(128)
   password!: string;
 }
