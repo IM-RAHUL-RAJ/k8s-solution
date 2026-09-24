@@ -45,7 +45,7 @@ import static org.mockito.Mockito.when;
  * <ol>
  *   <li>Order already settled (status != NEW) → alreadyHandled, no DB writes</li>
  *   <li>Account suspended after acceptance → ORDER_REJECTED / ACCOUNT_NOT_ACTIVE</li>
- *   <li>Account and instrument currency mismatch → ORDER_REJECTED / CURRENCY_MISMATCH</li>
+ *   <li>Cross-currency BUY uses payload limit in instrument currency and settles in account currency</li>
  *   <li>Insufficient funds at execution time (BUY, limit price) → ORDER_REJECTED</li>
  *   <li>Insufficient holdings at execution time (SELL) → ORDER_REJECTED</li>
  *   <li>Price unavailable → ORDER_REJECTED / PRICE_UNAVAILABLE</li>
@@ -116,22 +116,30 @@ class ExecutionServiceTest {
     }
 
     // -------------------------------------------------------------------------
-    // 3. Account/instrument currency mismatch
+    // 3. Cross-currency conversion path
     // -------------------------------------------------------------------------
 
     @Test
-    void currencyMismatch_rejectsWithCurrencyMismatch_noCashWrite() {
-        stubNewBuyOrder("235.00", 100);
+    void crossCurrencyBuy_convertsCashDeltaToAccountCurrency() {
+        stubNewBuyOrder("1.00", 10);
         stubTradableInstrument("INR");
-        stubQuote("232.77", "232.65");
-        stubSettleOrderStatus(OrderStatus.REJECTED);
-        when(mapper.findAccountById(ACCOUNT_ID)).thenReturn(activeAccount("50000", "USD"));
+        stubQuote("95.00", "94.50");
+        stubSettleOrderStatus(OrderStatus.FILLED);
+        Account account = activeAccount("1000.00", "USD");
+        when(mapper.findAccountById(ACCOUNT_ID)).thenReturn(account);
+        when(mapper.findHolding(ACCOUNT_ID, INSTR_ID)).thenReturn(null);
+        when(mapper.findPortfolioIdByAccountId(ACCOUNT_ID)).thenReturn(99L);
+        when(mapper.updateAccountCashAndVersion(eq(ACCOUNT_ID), any(), eq(account.getVersion())))
+                .thenReturn(1);
 
-        SettlementResult result = executionService.execute(payload());
+        SettlementResult result = executionService.execute(payload("96.00"));
 
-        assertThat(result.status()).isEqualTo(OrderStatus.REJECTED);
-        assertThat(result.reason()).isEqualTo("CURRENCY_MISMATCH");
-        verify(mapper, never()).updateAccountCashAndVersion(any(), any(), any());
+        assertThat(result.status()).isEqualTo(OrderStatus.FILLED);
+        assertThat(result.executedPrice()).isEqualByComparingTo("1.00");
+        verify(mapper).updateAccountCashAndVersion(
+                eq(ACCOUNT_ID),
+                eq(new BigDecimal("990.00")),
+                eq(account.getVersion()));
     }
 
     // -------------------------------------------------------------------------
@@ -336,10 +344,17 @@ class ExecutionServiceTest {
     // =========================================================================
 
     private OrderPlacedPayload payload() {
+        return payload(null);
+    }
+
+    private OrderPlacedPayload payload(String price) {
         OrderPlacedPayload p = new OrderPlacedPayload();
         p.setOrderId(ORDER_ID);
         p.setAccountId(ACCOUNT_ID);
         p.setSymbol(SYMBOL);
+        if (price != null) {
+            p.setPrice(new BigDecimal(price));
+        }
         return p;
     }
 

@@ -48,7 +48,7 @@ class OrderEventProducerTest {
                 .createdAt(Instant.parse("2026-01-01T00:00:00Z"))
                 .build();
 
-        producer.publishOrderPlaced(order, "INFY.NS");
+        producer.publishOrderPlaced(order, "INFY.NS", new BigDecimal("101.23"));
 
         ArgumentCaptor<String> payloadCaptor = ArgumentCaptor.forClass(String.class);
         verify(kafkaTemplate).send(eq("orders"), eq("42"), payloadCaptor.capture());
@@ -60,6 +60,7 @@ class OrderEventProducerTest {
         assertEquals("trade-api", envelope.getSource());
         assertEquals("INFY.NS", envelope.getPayload().getSymbol());
         assertEquals("BUY", envelope.getPayload().getSide());
+        assertEquals(new BigDecimal("101.23"), envelope.getPayload().getPrice());
         assertEquals(order.getId().toString(), envelope.getPayload().getOrderId().toString());
     }
 
@@ -80,6 +81,9 @@ class OrderEventProducerTest {
                 .createdAt(Instant.now())
                 .build();
 
-        assertThrows(RuntimeException.class, () -> failingProducer.publishOrderPlaced(order, "AAPL"));
+        assertThrows(RuntimeException.class, () -> failingProducer.publishOrderPlaced(
+                order,
+                "AAPL",
+                new BigDecimal("1.00")));
     }
 }

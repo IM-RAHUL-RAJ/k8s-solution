@@ -81,8 +81,10 @@ class OrderPlacedEventCharacterisationTest {
 
         lenient().when(account.getId()).thenReturn(ACCOUNT_ID);
         lenient().when(account.getVersion()).thenReturn(ACCOUNT_VERSION);
+        lenient().when(account.getCurrency()).thenReturn("USD");
         lenient().when(instrument.getId()).thenReturn(INSTRUMENT_ID);
         lenient().when(instrument.getSymbol()).thenReturn(SYMBOL);
+        lenient().when(instrument.getCurrency()).thenReturn("USD");
     }
 
     // ============================================================
@@ -105,7 +107,8 @@ class OrderPlacedEventCharacterisationTest {
         ArgumentCaptor<Order> orderCaptor = ArgumentCaptor.forClass(Order.class);
         verify(orderEventProducer).publishOrderPlaced(
                 orderCaptor.capture(),
-                eq(SYMBOL)
+                eq(SYMBOL),
+                eq(new BigDecimal("150.00"))
         );
 
         Order publishedOrder = orderCaptor.getValue();
@@ -133,7 +136,8 @@ class OrderPlacedEventCharacterisationTest {
         ArgumentCaptor<Order> orderCaptor = ArgumentCaptor.forClass(Order.class);
         verify(orderEventProducer).publishOrderPlaced(
                 orderCaptor.capture(),
-                eq(SYMBOL)
+                eq(SYMBOL),
+                eq(new BigDecimal("200.00"))
         );
 
         Order publishedOrder = orderCaptor.getValue();
@@ -167,7 +171,7 @@ class OrderPlacedEventCharacterisationTest {
         // Verify that insertOrder was called before publishOrderPlaced
         verify(orderMapper).insertOrder(any(Order.class));
         verify(orderMapper).incrementAccountVersionIfVersionMatches(ACCOUNT_ID, ACCOUNT_VERSION);
-        verify(orderEventProducer).publishOrderPlaced(any(Order.class), eq(SYMBOL));
+        verify(orderEventProducer).publishOrderPlaced(any(Order.class), eq(SYMBOL), any(BigDecimal.class));
     }
 
     // ============================================================
@@ -205,7 +209,7 @@ class OrderPlacedEventCharacterisationTest {
         assertThrows(InsufficientFundsException.class, () -> orderService.placeOrder(request));
 
         // Verify that the event was NOT published
-        verify(orderEventProducer, never()).publishOrderPlaced(any(Order.class), any(String.class));
+        verify(orderEventProducer, never()).publishOrderPlaced(any(Order.class), any(String.class), any(BigDecimal.class));
     }
 
     // ============================================================
