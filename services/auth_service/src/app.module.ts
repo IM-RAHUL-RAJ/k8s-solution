@@ -12,6 +12,7 @@ import {
 
 import { AuthModule } from './auth/auth.module';
 import { HealthController } from './health/health.controller';
+import { HealthModule } from './health/health.module';
 
 import { AuthUser } from './auth/entity/auth-user.entity';
 import { RefreshToken } from './auth/entity/refresh-token.entity';
@@ -79,6 +80,7 @@ import { RefreshToken } from './auth/entity/refresh-token.entity';
 
 
         AuthModule,
+        HealthModule,
     ],
     controllers: [HealthController],
 })
