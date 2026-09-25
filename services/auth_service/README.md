@@ -47,6 +47,18 @@ npm run start:prod
 
 The service will start on port 3000 (or the PORT environment variable).
 
+## OpenAPI Documentation
+
+The running service publishes OpenAPI generated from NestJS controller and DTO decorators.
+
+- Swagger UI: `/docs`
+- OpenAPI JSON: `/docs/json`
+
+Local URLs:
+
+- `http://localhost:3000/docs`
+- `http://localhost:3000/docs/json`
+
 ## API Endpoints
 
 All endpoints return responses wrapped in the platform error envelope:

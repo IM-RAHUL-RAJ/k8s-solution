@@ -7,6 +7,13 @@ import {
     HttpCode,
     HttpStatus
 } from '@nestjs/common';
+import {
+    ApiBearerAuth,
+    ApiBody,
+    ApiOperation,
+    ApiResponse,
+    ApiTags,
+} from '@nestjs/swagger';
 
 
 import {
@@ -24,10 +31,14 @@ import { RefreshRequestDto } from './dto/refresh-request.dto';
 import { JwtPayload } from './types/jwt-payload';
 import { CurrentUser } from './decorator/current-user.decorator';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { TokenResponseDto } from './dto/token-response.dto';
+import { UserResponseDto } from './dto/user-response.dto';
+import { ErrorResponseDto } from './dto/error-response.dto';
 
 
 
 @Controller("auth")
+@ApiTags('Auth')
 export class AuthController {
 
 
@@ -41,6 +52,40 @@ export class AuthController {
 
     @Post("register")
     @HttpCode(HttpStatus.CREATED)
+    @ApiOperation({
+        operationId: 'register',
+        summary: 'Register a user',
+        description:
+            'Creates a user and links it to an existing trading account. Registration does not return tokens.',
+    })
+    @ApiBody({ type: RegisterRequestDto })
+    @ApiResponse({
+        status: 201,
+        description: 'User created.',
+        type: UserResponseDto,
+    })
+    @ApiResponse({
+        status: 409,
+        description: 'Username already taken.',
+        type: ErrorResponseDto,
+        schema: {
+            example: {
+                errorCode: 'AUTH-409',
+                message: 'Registration failed',
+            },
+        },
+    })
+    @ApiResponse({
+        status: 422,
+        description: 'Validation failure.',
+        type: ErrorResponseDto,
+        schema: {
+            example: {
+                errorCode: 'VAL-422',
+                message: 'Invalid input',
+            },
+        },
+    })
     register(
         @Body() dto: RegisterRequestDto
     ) {
@@ -64,6 +109,40 @@ export class AuthController {
 
     @Post("login")
     @HttpCode(HttpStatus.OK)
+    @ApiOperation({
+        operationId: 'login',
+        summary: 'Log in and receive tokens',
+        description:
+            'Verifies credentials and returns a signed access token and opaque refresh token. Authentication failures return AUTH-401.',
+    })
+    @ApiBody({ type: LoginRequestDto })
+    @ApiResponse({
+        status: 200,
+        description: 'Authenticated.',
+        type: TokenResponseDto,
+    })
+    @ApiResponse({
+        status: 401,
+        description: 'Authentication failed.',
+        type: ErrorResponseDto,
+        schema: {
+            example: {
+                errorCode: 'AUTH-401',
+                message: 'Unauthorised',
+            },
+        },
+    })
+    @ApiResponse({
+        status: 422,
+        description: 'Validation failure.',
+        type: ErrorResponseDto,
+        schema: {
+            example: {
+                errorCode: 'VAL-422',
+                message: 'Invalid input',
+            },
+        },
+    })
     login(
         @Body() dto: LoginRequestDto
     ) {
@@ -81,6 +160,40 @@ export class AuthController {
 
     @Post('refresh')
     @HttpCode(HttpStatus.OK)
+    @ApiOperation({
+        operationId: 'refresh',
+        summary: 'Exchange refresh token for new token pair',
+        description:
+            'Consumes the presented refresh token and returns a new access token and a new refresh token.',
+    })
+    @ApiBody({ type: RefreshRequestDto })
+    @ApiResponse({
+        status: 200,
+        description: 'Token pair refreshed.',
+        type: TokenResponseDto,
+    })
+    @ApiResponse({
+        status: 401,
+        description: 'Refresh token invalid, expired, revoked, or already consumed.',
+        type: ErrorResponseDto,
+        schema: {
+            example: {
+                errorCode: 'AUTH-401',
+                message: 'Unauthorised',
+            },
+        },
+    })
+    @ApiResponse({
+        status: 422,
+        description: 'Validation failure.',
+        type: ErrorResponseDto,
+        schema: {
+            example: {
+                errorCode: 'VAL-422',
+                message: 'Invalid input',
+            },
+        },
+    })
     refresh(
         @Body() dto: RefreshRequestDto
     ) {
@@ -95,6 +208,30 @@ export class AuthController {
 
     @Get('me')
     @UseGuards(JwtAuthGuard)
+    @ApiTags('Profile')
+    @ApiBearerAuth('bearerAuth')
+    @ApiOperation({
+        operationId: 'getCurrentUser',
+        summary: 'Get authenticated user profile',
+        description:
+            'Protected endpoint that returns the current authenticated user derived from the verified access token.',
+    })
+    @ApiResponse({
+        status: 200,
+        description: 'Authenticated user profile.',
+        type: UserResponseDto,
+    })
+    @ApiResponse({
+        status: 401,
+        description: 'Missing, malformed, expired, or invalid token.',
+        type: ErrorResponseDto,
+        schema: {
+            example: {
+                errorCode: 'AUTH-401',
+                message: 'Unauthorised',
+            },
+        },
+    })
     me(
         @CurrentUser() user: JwtPayload,
     ) {

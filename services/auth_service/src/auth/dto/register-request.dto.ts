@@ -11,8 +11,16 @@ import {
   ArrayMinSize,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class RegisterRequestDto {
+  @ApiProperty({
+    description: 'Username for the user',
+    example: 'priya.menon',
+    minLength: 3,
+    maxLength: 64,
+    pattern: '^[a-zA-Z0-9._-]+$',
+  })
   @IsString()
   @IsNotEmpty()
   @MinLength(3)
@@ -23,12 +31,26 @@ export class RegisterRequestDto {
   })
   username!: string;
 
+  @ApiProperty({
+    description: 'User password. Minimum 12 characters.',
+    example: 'correct horse battery staple',
+    minLength: 12,
+    maxLength: 128,
+    writeOnly: true,
+  })
   @IsString()
   @IsNotEmpty()
   @MinLength(12)
   @MaxLength(128)
   password!: string;
 
+  @ApiProperty({
+    description: 'Numeric trading account identifier.',
+    example: 1,
+    minimum: 1,
+    type: 'integer',
+    format: 'int64',
+  })
   @IsNumber()
   @IsNotEmpty()
   @Min(1)
@@ -40,6 +62,11 @@ export class RegisterRequestDto {
   })
   accountId!: number;
 
+  @ApiPropertyOptional({
+    description: 'Optional roles, defaults to CUSTOMER.',
+    example: ['CUSTOMER'],
+    isArray: true,
+  })
   @IsOptional()
   @IsArray()
   @ArrayMinSize(1)
