@@ -48,6 +48,10 @@ describe('AuthService', () => {
     service = module.get<AuthService>(AuthService);
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   describe('password hashing and verification', () => {
     it('correct password verifies', async () => {
       const password = 'CorrectHorseBatteryStaple123';
@@ -130,6 +134,106 @@ describe('AuthService', () => {
       expect(createHashSpy).not.toHaveBeenCalled();
       const savedEntity = userRepo.create.mock.calls[0][0];
       expect(savedEntity.passwordHash).toMatch(/^\$argon2id\$/);
+    });
+
+    it('unknown user and wrong password return identical status and body', async () => {
+      // Ensure argon2.verify is used and returns false to simulate failure
+      const verifySpy = jest.spyOn(argon2, 'verify').mockResolvedValue(false);
+
+      // Unknown user case
+      userRepo.findByUsername.mockResolvedValueOnce(null);
+      let unknownResp: any;
+      try {
+        await service.login('no.such.user', 'somepassword');
+      } catch (err: any) {
+        expect(err).toBeInstanceOf(UnauthorizedException);
+        unknownResp = err.getResponse();
+      }
+
+      // Wrong-password case (user exists but verify fails)
+      const passwordHash = await argon2.hash('RightPassword123!', {
+        type: argon2.argon2id,
+        memoryCost: 65536,
+        timeCost: 3,
+        parallelism: 4,
+      });
+      userRepo.findByUsername.mockResolvedValueOnce({
+        id: 'u-1',
+        username: 'existing',
+        passwordHash,
+        accountId: 1,
+        roles: ['CUSTOMER'],
+      });
+
+      let wrongResp: any;
+      try {
+        await service.login('existing', 'wrong-password');
+      } catch (err: any) {
+        expect(err).toBeInstanceOf(UnauthorizedException);
+        wrongResp = err.getResponse();
+      }
+
+      expect(unknownResp).toEqual(wrongResp);
+      // argon2.verify should have been called for both attempts
+      expect(verifySpy).toHaveBeenCalledTimes(2);
+    });
+
+    it('unknown-user path calls argon2.verify with DUMMY_HASH', async () => {
+      const verifySpy = jest.spyOn(argon2, 'verify').mockResolvedValue(false);
+
+      userRepo.findByUsername.mockResolvedValueOnce(null);
+
+      try {
+        await service.login('no.user', 'pw');
+      } catch (_err) {
+        // ignore
+      }
+
+      expect(verifySpy).toHaveBeenCalledTimes(1);
+      const firstArg = verifySpy.mock.calls[0][0];
+      // service has a private DUMMY_HASH we can access for comparison
+      const dummy = (service as any).DUMMY_HASH as string;
+      expect(firstArg).toBe(dummy);
+    });
+
+    it('throttles after 5 failed attempts and stops calling argon2.verify on the 6th', async () => {
+      const verifySpy = jest.spyOn(argon2, 'verify').mockResolvedValue(false);
+
+      const passwordHash = await argon2.hash('RightPassword123!', {
+        type: argon2.argon2id,
+        memoryCost: 65536,
+        timeCost: 3,
+        parallelism: 4,
+      });
+
+      userRepo.findByUsername.mockResolvedValue({
+        id: 'u-throttle',
+        username: 'throttle.user',
+        passwordHash,
+        accountId: 2,
+        roles: ['CUSTOMER'],
+      });
+
+      // Run 5 failed attempts
+      for (let i = 0; i < 5; i++) {
+        await expect(service.login('throttle.user', 'bad')).rejects.toBeInstanceOf(
+          UnauthorizedException,
+        );
+      }
+
+      // On the 6th attempt we should be throttled before calling argon2.verify
+      // Spy the logger.warn to confirm throttle log event
+      const warnSpy = jest.spyOn((service as any).logger, 'warn').mockImplementation();
+
+      await expect(service.login('throttle.user', 'bad')).rejects.toBeInstanceOf(
+        UnauthorizedException,
+      );
+
+      // Verify argon2.verify was called exactly 5 times (not on the throttled attempt)
+      expect(verifySpy).toHaveBeenCalledTimes(5);
+      expect(warnSpy).toHaveBeenCalled();
+      const calledWith = warnSpy.mock.calls.find((c: any) => String(c[0]).includes('login_rejected_throttled'));
+      expect(calledWith).toBeDefined();
     });
 
     it('duplicate username is rejected', async () => {
