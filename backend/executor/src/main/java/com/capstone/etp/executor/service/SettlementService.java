@@ -167,11 +167,11 @@ public class SettlementService {
                 order.getLimitPrice(),
                 instrument.getCurrency(),
                 account.getCurrency());
+        BigDecimal rejectedExecutedPrice = new BigDecimal("0.00");
 
-        // executed_price is NOT NULL with CHECK > 0; store the limit price as the
-        // "attempted" price so the constraint is satisfied.
+        // Rejected orders carry 0.00 executed price by business rule.
         mapper.insertTransaction(order.getId(), order.getQuantity(),
-                attemptedPriceInAccountCurrency, "FAILED", reason, now);
+                rejectedExecutedPrice, "FAILED", reason, now);
 
         // Current holding for positionQuantityAfter / averageCostAfter in the event
         PortfolioHolding holding = mapper.findHolding(order.getAccountId(), order.getInstrumentId());
@@ -184,7 +184,7 @@ public class SettlementService {
         return new SettlementResult(
                 order.getId(), order.getAccountId(), instrument.getSymbol(),
                 order.getSide().name(), order.getQuantity(), attemptedPriceInAccountCurrency,
-                null, OrderStatus.REJECTED, reason,
+                rejectedExecutedPrice, OrderStatus.REJECTED, reason,
                 BigDecimal.ZERO, posQtyAfter, avgCost, now, false);
     }
 

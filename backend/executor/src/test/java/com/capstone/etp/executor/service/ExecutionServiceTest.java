@@ -159,6 +159,14 @@ class ExecutionServiceTest {
 
         assertThat(result.status()).isEqualTo(OrderStatus.REJECTED);
         assertThat(result.reason()).isEqualTo("INSUFFICIENT_FUNDS");
+        assertThat(result.executedPrice()).isEqualByComparingTo("0.00");
+        verify(mapper).insertTransaction(
+                eq(ORDER_ID),
+                eq(100),
+                eq(new BigDecimal("0.00")),
+                eq("FAILED"),
+                eq("INSUFFICIENT_FUNDS"),
+                any());
     }
 
     // -------------------------------------------------------------------------
