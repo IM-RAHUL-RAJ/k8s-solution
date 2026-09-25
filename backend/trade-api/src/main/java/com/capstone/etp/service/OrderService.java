@@ -36,6 +36,7 @@ public class OrderService {
 
     // create a new order
     public OrderResponse placeOrder(PlaceOrderRequest request) {
+        accountAuthorizer.ensureOrderManagementAllowed();
         // Perform database operations in a transaction
         PlaceOrderInfo info = persistOrder(request);
 
@@ -112,8 +113,9 @@ public class OrderService {
 
    @Transactional
     public OrderResponse cancelOrder(UUID orderId) {
-       Order order = orderMapper.findOrderById(orderId);
-       accountAuthorizer.ensureAccountAccess(order.getAccountId());
+      accountAuthorizer.ensureOrderManagementAllowed();
+      Order order = orderMapper.findOrderById(orderId);
+      accountAuthorizer.ensureAccountAccess(order.getAccountId());
        Account account = orderMapper.findAccountById(order.getAccountId());
        if (account == null) {
            throw new AccountNotFoundException(order.getAccountId());

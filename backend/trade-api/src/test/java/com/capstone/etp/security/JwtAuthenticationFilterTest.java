@@ -161,4 +161,20 @@ class JwtAuthenticationFilterTest {
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk());
     }
+
+    @Test
+    void emptyAccountIdsClaimFallsBackToSingleAccountId() throws Exception {
+        String token = JwtTestFixture.tokenWithAccountIds(
+                SECRET,
+                "auth-service",
+                1L,
+                List.of(),
+                List.of("CUSTOMER"),
+                Instant.now().minusSeconds(60),
+                Instant.now().plusSeconds(900));
+
+        mockMvc.perform(get("/api/v1/accounts/1")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
+    }
 }

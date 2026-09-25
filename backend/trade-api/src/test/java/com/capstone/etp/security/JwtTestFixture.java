@@ -52,4 +52,25 @@ public final class JwtTestFixture {
                 .signWith(key, Jwts.SIG.HS512)
                 .compact();
     }
+
+    public static String tokenWithAccountIds(
+            String secret,
+            String issuer,
+            Long accountId,
+            List<Long> accountIds,
+            List<String> roles,
+            Instant issuedAt,
+            Instant expiresAt) {
+        SecretKey key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        return Jwts.builder()
+                .subject(UUID.randomUUID().toString())
+                .issuer(issuer)
+                .claim("accountId", accountId)
+                .claim("accountIds", accountIds)
+                .claim("roles", roles)
+                .issuedAt(Date.from(issuedAt))
+                .expiration(Date.from(expiresAt))
+                .signWith(key, Jwts.SIG.HS256)
+                .compact();
+    }
 }

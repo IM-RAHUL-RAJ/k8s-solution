@@ -81,14 +81,15 @@ public class JwtVerifier {
         }
 
         Object accountIdsRaw = claims.get("accountIds");
-        List<Long> accountIds;
+        List<Long> accountIds = List.of(accountIdNumber.longValue());
         if (accountIdsRaw instanceof List<?> rawAccountIds) {
-            accountIds = rawAccountIds.stream()
+            List<Long> normalizedAccountIds = rawAccountIds.stream()
                     .map(id -> id instanceof Number ? ((Number) id).longValue() : null)
                     .filter(id -> id != null)
                     .toList();
-        } else {
-            accountIds = List.of(accountIdNumber.longValue());
+            if (!normalizedAccountIds.isEmpty()) {
+                accountIds = normalizedAccountIds;
+            }
         }
 
         Object rolesRaw = claims.get("roles");
