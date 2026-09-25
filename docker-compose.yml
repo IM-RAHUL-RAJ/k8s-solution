@@ -23,7 +23,7 @@ services:
       - trading-net
 
   auth-stub:
-    profiles: ["platform"]
+    profiles: ["stub"]
     build:
       context: .
       dockerfile: services/auth-stub/Dockerfile
@@ -48,7 +48,7 @@ services:
       context: ./services/auth_service
       dockerfile: Dockerfile
     environment:
-      PORT: 3000
+      PORT: 8081
       JWT_SECRET: ${JWT_SECRET}
       JWT_ISSUER: ${JWT_ISSUER:-auth-service}
       DB_HOST: postgres
@@ -57,12 +57,12 @@ services:
       DB_USER: ${DB_USER:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
     ports:
-      - "${AUTH_PORT:-3000}:3000"
+      - "${AUTH_PORT:-8081}:8081"
     depends_on:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/health || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8081/health || exit 1"]
       interval: 10s
       timeout: 3s
       retries: 10
@@ -84,14 +84,14 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
       JWT_SECRET: ${JWT_SECRET}
       JWT_ISSUER: ${JWT_ISSUER:-auth-service}
-      AUTH_BASE_URL: http://auth-stub:8081
+      AUTH_BASE_URL: http://auth-service:8081
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
     ports:
       - "${TRADE_API_PORT:-8084}:8084"
     depends_on:
       postgres:
         condition: service_healthy
-      auth-stub:
+      auth-service:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8084/actuator/health"]
