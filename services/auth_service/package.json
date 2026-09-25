@@ -68,6 +68,10 @@
     "transformIgnorePatterns": [
       "node_modules/(?!(@nestjs|jsonwebtoken)/)"
     ],
+    "moduleNameMapper": {
+      "^@nestjs/typeorm$": "<rootDir>/test/mocks/nestjs-typeorm.mock.ts",
+      "^@nestjs/jwt$": "<rootDir>/test/mocks/nestjs-jwt.mock.ts"
+    },
     "collectCoverageFrom": [
       "**/*.(t|j)s"
     ],

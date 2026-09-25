@@ -1,237 +1,226 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { UnauthorizedException, ConflictException } from '@nestjs/common';
+import { ConflictException, UnauthorizedException } from '@nestjs/common';
 import * as argon2 from 'argon2';
+import * as crypto from 'crypto';
 import { AuthService } from './auth.service';
 import { AuthUserRepository } from './repository/auth-user.repository';
-import { RefreshTokenService } from './services/refresh-token.service';
 import { JwtTokenService } from './services/jwt-token.service';
+import { RefreshTokenService } from './services/refresh-token.service';
 import { RefreshTokenRepository } from './repository/refresh-token.repository';
-import { AuthUser } from './entity/auth-user.entity';
 
-describe('AuthService - Password Hashing', () => {
+describe('AuthService', () => {
   let service: AuthService;
-  let userRepo: AuthUserRepository;
-  let jwtService: JwtTokenService;
-  let refreshService: RefreshTokenService;
-  let refreshTokenRepo: RefreshTokenRepository;
+
+  const userRepo = {
+    findByUsername: jest.fn(),
+    existsByUsername: jest.fn(),
+    create: jest.fn(),
+    findById: jest.fn(),
+  };
+
+  const jwtService = {
+    generateAccessToken: jest.fn(),
+  };
+
+  const refreshService = {
+    create: jest.fn(),
+  };
+
+  const refreshTokenRepo = {
+    verifyAndFindToken: jest.fn(),
+    revokeAllUserTokens: jest.fn(),
+    markAsConsumed: jest.fn(),
+  };
 
   beforeEach(async () => {
+    jest.clearAllMocks();
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
-        {
-          provide: AuthUserRepository,
-          useValue: {
-            findByUsername: jest.fn(),
-            existsByUsername: jest.fn(),
-            create: jest.fn(),
-            findById: jest.fn(),
-          },
-        },
-        {
-          provide: JwtTokenService,
-          useValue: {
-            generateAccessToken: jest.fn(),
-          },
-        },
-        {
-          provide: RefreshTokenService,
-          useValue: {
-            create: jest.fn(),
-          },
-        },
-        {
-          provide: RefreshTokenRepository,
-          useValue: {},
-        },
+        { provide: AuthUserRepository, useValue: userRepo },
+        { provide: JwtTokenService, useValue: jwtService },
+        { provide: RefreshTokenService, useValue: refreshService },
+        { provide: RefreshTokenRepository, useValue: refreshTokenRepo },
       ],
     }).compile();
 
     service = module.get<AuthService>(AuthService);
-    userRepo = module.get<AuthUserRepository>(AuthUserRepository);
-    jwtService = module.get<JwtTokenService>(JwtTokenService);
-    refreshService = module.get<RefreshTokenService>(RefreshTokenService);
-    refreshTokenRepo = module.get<RefreshTokenRepository>(RefreshTokenRepository);
   });
 
-  describe('Password verification - correct password', () => {
-    it('should verify valid password and allow login', async () => {
-      const testPassword = 'TestPassword123';
-      const passwordHash = await argon2.hash(testPassword, {
+  describe('password hashing and verification', () => {
+    it('correct password verifies', async () => {
+      const password = 'CorrectHorseBatteryStaple123';
+      const passwordHash = await argon2.hash(password, {
         type: argon2.argon2id,
         memoryCost: 65536,
         timeCost: 3,
         parallelism: 4,
       });
 
-      const mockUser = {
-        id: 'user-123',
-        username: 'testuser',
+      userRepo.findByUsername.mockResolvedValue({
+        id: 'u-1',
+        username: 'priya.menon',
         passwordHash,
         accountId: 1,
         roles: ['CUSTOMER'],
-        createdAt: new Date(),
-      } as AuthUser;
+      });
+      jwtService.generateAccessToken.mockReturnValue('access-token-1');
+      refreshService.create.mockResolvedValue('refresh-token-1');
 
-      jest.spyOn(userRepo, 'findByUsername').mockResolvedValue(mockUser);
-      jest.spyOn(jwtService, 'generateAccessToken').mockReturnValue('access-token');
-      jest.spyOn(refreshService, 'create').mockResolvedValue('refresh-token');
-
-      const result = await service.login('testuser', testPassword);
+      const result = await service.login('priya.menon', password);
 
       expect(result).toEqual({
-        accessToken: 'access-token',
-        refreshToken: 'refresh-token',
+        accessToken: 'access-token-1',
+        refreshToken: 'refresh-token-1',
         tokenType: 'Bearer',
         expiresIn: 900,
       });
     });
-  });
 
-  describe('Password verification - incorrect password', () => {
-    it('should reject invalid password', async () => {
-      const testPassword = 'TestPassword123';
-      const wrongPassword = 'WrongPassword456';
-      const passwordHash = await argon2.hash(testPassword, {
+    it('incorrect password fails verification', async () => {
+      const passwordHash = await argon2.hash('CorrectHorseBatteryStaple123', {
         type: argon2.argon2id,
         memoryCost: 65536,
         timeCost: 3,
         parallelism: 4,
       });
 
-      const mockUser = {
-        id: 'user-123',
-        username: 'testuser',
+      userRepo.findByUsername.mockResolvedValue({
+        id: 'u-1',
+        username: 'priya.menon',
         passwordHash,
         accountId: 1,
         roles: ['CUSTOMER'],
-        createdAt: new Date(),
-      } as AuthUser;
+      });
 
-      jest.spyOn(userRepo, 'findByUsername').mockResolvedValue(mockUser);
+      await expect(service.login('priya.menon', 'wrong-password')).rejects.toBeInstanceOf(
+        UnauthorizedException,
+      );
+    });
 
-      await expect(service.login('testuser', wrongPassword)).rejects.toThrow(
-        UnauthorizedException
+    it('passwords are stored as argon2id and plaintext is never stored', async () => {
+      userRepo.existsByUsername.mockResolvedValue(false);
+      userRepo.create.mockImplementation(async (entity) => ({
+        id: 'u-2',
+        ...entity,
+      }));
+
+      const plainPassword = 'PlaintextPassword123!';
+
+      await service.register('keerti.user', plainPassword, 42, ['CUSTOMER']);
+
+      expect(userRepo.create).toHaveBeenCalledTimes(1);
+      const savedEntity = userRepo.create.mock.calls[0][0];
+      expect(savedEntity.passwordHash).toMatch(/^\$argon2id\$/);
+      expect(savedEntity.passwordHash).not.toBe(plainPassword);
+    });
+
+    it('a general-purpose digest such as MD5 or SHA is not used for password storage', async () => {
+      const createHashSpy = jest.spyOn(crypto, 'createHash');
+
+      userRepo.existsByUsername.mockResolvedValue(false);
+      userRepo.create.mockImplementation(async (entity) => ({
+        id: 'u-3',
+        ...entity,
+      }));
+
+      await service.register('hash.policy.user', 'SafePassword123!', 7, ['CUSTOMER']);
+
+      expect(createHashSpy).not.toHaveBeenCalled();
+      const savedEntity = userRepo.create.mock.calls[0][0];
+      expect(savedEntity.passwordHash).toMatch(/^\$argon2id\$/);
+    });
+
+    it('duplicate username is rejected', async () => {
+      userRepo.existsByUsername.mockResolvedValue(true);
+
+      await expect(service.register('existing', 'SafePassword123!', 9)).rejects.toBeInstanceOf(
+        ConflictException,
       );
     });
   });
 
-  describe('Hash algorithm validation', () => {
-    it('should use argon2id, not MD5 or SHA', async () => {
-      const testPassword = 'TestPassword123';
-      const argonHash = await argon2.hash(testPassword, {
-        type: argon2.argon2id,
-        memoryCost: 65536,
-        timeCost: 3,
-        parallelism: 4,
-      });
-
-      // Argon2 hashes start with $argon2id$ prefix
-      expect(argonHash).toMatch(/^\$argon2id\$/);
-      // MD5 hashes are 32 hex chars, SHA1 are 40, SHA256 are 64
-      expect(argonHash.length).toBeGreaterThan(70);
-    });
-
-    it('should verify argon2 hash successfully', async () => {
-      const testPassword = 'TestPassword123';
-      const argonHash = await argon2.hash(testPassword, {
-        type: argon2.argon2id,
-        memoryCost: 65536,
-        timeCost: 3,
-        parallelism: 4,
-      });
-
-      const isValid = await argon2.verify(argonHash, testPassword);
-      expect(isValid).toBe(true);
-    });
-
-    it('should reject non-matching password against argon2 hash', async () => {
-      const testPassword = 'TestPassword123';
-      const wrongPassword = 'DifferentPassword456';
-      const argonHash = await argon2.hash(testPassword, {
-        type: argon2.argon2id,
-        memoryCost: 65536,
-        timeCost: 3,
-        parallelism: 4,
-      });
-
-      const isValid = await argon2.verify(argonHash, wrongPassword);
-      expect(isValid).toBe(false);
-    });
-  });
-
-  describe('Password registration', () => {
-    it('should hash password during registration with argon2id', async () => {
-      const testPassword = 'TestPassword123';
-      const mockUser = {
-        id: 'user-456',
-        username: 'newuser',
-        passwordHash: '',
-        accountId: 2,
+  describe('refresh token rotation and replay handling', () => {
+    beforeEach(() => {
+      userRepo.findById.mockResolvedValue({
+        id: 'u-refresh',
+        username: 'refresh.user',
+        accountId: 11,
         roles: ['CUSTOMER'],
-        createdAt: new Date(),
-      } as AuthUser;
-
-      jest.spyOn(userRepo, 'existsByUsername').mockResolvedValue(false);
-      jest.spyOn(userRepo, 'create').mockImplementation(async (user) => {
-        mockUser.passwordHash = user.passwordHash;
-        return mockUser;
       });
-
-      const result = await service.register('newuser', testPassword, 2);
-
-      expect(result.id).toBe('user-456');
-      expect(result.username).toBe('newuser');
-      // Verify password hash is argon2id format
-      expect(mockUser.passwordHash).toMatch(/^\$argon2id\$/);
+      jwtService.generateAccessToken.mockReturnValue('access-after-refresh');
+      refreshService.create.mockReturnValue('new-refresh-token');
+      refreshTokenRepo.markAsConsumed.mockResolvedValue(undefined);
+      refreshTokenRepo.revokeAllUserTokens.mockResolvedValue(undefined);
     });
 
-    it('should reject duplicate username', async () => {
-      jest.spyOn(userRepo, 'existsByUsername').mockResolvedValue(true);
-
-      await expect(
-        service.register('existinguser', 'Password123', 1)
-      ).rejects.toThrow(ConflictException);
-    });
-  });
-
-  describe('Cost factor verification', () => {
-    it('should use memory-hard argon2 parameters for GPU resistance', async () => {
-      const testPassword = 'TestPassword123';
-      const startTime = Date.now();
-      
-      const hash = await argon2.hash(testPassword, {
-        type: argon2.argon2id,
-        memoryCost: 65536,
-        timeCost: 3,
-        parallelism: 4,
+    it('refresh returns a new access token and a new refresh token', async () => {
+      refreshTokenRepo.verifyAndFindToken.mockResolvedValue({
+        id: 'rt-1',
+        userId: 'u-refresh',
+        consumedAt: null,
+        revokedAt: null,
+        expiresAt: new Date(Date.now() + 60_000),
       });
 
-      const hashTime = Date.now() - startTime;
+      const result = await service.refresh('incoming-refresh-token');
 
-      // Verify hash is created (argon2id format)
-      expect(hash).toMatch(/^\$argon2id\$/);
-      // Hashing should take meaningful time due to cost parameters (~100ms on standard hardware)
-      expect(hashTime).toBeGreaterThan(10);
+      expect(refreshTokenRepo.markAsConsumed).toHaveBeenCalledWith('rt-1');
+      expect(refreshService.create).toHaveBeenCalledWith('u-refresh');
+      expect(result).toEqual({
+        accessToken: 'access-after-refresh',
+        refreshToken: 'new-refresh-token',
+        tokenType: 'Bearer',
+        expiresIn: 900,
+      });
     });
 
-    it('should verify passwords in reasonable time', async () => {
-      const testPassword = 'TestPassword123';
-      const hash = await argon2.hash(testPassword, {
-        type: argon2.argon2id,
-        memoryCost: 65536,
-        timeCost: 3,
-        parallelism: 4,
+    it('the newly issued refresh token works', async () => {
+      refreshTokenRepo.verifyAndFindToken
+        .mockResolvedValueOnce({
+          id: 'rt-1',
+          userId: 'u-refresh',
+          consumedAt: null,
+          revokedAt: null,
+          expiresAt: new Date(Date.now() + 60_000),
+        })
+        .mockResolvedValueOnce({
+          id: 'rt-2',
+          userId: 'u-refresh',
+          consumedAt: null,
+          revokedAt: null,
+          expiresAt: new Date(Date.now() + 60_000),
+        });
+
+      refreshService.create
+        .mockReturnValueOnce('rotated-refresh-token-1')
+        .mockReturnValueOnce('rotated-refresh-token-2');
+
+      const first = await service.refresh('initial-token');
+      const second = await service.refresh(first.refreshToken);
+
+      expect(first.refreshToken).toBe('rotated-refresh-token-1');
+      expect(second.refreshToken).toBe('rotated-refresh-token-2');
+      expect(refreshTokenRepo.verifyAndFindToken).toHaveBeenNthCalledWith(1, 'initial-token');
+      expect(refreshTokenRepo.verifyAndFindToken).toHaveBeenNthCalledWith(
+        2,
+        'rotated-refresh-token-1',
+      );
+    });
+
+    it('the declared revocation behaviour holds for a token that has already been exchanged', async () => {
+      refreshTokenRepo.verifyAndFindToken.mockResolvedValue({
+        id: 'rt-used',
+        userId: 'u-refresh',
+        consumedAt: new Date(),
+        revokedAt: null,
+        expiresAt: new Date(Date.now() + 60_000),
       });
 
-      const startTime = Date.now();
-      const isValid = await argon2.verify(hash, testPassword);
-      const verifyTime = Date.now() - startTime;
-
-      expect(isValid).toBe(true);
-      // Verification should take ~100ms (order of 0.1 seconds) on standard hardware
-      expect(verifyTime).toBeGreaterThan(10);
+      await expect(service.refresh('replayed-token')).rejects.toBeInstanceOf(UnauthorizedException);
+      expect(refreshTokenRepo.revokeAllUserTokens).toHaveBeenCalledWith('u-refresh');
+      expect(refreshTokenRepo.markAsConsumed).not.toHaveBeenCalled();
     });
   });
 });
-

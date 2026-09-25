@@ -1,6 +1,7 @@
 import {
     Injectable,
     UnauthorizedException,
+    Logger,
     ConflictException,
     BadRequestException
 } from '@nestjs/common';
@@ -19,7 +20,6 @@ import { JwtTokenService }
 
 import { AuthUser } from './entity/auth-user.entity';
 import { RefreshTokenRepository } from './repository/refresh-token.repository';
-import { RedactedLogger } from '../common/redacted-logger';
 
 
 
@@ -28,8 +28,17 @@ export class AuthService {
 
 
     private readonly logger =
-        new RedactedLogger(AuthService.name);
+        new Logger(AuthService.name);
+   
+    private readonly DUMMY_HASH = 
+        '$argon2id$v=19$m=65536,t=3,p=4$' +
+        'Z29vZGJhZHBhc3N3b3Jk$' +
+        'Z29vZGJhZHBhc3N3b3Jk';
 
+    // Login throttle configuration
+    private readonly LOGIN_ATTEMPT_LIMIT = 5;
+    private readonly LOGIN_THROTTLE_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+    private readonly loginAttempts = new Map<string, { count: number; firstAttempt: number }>();
 
     constructor(
 
@@ -41,45 +50,102 @@ export class AuthService {
 
         private refreshTokenRepo: RefreshTokenRepository
 
-    ) { }
+    ) { 
+        // Clean up expired throttle entries periodically
+        const throttleCleanupTimer = setInterval(() => {
+            const now = Date.now();
+            for (const [username, data] of this.loginAttempts.entries()) {
+                if (now - data.firstAttempt > this.LOGIN_THROTTLE_WINDOW_MS) {
+                    this.loginAttempts.delete(username);
+                }
+            }
+        }, this.LOGIN_THROTTLE_WINDOW_MS);
+
+        throttleCleanupTimer.unref?.();
+    }
+
+    private isThrottled(username: string): boolean {
+        const attempt = this.loginAttempts.get(username);
+        if (!attempt) return false;
+
+        const now = Date.now();
+        const windowExpired = now - attempt.firstAttempt > this.LOGIN_THROTTLE_WINDOW_MS;
+
+        if (windowExpired) {
+            this.loginAttempts.delete(username);
+            return false;
+        }
+
+        return attempt.count >= this.LOGIN_ATTEMPT_LIMIT;
+    }
+
+    private recordFailedAttempt(username: string): void {
+        const now = Date.now();
+        const attempt = this.loginAttempts.get(username);
+
+        if (!attempt) {
+            this.loginAttempts.set(username, { count: 1, firstAttempt: now });
+        } else {
+            const windowExpired = now - attempt.firstAttempt > this.LOGIN_THROTTLE_WINDOW_MS;
+            if (windowExpired) {
+                // Reset the window
+                this.loginAttempts.set(username, { count: 1, firstAttempt: now });
+            } else {
+                // Increment within the same window
+                attempt.count++;
+            }
+        }
+    }
+
+    private clearLoginAttempts(username: string): void {
+        this.loginAttempts.delete(username);
+    }
 
 
 
 
     async login(username: string, password: string) {
 
-        // Log attempt with redaction-capable logger
-        this.logger.logRedacted('[AUTH_EVENT] login_attempt_started', { username });
+        this.logger.log(
+            `[AUTH_EVENT] login_attempt_started username=${username}`
+        );
 
+        // Check if username is throttled
+        if (this.isThrottled(username)) {
+            this.logger.warn(
+                `[AUTH_EVENT] login_rejected_throttled username=${username}`
+            );
+            throw new UnauthorizedException({
+                errorCode: 'AUTH-401',
+                message: 'Unauthorised',
+            });
+        }
 
         const user =
             await this.userRepo.findByUsername(username);
+        
+        const passwordHashToVerify = user ? user.passwordHash : this.DUMMY_HASH;
 
+        const valid =
+            await argon2.verify(
+                passwordHashToVerify,
+                password
+            );
 
+        // Both paths (user found or not) now take the same time due to argon2 verification
+        if (!user || !valid) {
 
-        if (!user) {
+            this.recordFailedAttempt(username);
 
-            this.logger.warnRedacted('[AUTH_EVENT] login_rejected_user_not_found', { username });
-
-            throw new UnauthorizedException({
-
-                errorCode: "AUTH-401",
-
-                message: "Unauthorised"
-
-            });
-
-        }
-
-
-
-        const valid = await argon2.verify(user.passwordHash, password);
-
-
-
-        if (!valid) {
-
-            this.logger.warnRedacted('[AUTH_EVENT] login_rejected_invalid_password', { username, userId: user.id });
+            if (!user) {
+                this.logger.warn(
+                    `[AUTH_EVENT] login_rejected_user_not_found username=${username}`
+                );
+            } else {
+                this.logger.warn(
+                    `[AUTH_EVENT] login_rejected_invalid_password username=${username} userId=${user.id}`
+                );
+            }
 
             throw new UnauthorizedException({
 
@@ -91,9 +157,7 @@ export class AuthService {
 
         }
 
-
-
-
+        // Password is valid and user exists
         const accessToken =
             this.jwtService.generateAccessToken(
 
@@ -105,15 +169,17 @@ export class AuthService {
 
             );
 
-
-
         const refreshToken =
             await this.refreshService.create(
                 user.id
             );
 
+        // Clear failed attempts on successful login
+        this.clearLoginAttempts(username);
 
-        this.logger.logRedacted('[AUTH_EVENT] login_succeeded', { userId: user.id, accountId: user.accountId, roles: user.roles });
+        this.logger.log(
+            `[AUTH_EVENT] login_succeeded userId=${user.id} accountId=${user.accountId} roles=${user.roles.join(',')}`
+        );
 
         return {
 
@@ -130,12 +196,16 @@ export class AuthService {
     }
 
     async register(username: string, password: string, accountId: number, roles?: string[]) {
-        this.logger.logRedacted('[AUTH_EVENT] register_attempt_started', { username, accountId });
+        this.logger.log(
+            `[AUTH_EVENT] register_attempt_started username=${username} accountId=${accountId}`
+        );
 
         // Check if username already exists
         const exists = await this.userRepo.existsByUsername(username);
         if (exists) {
-            this.logger.warnRedacted('[AUTH_EVENT] register_rejected_duplicate_username', { username });
+            this.logger.warn(
+                `[AUTH_EVENT] register_rejected_duplicate_username username=${username}`
+            );
             throw new ConflictException({
                 errorCode: 'AUTH-409',
                 message: 'Registration failed',
@@ -143,7 +213,6 @@ export class AuthService {
         }
 
         // Hash the password with argon2
-        // Argon2id: memory-hard to resist GPU attacks. Cost: ~100ms verification on standard hardware.
         const passwordHash = await argon2.hash(password, {
             type: argon2.argon2id,
             memoryCost: 65536,
@@ -160,7 +229,9 @@ export class AuthService {
 
         try {
             const savedUser = await this.userRepo.create(authUser);
-            this.logger.logRedacted('[AUTH_EVENT] register_succeeded', { userId: savedUser.id, username, accountId });
+            this.logger.log(
+                `[AUTH_EVENT] register_succeeded userId=${savedUser.id} username=${username} accountId=${accountId}`
+            );
 
             return {
                 id: savedUser.id,
@@ -170,7 +241,9 @@ export class AuthService {
                 createdOn: new Date().toISOString(),
             };
         } catch (error) {
-            this.logger.errorRedacted('[AUTH_EVENT] register_failed_database_error', { username, error });
+            this.logger.error(
+                `[AUTH_EVENT] register_failed_database_error username=${username} error=${error}`
+            );
             throw new ConflictException({
                 errorCode: 'AUTH-409',
                 message: 'Registration failed',
@@ -179,13 +252,17 @@ export class AuthService {
     }
 
     async refresh(refreshToken: string) {
-        this.logger.logRedacted('[AUTH_EVENT] refresh_attempt_started');
+        this.logger.log(
+            `[AUTH_EVENT] refresh_attempt_started`
+        );
 
         // Find and verify the refresh token
         const tokenRecord = await this.refreshTokenRepo.verifyAndFindToken(refreshToken);
         
         if (!tokenRecord) {
-            this.logger.warnRedacted('[AUTH_EVENT] refresh_rejected_token_not_found');
+            this.logger.warn(
+                `[AUTH_EVENT] refresh_rejected_token_not_found`
+            );
             throw new UnauthorizedException({
                 errorCode: 'AUTH-401',
                 message: 'Unauthorised',
@@ -194,7 +271,9 @@ export class AuthService {
 
         // Check if token has been consumed
         if (tokenRecord.consumedAt) {
-            this.logger.errorRedacted('[AUTH_EVENT] refresh_rejected_token_reuse', { userId: tokenRecord.userId });
+            this.logger.error(
+                `[AUTH_EVENT] refresh_rejected_token_reuse userId=${tokenRecord.userId}`
+            );
             // Token reuse detected - revoke all tokens for this user
             await this.refreshTokenRepo.revokeAllUserTokens(tokenRecord.userId);
             throw new UnauthorizedException({
@@ -205,7 +284,9 @@ export class AuthService {
 
         // Check if token has been revoked
         if (tokenRecord.revokedAt) {
-            this.logger.warnRedacted('[AUTH_EVENT] refresh_rejected_token_revoked', { userId: tokenRecord.userId });
+            this.logger.warn(
+                `[AUTH_EVENT] refresh_rejected_token_revoked userId=${tokenRecord.userId}`
+            );
             throw new UnauthorizedException({
                 errorCode: 'AUTH-401',
                 message: 'Unauthorised',
@@ -214,7 +295,9 @@ export class AuthService {
 
         // Check if token has expired
         if (new Date() > tokenRecord.expiresAt) {
-            this.logger.warnRedacted('[AUTH_EVENT] refresh_rejected_token_expired', { userId: tokenRecord.userId });
+            this.logger.warn(
+                `[AUTH_EVENT] refresh_rejected_token_expired userId=${tokenRecord.userId}`
+            );
             throw new UnauthorizedException({
                 errorCode: 'AUTH-401',
                 message: 'Unauthorised',
@@ -227,7 +310,9 @@ export class AuthService {
         // Get the user details
         const user = await this.userRepo.findById(tokenRecord.userId);
         if (!user) {
-            this.logger.errorRedacted('[AUTH_EVENT] refresh_failed_user_not_found', { userId: tokenRecord.userId });
+            this.logger.error(
+                `[AUTH_EVENT] refresh_failed_user_not_found userId=${tokenRecord.userId}`
+            );
             throw new UnauthorizedException({
                 errorCode: 'AUTH-401',
                 message: 'Unauthorised',
@@ -243,7 +328,9 @@ export class AuthService {
 
         const newRefreshToken = await this.refreshService.create(user.id);
 
-        this.logger.logRedacted('[AUTH_EVENT] refresh_succeeded', { userId: user.id, accountId: user.accountId });
+        this.logger.log(
+            `[AUTH_EVENT] refresh_succeeded userId=${user.id} accountId=${user.accountId}`
+        );
 
         return {
             accessToken,
@@ -254,18 +341,24 @@ export class AuthService {
     }
 
     async getCurrentUser(userId: string) {
-        this.logger.logRedacted('[AUTH_EVENT] get_current_user_started', { userId });
+        this.logger.log(
+            `[AUTH_EVENT] get_current_user_started userId=${userId}`
+        );
 
         const user = await this.userRepo.findById(userId);
         if (!user) {
-            this.logger.warnRedacted('[AUTH_EVENT] get_current_user_rejected_user_not_found', { userId });
+            this.logger.warn(
+                `[AUTH_EVENT] get_current_user_rejected_user_not_found userId=${userId}`
+            );
             throw new UnauthorizedException({
                 errorCode: 'AUTH-401',
                 message: 'Unauthorised',
             });
         }
 
-        this.logger.logRedacted('[AUTH_EVENT] get_current_user_succeeded', { userId });
+        this.logger.log(
+            `[AUTH_EVENT] get_current_user_succeeded userId=${userId}`
+        );
 
         return {
             id: user.id,
