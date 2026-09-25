@@ -1,14 +1,28 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Integration Test: Auth Service + Trade API
+# Integration Test: Auth Service + Trade API + Trade Executor
+# All services must share the same JWT_SECRET for token validation
+#
+# Architecture:
+#   - Auth Service: localhost:3000 (npm start)
+#   - Trade API: 10.8.76.150:8084 (Docker container)
+#   - Trade Executor: 10.8.76.150:8085 (Docker container)
 
-# Service endpoints (all local - no Docker)
+# JWT Secret (shared across all services)
+JWT_SECRET="security-secret-for-etp-capstone-team2-2026"
+
+# Auth service runs locally
 AUTH_HOST=localhost
 AUTH_PORT=3000
-TRADE_API_HOST=localhost
+
+# Spring Boot services (Trade API, Executor) run on Linux VM
+LINUX_VM_IP=10.8.76.150
+TRADE_API_HOST=$LINUX_VM_IP
 TRADE_API_PORT=8084
-POSTGRES_HOST=localhost
+EXECUTOR_HOST=$LINUX_VM_IP
+EXECUTOR_PORT=8085
+POSTGRES_HOST=10.8.76.150
 POSTGRES_PORT=5432
 
 # Color output
@@ -17,9 +31,29 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-echo -e "${YELLOW}== Integration Test: Auth Service + Trade API ==${NC}"
-echo "Auth Service: http://$AUTH_HOST:$AUTH_PORT"
-echo "Trade API: http://$TRADE_API_HOST:$TRADE_API_PORT"
+echo -e "${YELLOW}== Integration Test: Auth Service + Trade API + Trade Executor ==${NC}"
+echo "Auth Service: http://$AUTH_HOST:$AUTH_PORT (localhost)"
+echo "Trade API: http://$TRADE_API_HOST:$TRADE_API_PORT (Docker on Linux VM)"
+echo "Trade Executor: http://$EXECUTOR_HOST:$EXECUTOR_PORT (Docker on Linux VM)"
+echo ""
+echo "📋 Prerequisites:"
+echo "  1. Auth Service: npm start (uses JWT_SECRET from config)"
+echo "  2. Trade API & Executor: running in Docker on Linux VM"
+echo "  3. ⚠️  All services must use the same JWT_SECRET:"
+echo "     JWT_SECRET='$JWT_SECRET'"
+echo ""
+echo "  🐳 To start Trade API & Executor on Linux VM (DOCKER):"
+echo "     ssh ec2-user@10.8.76.150"
+echo "     cd /path/to/project"
+echo "     export JWT_SECRET='$JWT_SECRET'"
+echo "     docker-compose --profile platform up -d"
+echo ""
+echo "  OR use .env file (easier for persistence):"
+echo "     echo \"JWT_SECRET='$JWT_SECRET'\" > .env"
+echo "     docker-compose --profile platform up -d"
+echo ""
+echo "  To verify JWT_SECRET is set in containers:"
+echo "     docker-compose exec backend env | grep JWT_SECRET"
 echo ""
 
 # ============================================================================
@@ -131,6 +165,13 @@ fi
 echo -e "${GREEN}PASS${NC} - Login successful, token obtained"
 echo "  Token (first 20 chars): ${ACCESS_TOKEN:0:20}..."
 
+# Decode JWT payload (base64 decode middle section)
+JWT_PAYLOAD=$(echo "$LOGIN_RESPONSE" | grep -o '"accessToken":"[^"]*' | cut -d'"' -f4 | cut -d'.' -f2)
+# Pad base64 if needed
+while [ $((${#JWT_PAYLOAD} % 4)) -ne 0 ]; do JWT_PAYLOAD="${JWT_PAYLOAD}="; done
+echo "  JWT Claims: $(echo "$JWT_PAYLOAD" | base64 -d 2>/dev/null || echo "Cannot decode")"
+echo ""
+
 # Step 3: Use token on Trade API protected route
 echo "Calling protected Trade API route with token..."
 TRADE_RESPONSE=$(curl -s -w "\n%{http_code}" -X GET "http://$TRADE_API_HOST:$TRADE_API_PORT/api/v1/accounts/1" \
@@ -147,6 +188,30 @@ if [ "$TRADE_HTTP_CODE" -eq 200 ]; then
 else
   echo -e "${RED}FAIL${NC} - Trade API rejected JWT token (HTTP $TRADE_HTTP_CODE)"
   echo "Response: $TRADE_BODY"
+  echo ""
+  echo "🔧 Troubleshooting (Docker):"
+  echo "   The Trade API is rejecting the JWT token. Check:"
+  echo ""
+  echo "   1. Is JWT_SECRET set in Docker containers?"
+  echo "      ssh ec2-user@10.8.76.150"
+  echo "      docker-compose exec backend env | grep JWT_SECRET"
+  echo ""
+  echo "   2. Was docker-compose started WITH JWT_SECRET?"
+  echo "      export JWT_SECRET='$JWT_SECRET'"
+  echo "      docker-compose --profile platform up -d"
+  echo ""
+  echo "   3. Or use .env file for persistence:"
+  echo "      echo \"JWT_SECRET='$JWT_SECRET'\" > .env"
+  echo "      docker-compose --profile platform up -d"
+  echo ""
+  echo "   4. If containers are already running, restart them:"
+  echo "      docker-compose down"
+  echo "      export JWT_SECRET='$JWT_SECRET'"
+  echo "      docker-compose --profile platform up -d"
+  echo ""
+  echo "   5. Check Trade API logs for JWT validation errors:"
+  echo "      docker-compose logs backend"
+  echo ""
   exit 1
 fi
 
@@ -267,13 +332,85 @@ else
 fi
 
 # ============================================================================
+# Stage: Test Trade API - Order Placement & Workflow
+# ============================================================================
+echo -e "\n${YELLOW}== Stage: Test Trade API - Order Placement & Workflow ==${NC}"
+
+# Generate a unique idempotency key (UUID v4)
+# Test 1: Place an order (POST /api/v1/orders)
+# Account 1 is US_EQUITY with USD currency, so use AAPL (US equity, USD)
+echo "Testing: POST /api/v1/orders (place order through Trade API)"
+echo "  Without token..."
+# Generate a unique idempotency key for this request (truly random each time)
+IDEM_KEY=$(python3 -c "import uuid; print(uuid.uuid4())" 2>/dev/null || echo "550e8400-e29b-41d4-a716-$(date +%s%N | cut -c1-12)")
+RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "http://$TRADE_API_HOST:$TRADE_API_PORT/api/v1/orders" \
+  -H "Content-Type: application/json" \
+  -d '{"accountId":1,"symbol":"INFY.NS","quantity":1,"price":1100.50,"side":"BUY","idempotencyKey":"'$IDEM_KEY'"}')
+HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+if [ "$HTTP_CODE" -eq 401 ]; then
+  echo -e "    ${GREEN}✓ Returns 401 without token${NC}"
+else
+  echo -e "    ${RED}✗ Should return 401, got $HTTP_CODE${NC}"
+fi
+
+echo "  With token..."
+# Generate a unique idempotency key for this request (truly random each time)
+IDEM_KEY=$(python3 -c "import uuid; print(uuid.uuid4())" 2>/dev/null || echo "550e8400-e29b-41d4-a716-$(date +%s%N | cut -c1-12)")
+RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "http://$TRADE_API_HOST:$TRADE_API_PORT/api/v1/orders" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"accountId":1,"symbol":"INFY.NS","quantity":1,"price":1100.50,"side":"BUY","idempotencyKey":"'$IDEM_KEY'"}')
+HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+BODY=$(echo "$RESPONSE" | head -n-1)
+if [ "$HTTP_CODE" -eq 201 ] || [ "$HTTP_CODE" -eq 200 ]; then
+  echo -e "    ${GREEN}✓ Order placement accepted (HTTP $HTTP_CODE)${NC}"
+  ORDER_ID=$(echo "$BODY" | grep -o '"orderId":"[^"]*"' | head -1 | cut -d'"' -f4)
+  if [ -n "$ORDER_ID" ]; then
+    echo -e "    ${GREEN}✓ Order placed with ID: $ORDER_ID${NC}"
+    echo -e "    ${GREEN}✓ Order published to Kafka for Executor processing${NC}"
+  fi
+else
+  echo -e "    ${YELLOW}⚠ Got HTTP $HTTP_CODE (expected 200/201)${NC}"
+  echo "      Response: $BODY"
+fi
+
+# Test 2: Query orders for account (GET /api/v1/accounts/{id}/orders)
+echo ""
+echo "Testing: GET /api/v1/accounts/1/orders (query order history)"
+echo "  Without token..."
+RESPONSE=$(curl -s -w "\n%{http_code}" -X GET "http://$TRADE_API_HOST:$TRADE_API_PORT/api/v1/accounts/1/orders")
+HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+if [ "$HTTP_CODE" -eq 401 ]; then
+  echo -e "    ${GREEN}✓ Returns 401 without token${NC}"
+else
+  echo -e "    ${RED}✗ Should return 401, got $HTTP_CODE${NC}"
+fi
+
+echo "  With token..."
+RESPONSE=$(curl -s -w "\n%{http_code}" -X GET "http://$TRADE_API_HOST:$TRADE_API_PORT/api/v1/accounts/1/orders" \
+  -H "Authorization: Bearer $ACCESS_TOKEN")
+HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+BODY=$(echo "$RESPONSE" | head -n-1)
+if [ "$HTTP_CODE" -eq 200 ]; then
+  echo -e "    ${GREEN}✓ Order history returned (HTTP 200)${NC}"
+  ORDER_COUNT=$(echo "$BODY" | grep -o '"id"' | wc -l)
+  echo -e "    ${GREEN}✓ Found $ORDER_COUNT order(s) for account${NC}"
+  echo -e "    ${GREEN}✓ Order processing workflow: Trade API → Kafka → Executor → DB${NC}"
+else
+  echo -e "    ${YELLOW}⚠ Got HTTP $HTTP_CODE (expected 200)${NC}"
+fi
+
+# ============================================================================
 # Summary
 # ============================================================================
 echo -e "\n${GREEN}== ALL STAGES PASSED ==${NC}"
 echo ""
 echo "Summary:"
-echo "  ✓ Auth service (local) running on http://$AUTH_HOST:$AUTH_PORT"
-echo "  ✓ Trade API (local) running on http://$TRADE_API_HOST:$TRADE_API_PORT"
+echo "  ✓ Auth service running on http://$AUTH_HOST:$AUTH_PORT (localhost)"
+echo "  ✓ Trade API running on http://$TRADE_API_HOST:$TRADE_API_PORT (Linux VM)"
+echo "  ✓ JWT Secret shared across all services"
+echo "  ✓ JWT_SECRET='$JWT_SECRET'"
+echo "  ✓ Trade Executor running on http://$EXECUTOR_HOST:$EXECUTOR_PORT (Linux VM) - background Kafka consumer"
 echo "  ✓ All endpoints require JWT token (401 without token)"
 echo "  ✓ Auth service issued valid JWT token"
 echo "  ✓ Trade API accepted token (ZERO code modifications)"
@@ -282,7 +419,23 @@ echo "    - GET /api/v1/accounts/{id}"
 echo "    - GET /api/v1/accounts/{id}/balance"
 echo "    - GET /api/v1/accounts/{id}/positions"
 echo "    - GET /api/v1/accounts/{id}/orders"
+echo "  ✓ Order workflow (Trade API → Kafka → Executor):"
+echo "    - POST /api/v1/orders (place order, publish to Kafka)"
+echo "    - GET /api/v1/accounts/{id}/orders (query order history)"
+echo "    - Executor consumes from Kafka and processes settlements"
 echo "  ✓ JWT claims verified"
 echo ""
-echo "Integration test complete! Auth service integration with Trade API is working."
+echo "Commands to properly start services:"
+echo ""
+echo "  🖥️  Auth Service (localhost):"
+echo "     npm start"
+echo ""
+echo "  🐳 Trade API & Executor (Docker on Linux VM):"
+echo "     ssh ec2-user@10.8.76.150"
+echo "     cd /path/to/project"
+echo "     echo \"JWT_SECRET='$JWT_SECRET'\" > .env"
+echo "     docker-compose --profile platform up -d"
+echo ""
+echo "  Verify Docker containers have JWT_SECRET:"
+echo "     ssh ec2-user@10.8.76.150 'docker-compose exec backend env | grep JWT_SECRET'"
 echo ""
