@@ -26,9 +26,9 @@ COPY --chown=node:node --from=builder /usr/src/app/node_modules ./node_modules
 COPY --chown=node:node --from=builder /usr/src/app/dist ./dist
 
 ENV NODE_ENV=production
-ENV PORT=3000
+ENV PORT=8081
 
-EXPOSE 3000
+EXPOSE 8081
 
 CMD ["node", "dist/main.js"]
 
