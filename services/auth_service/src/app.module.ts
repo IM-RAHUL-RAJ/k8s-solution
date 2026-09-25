@@ -11,6 +11,7 @@ import {
 } from '@nestjs/typeorm';
 
 import { AuthModule } from './auth/auth.module';
+import { HealthController } from './health/health.controller';
 
 import { AuthUser } from './auth/entity/auth-user.entity';
 import { RefreshToken } from './auth/entity/refresh-token.entity';
@@ -79,5 +80,6 @@ import { RefreshToken } from './auth/entity/refresh-token.entity';
 
         AuthModule,
     ],
+    controllers: [HealthController],
 })
 export class AppModule {}
