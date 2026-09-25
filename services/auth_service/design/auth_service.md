@@ -82,7 +82,7 @@ Content-Type: application/json
   "username": "trader_john",
   "password": "SecurePass123",
   "accountId": 42,
-  "roles": ["TRADER"]
+  "roles": ["CUSTOMER"]
 }
 ```
 
@@ -92,7 +92,7 @@ Content-Type: application/json
   "id": "550e8400-e29b-41d4-a716-446655440000",
   "username": "trader_john",
   "accountId": 42,
-  "roles": ["TRADER"],
+  "roles": ["CUSTOMER"],
   "createdOn": "2026-09-25T10:30:00Z"
 }
 ```
@@ -240,7 +240,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
   "id": "550e8400-e29b-41d4-a716-446655440000",
   "username": "trader_john",
   "accountId": 42,
-  "roles": ["TRADER"],
+  "roles": ["CUSTOMER"],
   "createdOn": "2026-09-25T10:30:00Z"
 }
 ```
@@ -369,7 +369,7 @@ curl -X POST http://localhost:3000/auth/register \
     "username": "testuser",
     "password": "TestPass123",
     "accountId": 1,
-    "roles": ["TRADER"]
+    "roles": ["CUSTOMER"]
   }'
 ```
 
@@ -379,7 +379,7 @@ curl -X POST http://localhost:3000/auth/register \
   "id": "...",
   "username": "testuser",
   "accountId": 1,
-  "roles": ["TRADER"],
+  "roles": ["CUSTOMER"],
   "createdOn": "..."
 }
 ```
@@ -492,7 +492,7 @@ curl -X GET http://localhost:3000/auth/me \
   "id": "...",
   "username": "testuser",
   "accountId": 1,
-  "roles": ["TRADER"],
+  "roles": ["CUSTOMER"],
   "createdOn": "..."
 }
 ```
