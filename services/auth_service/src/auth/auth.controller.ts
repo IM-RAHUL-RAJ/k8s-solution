@@ -1,0 +1,245 @@
+import {
+    Controller,
+    Post,
+    Body,
+    UseGuards,
+    Get,
+    HttpCode,
+    HttpStatus
+} from '@nestjs/common';
+import {
+    ApiBearerAuth,
+    ApiBody,
+    ApiOperation,
+    ApiResponse,
+    ApiTags,
+} from '@nestjs/swagger';
+
+
+import {
+    AuthService
+} from './auth.service';
+
+import { RedactedLogger } from '../common/redacted-logger';
+
+
+import {
+    LoginRequestDto
+} from './dto/login-request.dto';
+import { RegisterRequestDto } from './dto/register-request.dto';
+import { RefreshRequestDto } from './dto/refresh-request.dto';
+import { JwtPayload } from './types/jwt-payload';
+import { CurrentUser } from './decorator/current-user.decorator';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { TokenResponseDto } from './dto/token-response.dto';
+import { UserResponseDto } from './dto/user-response.dto';
+import { ErrorResponseDto } from './dto/error-response.dto';
+
+
+
+@Controller("auth")
+@ApiTags('Auth')
+export class AuthController {
+
+
+    private readonly logger =
+        new RedactedLogger(AuthController.name);
+
+
+    constructor(
+        private service: AuthService
+    ) { }
+
+    @Post("register")
+    @HttpCode(HttpStatus.CREATED)
+    @ApiOperation({
+        operationId: 'register',
+        summary: 'Register a user',
+        description:
+            'Creates a user and links it to an existing trading account. Registration does not return tokens.',
+    })
+    @ApiBody({ type: RegisterRequestDto })
+    @ApiResponse({
+        status: 201,
+        description: 'User created.',
+        type: UserResponseDto,
+    })
+    @ApiResponse({
+        status: 409,
+        description: 'Username already taken.',
+        type: ErrorResponseDto,
+        schema: {
+            example: {
+                errorCode: 'AUTH-409',
+                message: 'Registration failed',
+            },
+        },
+    })
+    @ApiResponse({
+        status: 422,
+        description: 'Validation failure.',
+        type: ErrorResponseDto,
+        schema: {
+            example: {
+                errorCode: 'VAL-422',
+                message: 'Invalid input',
+            },
+        },
+    })
+    register(
+        @Body() dto: RegisterRequestDto
+    ) {
+        this.logger.log(
+            `[AUTH_EVENT] register_request_received username=${dto.username} accountId=${dto.accountId}`
+        );
+
+        // Do not log the password; log a redacted confirmation instead
+        this.logger.logRedacted(`[AUTH_EVENT] register_request_received_hashed_password`, {
+            username: dto.username,
+            password: dto.password,
+        });
+
+        return this.service.register(
+            dto.username,
+            dto.password,
+            dto.accountId,
+            dto.roles
+        );
+    }
+
+    @Post("login")
+    @HttpCode(HttpStatus.OK)
+    @ApiOperation({
+        operationId: 'login',
+        summary: 'Log in and receive tokens',
+        description:
+            'Verifies credentials and returns a signed access token and opaque refresh token. Authentication failures return AUTH-401.',
+    })
+    @ApiBody({ type: LoginRequestDto })
+    @ApiResponse({
+        status: 200,
+        description: 'Authenticated.',
+        type: TokenResponseDto,
+    })
+    @ApiResponse({
+        status: 401,
+        description: 'Authentication failed.',
+        type: ErrorResponseDto,
+        schema: {
+            example: {
+                errorCode: 'AUTH-401',
+                message: 'Unauthorised',
+            },
+        },
+    })
+    @ApiResponse({
+        status: 422,
+        description: 'Validation failure.',
+        type: ErrorResponseDto,
+        schema: {
+            example: {
+                errorCode: 'VAL-422',
+                message: 'Invalid input',
+            },
+        },
+    })
+    login(
+        @Body() dto: LoginRequestDto
+    ) {
+
+        this.logger.log(
+            `[AUTH_EVENT] login_request_received username=${dto.username}`
+        );
+
+        return this.service.login(
+            dto.username,
+            dto.password
+        );
+
+    }
+
+    @Post('refresh')
+    @HttpCode(HttpStatus.OK)
+    @ApiOperation({
+        operationId: 'refresh',
+        summary: 'Exchange refresh token for new token pair',
+        description:
+            'Consumes the presented refresh token and returns a new access token and a new refresh token.',
+    })
+    @ApiBody({ type: RefreshRequestDto })
+    @ApiResponse({
+        status: 200,
+        description: 'Token pair refreshed.',
+        type: TokenResponseDto,
+    })
+    @ApiResponse({
+        status: 401,
+        description: 'Refresh token invalid, expired, revoked, or already consumed.',
+        type: ErrorResponseDto,
+        schema: {
+            example: {
+                errorCode: 'AUTH-401',
+                message: 'Unauthorised',
+            },
+        },
+    })
+    @ApiResponse({
+        status: 422,
+        description: 'Validation failure.',
+        type: ErrorResponseDto,
+        schema: {
+            example: {
+                errorCode: 'VAL-422',
+                message: 'Invalid input',
+            },
+        },
+    })
+    refresh(
+        @Body() dto: RefreshRequestDto
+    ) {
+        this.logger.log(
+            `[AUTH_EVENT] refresh_request_received`
+        );
+
+        return this.service.refresh(
+            dto.refreshToken
+        );
+    }
+
+    @Get('me')
+    @UseGuards(JwtAuthGuard)
+    @ApiTags('Profile')
+    @ApiBearerAuth('bearerAuth')
+    @ApiOperation({
+        operationId: 'getCurrentUser',
+        summary: 'Get authenticated user profile',
+        description:
+            'Protected endpoint that returns the current authenticated user derived from the verified access token.',
+    })
+    @ApiResponse({
+        status: 200,
+        description: 'Authenticated user profile.',
+        type: UserResponseDto,
+    })
+    @ApiResponse({
+        status: 401,
+        description: 'Missing, malformed, expired, or invalid token.',
+        type: ErrorResponseDto,
+        schema: {
+            example: {
+                errorCode: 'AUTH-401',
+                message: 'Unauthorised',
+            },
+        },
+    })
+    me(
+        @CurrentUser() user: JwtPayload,
+    ) {
+        this.logger.log(
+            `[AUTH_EVENT] me_request_received userId=${user.sub}`
+        );
+
+        return this.service.getCurrentUser(user.sub);
+    }
+
+}
