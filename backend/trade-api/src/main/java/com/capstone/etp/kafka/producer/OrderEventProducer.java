@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -26,7 +27,7 @@ public class OrderEventProducer {
     private static final int SCHEMA_VERSION = 1;
 
     
-    public void publishOrderPlaced(Order order, String instrumentSymbol) {
+    public void publishOrderPlaced(Order order, String instrumentSymbol, BigDecimal convertedLimitPrice) {
         try {
             OrderPlacedPayload payload = OrderPlacedPayload.builder()
                     .orderId(order.getId())
@@ -34,7 +35,7 @@ public class OrderEventProducer {
                     .symbol(instrumentSymbol)
                     .side(order.getSide().toString())
                     .quantity(order.getQuantity())
-                    .price(order.getLimitPrice())
+                    .price(convertedLimitPrice)
                     .idempotencyKey(order.getIdempotencyKey().toString())
                     .createdOn(order.getCreatedAt())
                     .build();

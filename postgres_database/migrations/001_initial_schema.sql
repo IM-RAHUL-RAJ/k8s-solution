@@ -342,7 +342,7 @@ CREATE TABLE transactions (
 
 
     CONSTRAINT ck_transactions_price
-        CHECK(executed_price > 0)
+        CHECK(executed_price >= 0)
 );
 
 

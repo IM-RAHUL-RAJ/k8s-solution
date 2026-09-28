@@ -6,9 +6,11 @@ import com.capstone.etp.executor.entity.Order;
 import com.capstone.etp.executor.entity.PortfolioHolding;
 import com.capstone.etp.executor.enums.OrderSide;
 import com.capstone.etp.executor.enums.OrderStatus;
+import com.capstone.etp.executor.exception.DeadLetterException;
 import com.capstone.etp.executor.exception.OptimisticLockRetryException;
 import com.capstone.etp.executor.mapper.ExecutorOrderMapper;
 import com.capstone.etp.executor.rule.FillDecision;
+import com.capstone.etp.executor.util.CurrencyConverter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,7 +19,6 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
-import java.util.Locale;
 
 
 @Slf4j
@@ -40,15 +41,14 @@ public class SettlementService {
             if (!account.isActive()) {
                 // Account was suspended or closed after the order was accepted.
                 finalDecision = FillDecision.reject("ACCOUNT_NOT_ACTIVE");
-            } else if (!currencyMatches(account.getCurrency(), instrument.getCurrency())) {
-                log.info("Order {} rejected due to currency mismatch: accountCurrency={} instrumentCurrency={}",
-                        order.getId(), account.getCurrency(), instrument.getCurrency());
-                finalDecision = FillDecision.reject("CURRENCY_MISMATCH");
             } else if (order.getSide() == OrderSide.BUY) {
-                // Rule 6 re-check: funds at limit price (not executed price).
-                BigDecimal required = order.getLimitPrice()
+                BigDecimal requiredInInstrumentCurrency = order.getLimitPrice()
                         .multiply(BigDecimal.valueOf(order.getQuantity()));
-                if (!account.canAfford(required)) {
+                BigDecimal requiredInAccountCurrency = convertAmount(
+                        requiredInInstrumentCurrency,
+                        instrument.getCurrency(),
+                        account.getCurrency());
+                if (!account.canAfford(requiredInAccountCurrency)) {
                     finalDecision = FillDecision.reject("INSUFFICIENT_FUNDS");
                 }
             } else {
@@ -77,7 +77,7 @@ public class SettlementService {
         if (finalDecision.isFill()) {
             return applyFill(order, account, instrument, finalDecision.getExecutedPrice(), now);
         } else {
-            return applyReject(order, account, instrument.getSymbol(), finalDecision.getReason(), now);
+            return applyReject(order, account, instrument, finalDecision.getReason(), now);
         }
     }
 
@@ -90,9 +90,24 @@ public class SettlementService {
         int existingQty      = currentHolding != null ? currentHolding.getQuantity() : 0;
         BigDecimal existingAvg = currentHolding != null ? currentHolding.getAvgPrice() : BigDecimal.ZERO;
 
+        BigDecimal limitPriceInAccountCurrency = convertAmount(
+                order.getLimitPrice(),
+                instrument.getCurrency(),
+                account.getCurrency());
+        BigDecimal executedPriceInAccountCurrency = convertAmount(
+                executedPrice,
+                instrument.getCurrency(),
+                account.getCurrency());
+
         // Cash delta
-        BigDecimal tradeValue = executedPrice.multiply(BigDecimal.valueOf(order.getQuantity()));
-        BigDecimal cashDelta  = order.getSide() == OrderSide.BUY ? tradeValue.negate() : tradeValue;
+        BigDecimal tradeValueInInstrumentCurrency = executedPrice.multiply(BigDecimal.valueOf(order.getQuantity()));
+        BigDecimal tradeValueInAccountCurrency = convertAmount(
+                tradeValueInInstrumentCurrency,
+                instrument.getCurrency(),
+                account.getCurrency());
+        BigDecimal cashDelta  = order.getSide() == OrderSide.BUY
+                ? tradeValueInAccountCurrency.negate()
+                : tradeValueInAccountCurrency;
         BigDecimal newBalance = account.getCashBalance().add(cashDelta);
 
         // Log balance pre-change to make replay demos and audits straightforward
@@ -134,24 +149,29 @@ public class SettlementService {
 
         // Transaction record
         mapper.insertTransaction(order.getId(), order.getQuantity(),
-                executedPrice, "EXECUTED", null, now);
+                executedPriceInAccountCurrency, "EXECUTED", null, now);
 
         log.info("Order {} FILLED at {} — cash delta {}, position after {}",
                 order.getId(), executedPrice, cashDelta, posQtyAfter);
 
         return new SettlementResult(
                 order.getId(), order.getAccountId(), instrument.getSymbol(),
-                order.getSide().name(), order.getQuantity(), order.getLimitPrice(),
-                executedPrice, OrderStatus.FILLED, null,
+                order.getSide().name(), order.getQuantity(), limitPriceInAccountCurrency,
+                executedPriceInAccountCurrency, OrderStatus.FILLED, null,
                 cashDelta, posQtyAfter, avgCostAfter, now, false);
     }
 
     private SettlementResult applyReject(Order order, Account account,
-                                         String symbol, String reason, Instant now) {
-        // executed_price is NOT NULL with CHECK > 0; store the limit price as the
-        // "attempted" price so the constraint is satisfied.
+                                         Instrument instrument, String reason, Instant now) {
+        BigDecimal attemptedPriceInAccountCurrency = convertAmount(
+                order.getLimitPrice(),
+                instrument.getCurrency(),
+                account.getCurrency());
+        BigDecimal rejectedExecutedPrice = new BigDecimal("0.00");
+
+        // Rejected orders carry 0.00 executed price by business rule.
         mapper.insertTransaction(order.getId(), order.getQuantity(),
-                order.getLimitPrice(), "FAILED", reason, now);
+                rejectedExecutedPrice, "FAILED", reason, now);
 
         // Current holding for positionQuantityAfter / averageCostAfter in the event
         PortfolioHolding holding = mapper.findHolding(order.getAccountId(), order.getInstrumentId());
@@ -162,20 +182,13 @@ public class SettlementService {
                 order.getId(), reason, account.getId(), account.getCashBalance());
 
         return new SettlementResult(
-                order.getId(), order.getAccountId(), symbol,
-                order.getSide().name(), order.getQuantity(), order.getLimitPrice(),
-                null, OrderStatus.REJECTED, reason,
+                order.getId(), order.getAccountId(), instrument.getSymbol(),
+                order.getSide().name(), order.getQuantity(), attemptedPriceInAccountCurrency,
+                rejectedExecutedPrice, OrderStatus.REJECTED, reason,
                 BigDecimal.ZERO, posQtyAfter, avgCost, now, false);
     }
 
-    private boolean currencyMatches(String accountCurrency, String instrumentCurrency) {
-        if (accountCurrency == null || instrumentCurrency == null) {
-            return false;
-        }
-        String normalizedAccountCurrency = accountCurrency.trim().toUpperCase(Locale.ROOT);
-        String normalizedInstrumentCurrency = instrumentCurrency.trim().toUpperCase(Locale.ROOT);
-        return !normalizedAccountCurrency.isEmpty()
-                && !normalizedInstrumentCurrency.isEmpty()
-                && normalizedAccountCurrency.equals(normalizedInstrumentCurrency);
+    private BigDecimal convertAmount(BigDecimal amount, String fromCurrency, String toCurrency) {
+        return CurrencyConverter.convert(fromCurrency, toCurrency, amount);
     }
 }
