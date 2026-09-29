@@ -1,0 +1,21 @@
+<section class="landing">
+  <div class="landing__hero">
+    <p class="landing__eyebrow">Sprint feature tree</p>
+    <h2>Landing page</h2>
+    <p>
+      This page is the first named feature in the workspace and gives reviewers a
+      direct entry point into the Angular app structure.
+    </p>
+  </div>
+
+  <p class="landing__summary">{{ cardCount() }} foundation blocks are in place.</p>
+
+  <div class="landing__cards">
+    @for (card of cards(); track card.title) {
+      <article class="landing__card">
+        <h3>{{ card.title }}</h3>
+        <p>{{ card.description }}</p>
+      </article>
+    }
+  </div>
+</section>
