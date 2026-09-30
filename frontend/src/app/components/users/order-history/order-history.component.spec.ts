@@ -119,6 +119,26 @@ describe('OrderHistoryComponent', () => {
     expect(fixture.componentInstance.pollingStopped()).toBe(false);
   });
 
+  it('a status filter narrows the table but counts every order', () => {
+    getOrderHistory.mockReturnValue(
+      of([
+        order('a', 'FILLED', '2026-01-01T11:00:00Z'),
+        order('b', 'REJECTED', '2026-01-01T10:00:00Z'),
+        order('c', 'REJECTED', '2026-01-01T09:00:00Z')
+      ])
+    );
+    const fixture = create();
+
+    fixture.componentInstance.setFilter('REJECTED');
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.visibleOrders().map((o) => o.orderId)).toEqual(['b', 'c']);
+    const rejected = fixture.componentInstance.filters().find((f) => f.value === 'REJECTED');
+    expect(rejected?.count).toBe(2);
+    expect(fixture.componentInstance.filters().find((f) => f.value === 'ALL')?.count).toBe(3);
+    expect(fixture.nativeElement.querySelectorAll('[data-testid="order-row"]').length).toBe(2);
+  });
+
   it('empty history is handled gracefully', () => {
     getOrderHistory.mockReturnValue(of([]));
 

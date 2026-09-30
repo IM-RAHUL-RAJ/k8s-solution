@@ -175,6 +175,32 @@ describe('OrderTicketComponent', () => {
     expect(first).not.toBe(second);
   });
 
+  it('the summary echoes the typed order and estimates its value', () => {
+    const fixture = create();
+
+    fixture.componentInstance.form.setValue({ symbol: 'abc', side: 'SELL', quantity: '4', price: '2.50' });
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.summary()).toEqual({
+      side: 'Sell',
+      symbol: 'ABC',
+      quantity: 4,
+      price: 2.5,
+      estimate: 10
+    });
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('[data-testid="order-estimate"]')?.textContent
+    ).toContain('10.00');
+  });
+
+  it('the summary shows no estimate until quantity and price are valid', () => {
+    const fixture = create();
+
+    fixture.componentInstance.form.setValue({ symbol: 'ABC', side: 'BUY', quantity: '4.5', price: '2.50' });
+
+    expect(fixture.componentInstance.summary().estimate).toBeNull();
+  });
+
   it('resets order fields', () => {
     const fixture = create();
     fillValidForm(fixture);

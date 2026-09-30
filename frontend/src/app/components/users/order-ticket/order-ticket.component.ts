@@ -1,6 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import {
   AbstractControl,
@@ -66,6 +67,26 @@ export class OrderTicketComponent {
     side: ['BUY' as OrderSide, [Validators.required]],
     quantity: ['', [Validators.required, positiveIntegerValidator]],
     price: ['', [Validators.required, priceValidator]]
+  });
+
+  private readonly formValue = toSignal(this.form.valueChanges, { initialValue: this.form.getRawValue() });
+
+  /** What the customer is about to send, echoed back live. An estimate only: cash and holdings are checked by the API. */
+  readonly summary = computed(() => {
+    const value = this.formValue();
+    const quantity = Number((value.quantity ?? '').trim());
+    const price = Number((value.price ?? '').trim());
+    const symbol = (value.symbol ?? '').trim().toUpperCase();
+    const validNumbers =
+      Number.isInteger(quantity) && quantity > 0 && Number.isFinite(price) && price > 0;
+
+    return {
+      side: value.side === 'SELL' ? 'Sell' : 'Buy',
+      symbol,
+      quantity: Number.isFinite(quantity) && quantity > 0 ? quantity : null,
+      price: Number.isFinite(price) && price > 0 ? price : null,
+      estimate: validNumbers ? quantity * price : null
+    };
   });
 
   /** The account the session may trade, rendered read-only. Never an editable field. */

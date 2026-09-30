@@ -4,7 +4,9 @@ import { RouterLink } from '@angular/router';
 import { ApiErrorMessageService } from '../../../core/services/api-error-message.service';
 import { AccountContextService } from '../../../core/services/account-context.service';
 import { OrderService } from '../../../core/services/order.service';
-import { OrderHistoryEntry } from '../../../core/models/order.model';
+import { OrderHistoryEntry, OrderStatus } from '../../../core/models/order.model';
+
+export type OrderFilter = 'ALL' | OrderStatus;
 import { StatusBadgeComponent } from '../shared/status-badge/status-badge.component';
 
 // An order at NEW is the working state: the executor has not resolved it yet. The blotter
@@ -37,6 +39,25 @@ export class OrderHistoryComponent implements OnDestroy {
   readonly pollAttempt = signal(0);
   readonly pollingStopped = signal(false);
 
+  readonly filter = signal<OrderFilter>('ALL');
+
+  readonly filters = computed(() => {
+    const orders = this.orders();
+    const count = (status: OrderStatus) => orders.filter((order) => order.status === status).length;
+    return [
+      { value: 'ALL' as OrderFilter, label: 'All', count: orders.length },
+      { value: 'NEW' as OrderFilter, label: 'Working', count: count('NEW') },
+      { value: 'FILLED' as OrderFilter, label: 'Filled', count: count('FILLED') },
+      { value: 'REJECTED' as OrderFilter, label: 'Rejected', count: count('REJECTED') },
+      { value: 'CANCELLED' as OrderFilter, label: 'Cancelled', count: count('CANCELLED') }
+    ];
+  });
+
+  /** The table shows what the filter allows; polling and the banner always look at every order. */
+  readonly visibleOrders = computed(() =>
+    this.filter() === 'ALL' ? this.orders() : this.orders().filter((order) => order.status === this.filter())
+  );
+
   readonly workingCount = computed(
     () => this.orders().filter((order) => order.status === 'NEW').length
   );
@@ -64,6 +85,10 @@ export class OrderHistoryComponent implements OnDestroy {
     this.pollAttempt.set(0);
     this.pollingStopped.set(false);
     this.load();
+  }
+
+  setFilter(filter: OrderFilter): void {
+    this.filter.set(filter);
   }
 
   ngOnDestroy(): void {

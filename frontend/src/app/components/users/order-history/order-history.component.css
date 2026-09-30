@@ -2,21 +2,165 @@
   display: block;
 }
 
+.page {
+  gap: 12px;
+}
+
 .header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
+}
+
+.header h1 {
+  font-size: 20px;
 }
 
 .page > .banner {
   margin: 0;
 }
 
+.refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.glyph {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.glyph.spin {
+  animation: spin 800ms linear infinite;
+}
+
+/* The working banner breathes so it reads as something still in motion. */
+.working {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.working__dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--new);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  background-color: var(--surface);
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.chip:hover {
+  border-color: var(--muted);
+  color: var(--text);
+}
+
+.chip.active {
+  border-color: var(--accent);
+  background-color: var(--ok-bg);
+  color: var(--ok);
+  font-weight: 600;
+}
+
+.chip__count {
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: 99px;
+  background-color: var(--bg);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
 .table-card {
   overflow-x: auto;
 }
 
+.num {
+  text-align: right;
+}
+
+.side {
+  color: var(--ok);
+  font-weight: 600;
+}
+
+.side--sell {
+  color: var(--reject);
+}
+
+.none {
+  padding: 16px 0;
+  text-align: center;
+}
+
+.empty {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 32px 14px;
+  text-align: center;
+}
+
+.empty svg {
+  width: 32px;
+  height: 32px;
+  margin-bottom: 8px;
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+
 .skeleton {
   margin-bottom: 8px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.8);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .working__dot {
+    animation: none;
+  }
 }

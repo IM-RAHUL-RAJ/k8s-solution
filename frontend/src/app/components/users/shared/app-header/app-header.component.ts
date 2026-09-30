@@ -1,6 +1,7 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../../../core/auth/auth.service';
+import { ThemeToggleComponent } from '../theme-toggle/theme-toggle.component';
 
 interface NavigationItem {
   label: string;
@@ -10,7 +11,7 @@ interface NavigationItem {
 @Component({
   selector: 'app-app-header',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive],
+  imports: [RouterLink, RouterLinkActive, ThemeToggleComponent],
   templateUrl: './app-header.component.html',
   styleUrl: './app-header.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -27,6 +28,7 @@ export class AppHeaderComponent {
   ];
 
   protected readonly user = this.auth.user;
+  protected readonly initial = computed(() => (this.user()?.username ?? '?').charAt(0).toUpperCase());
 
   protected signOut(): void {
     this.auth.logout();

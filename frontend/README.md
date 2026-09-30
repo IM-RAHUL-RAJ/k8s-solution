@@ -59,6 +59,15 @@ generate. `core/models` and the services beside it follow the Spring Boot DTOs a
 `backend/trade-api` (the source of truth for now). When `trade-api.yaml` lands, add a second entry to
 `openapitools.json`, regenerate, and replace those hand-written shapes.
 
+## Look and feel
+
+Sage and forest, in light and dark. Every colour is a token on `:root` in `src/styles.css`; the dark
+values live under `:root[data-theme='dark']`. `ThemeService` (`core/theme`) switches the attribute,
+remembers the choice in localStorage (a colour preference is not sensitive) and falls back to the
+system setting; a small script in `index.html` applies it before first paint so there is no flash.
+Motion (page enter, count-up figures, sliding Buy/Sell thumb, drawn tick, badge pulse) is all CSS or
+`requestAnimationFrame` and switches off under `prefers-reduced-motion`.
+
 ## Security notes
 
 - The token lives in memory only (a signal). Never localStorage or sessionStorage.

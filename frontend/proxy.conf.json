@@ -1,21 +1,21 @@
 {
   "/api": {
-    "target": "http://10.8.76.150:8084",
+    "target": "http://localhost:8084",
     "secure": false,
     "changeOrigin": true
   },
   "/auth": {
-    "target": "http://localhost:8081",
+    "target": "http://localhost:3000",
     "secure": false,
     "changeOrigin": true
   },
   "/health": {
-    "target": "http://localhost:8081",
+    "target": "http://localhost:3000",
     "secure": false,
     "changeOrigin": true
   },
   "/actuator": {
-    "target": "http://10.8.76.150:8084",
+    "target": "http://localhost:8084",
     "secure": false,
     "changeOrigin": true
   }

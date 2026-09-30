@@ -172,7 +172,14 @@
 }
 
 /* Form panel */
+.panel__tools {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+}
+
 .panel {
+  position: relative;
   display: grid;
   align-content: center;
   justify-items: center;

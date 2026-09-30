@@ -1,5 +1,8 @@
 <header class="header">
-  <div class="header__brand">Fauxtrade</div>
+  <a class="header__brand" routerLink="/dashboard" aria-label="Fauxtrade home">
+    <span class="logo"><span class="logo__mark"></span></span>
+    Fauxtrade
+  </a>
 
   <nav class="header__nav" aria-label="Primary">
     @for (item of navigationItems; track item.path) {
@@ -9,6 +12,8 @@
   </nav>
 
   <div class="header__user">
+    <app-theme-toggle />
+    <span class="avatar" aria-hidden="true">{{ initial() }}</span>
     <span class="header__name" data-testid="signed-in-user">{{ user()?.username }}</span>
     <span class="header__sep" aria-hidden="true">·</span>
     <button type="button" class="header__signout" (click)="signOut()" data-testid="sign-out">

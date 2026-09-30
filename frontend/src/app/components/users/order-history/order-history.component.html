@@ -1,8 +1,14 @@
 <section class="page" data-testid="order-history">
   <div class="header">
-    <h1>Orders, newest first</h1>
-    <button type="button" class="secondary" (click)="refreshOrders()" [disabled]="refreshing()"
+    <div>
+      <h1>Orders, newest first</h1>
+      <p class="muted">Every order for your account, rejections included.</p>
+    </div>
+    <button type="button" class="secondary refresh" (click)="refreshOrders()" [disabled]="refreshing()"
             data-testid="refresh-orders">
+      <svg viewBox="0 0 20 20" class="glyph" [class.spin]="refreshing()" aria-hidden="true">
+        <path d="M16 10a6 6 0 1 1-2-4.5M16 3.5V6h-2.5" />
+      </svg>
       @if (refreshing() && !loading()) {
         Refreshing...
       } @else {
@@ -16,7 +22,9 @@
   }
 
   @if (pollingMessage(); as message) {
-    <div class="banner info" role="status" data-testid="polling-message">{{ message }}</div>
+    <div class="banner info working" role="status" data-testid="polling-message">
+      <span class="working__dot" aria-hidden="true"></span>{{ message }}
+    </div>
   }
 
   @if (loading()) {
@@ -24,47 +32,67 @@
       <span class="skeleton"></span>
       <span class="skeleton"></span>
       <span class="skeleton"></span>
+      <span class="skeleton"></span>
     </article>
   } @else if (orders().length === 0 && !error()) {
-    <article class="card" data-testid="blotter-empty">
+    <article class="card empty" data-testid="blotter-empty">
+      <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 5h12M4 10h12M4 15h7" /></svg>
       <p>No orders yet.</p>
       <p class="muted">Place your first order from the <a routerLink="/order-ticket">Order ticket</a>.</p>
     </article>
   } @else if (orders().length > 0) {
+    <div class="filters" role="group" aria-label="Filter orders by status">
+      @for (option of filters(); track option.value) {
+        <button type="button" class="chip" [class.active]="filter() === option.value"
+                [attr.aria-pressed]="filter() === option.value"
+                (click)="setFilter(option.value)" [attr.data-testid]="'filter-' + option.value">
+          {{ option.label }} <span class="chip__count">{{ option.count }}</span>
+        </button>
+      }
+    </div>
+
     <article class="card table-card">
-      <table>
-        <thead>
-          <tr>
-            <th scope="col">Time</th>
-            <th scope="col">Symbol</th>
-            <th scope="col">Side</th>
-            <th scope="col">Qty</th>
-            <th scope="col">Price</th>
-            <th scope="col">Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (order of orders(); track order.orderId; let i = $index) {
-            <tr [style.animation-delay.ms]="i * 40" data-testid="order-row"
-                [attr.data-order-id]="order.orderId" [attr.data-status]="order.status">
-              <td class="tabular" [attr.title]="order.createdOn | date: 'medium'">
-                {{ order.createdOn | date: 'HH:mm' }}
-              </td>
-              <td>{{ order.symbol }}</td>
-              <td>{{ order.side === 'BUY' ? 'Buy' : 'Sell' }}</td>
-              <td class="tabular">{{ order.quantity }}</td>
-              <td class="tabular">
-                @if (order.price !== null) {
-                  {{ order.price | number: '1.2-2' }}
-                } @else {
-                  &mdash;
-                }
-              </td>
-              <td data-testid="order-status"><app-status-badge [status]="order.status" /></td>
+      @if (visibleOrders().length === 0) {
+        <p class="muted none">No orders match this filter.</p>
+      } @else {
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Time</th>
+              <th scope="col">Symbol</th>
+              <th scope="col">Side</th>
+              <th scope="col" class="num">Qty</th>
+              <th scope="col" class="num">Price</th>
+              <th scope="col">Status</th>
             </tr>
-          }
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            @for (order of visibleOrders(); track order.orderId; let i = $index) {
+              <tr [style.animation-delay.ms]="i * 40" data-testid="order-row"
+                  [attr.data-order-id]="order.orderId" [attr.data-status]="order.status">
+                <td class="tabular" [attr.title]="order.createdOn | date: 'medium'">
+                  {{ order.createdOn | date: 'HH:mm' }}
+                </td>
+                <td><strong>{{ order.symbol }}</strong></td>
+                <td>
+                  <span class="side" [class.side--sell]="order.side === 'SELL'">
+                    {{ order.side === 'BUY' ? 'Buy' : 'Sell' }}
+                  </span>
+                </td>
+                <td class="tabular num">{{ order.quantity }}</td>
+                <td class="tabular num">
+                  @if (order.price !== null) {
+                    {{ order.price | number: '1.2-2' }}
+                  } @else {
+                    &mdash;
+                  }
+                </td>
+                <td data-testid="order-status"><app-status-badge [status]="order.status" /></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
     </article>
   }
 </section>

@@ -5,11 +5,12 @@ import { AuthService } from '../../../core/auth/auth.service';
 import { sanitizeReturnUrl } from '../../../core/guards/return-url';
 import { ApiErrorMessageService } from '../../../core/services/api-error-message.service';
 import { StatusBadgeComponent } from '../shared/status-badge/status-badge.component';
+import { ThemeToggleComponent } from '../shared/theme-toggle/theme-toggle.component';
 
 @Component({
   selector: 'app-sign-in',
   standalone: true,
-  imports: [ReactiveFormsModule, StatusBadgeComponent],
+  imports: [ReactiveFormsModule, StatusBadgeComponent, ThemeToggleComponent],
   templateUrl: './sign-in.component.html',
   styleUrl: './sign-in.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush
