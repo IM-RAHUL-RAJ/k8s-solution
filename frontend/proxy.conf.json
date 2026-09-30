@@ -5,7 +5,7 @@
     "changeOrigin": true
   },
   "/auth": {
-    "target": "http://localhost:8081",
+    "target": "http://localhost:3000",
     "secure": false,
     "changeOrigin": true
   },
