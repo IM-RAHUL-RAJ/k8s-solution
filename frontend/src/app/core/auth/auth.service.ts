@@ -107,6 +107,21 @@ export class AuthService {
   }
 
   /**
+   * Decode JWT and extract claims
+   */
+  private decodeToken(token: string): any {
+    try {
+      const parts = token.split('.');
+      if (parts.length !== 3) return null;
+      
+      const decoded = atob(parts[1]);
+      return JSON.parse(decoded);
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * Sign in with username and password against the Auth service
    * @param credentials - Username and password
    * @returns Observable<LoginResponse>
@@ -119,15 +134,32 @@ export class AuthService {
           const token = (response as any).token ?? (response as any).accessToken;
           if (token) {
             this.setToken(token);
-          }
-          
-          // Store user info if provided
-          if (response.user) {
-            this.setUser({
-              id: response.user.id,
-              username: response.user.username,
-              email: response.user.email
-            });
+            
+            // Extract user info from response or decode from JWT
+            let user: User | null = null;
+            
+            if (response.user) {
+              // Use user from response if provided
+              user = {
+                id: response.user.id,
+                username: response.user.username,
+                email: response.user.email
+              };
+            }
+            
+            // Also try to extract accountId from JWT claims
+            const claims = this.decodeToken(token);
+            if (claims) {
+              if (!user) {
+                user = {};
+              }
+              user.accountId = claims.accountId || claims.sub?.accountId;
+              user.username = user.username || claims.sub?.username || claims.username;
+            }
+            
+            if (user) {
+              this.setUser(user);
+            }
           }
         }),
         catchError(error => {
