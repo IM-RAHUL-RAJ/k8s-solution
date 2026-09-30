@@ -6,7 +6,7 @@ export const routes: Routes = [
 		path: '',
 		canActivate: [guestGuard],
 		loadComponent: () =>
-			import('./features/landing/landing-page').then((m) => m.LandingPage)
+			import('./components/users/landing/landing-page').then((m) => m.LandingPage)
 	},
 	{
 		path: 'sign-in',

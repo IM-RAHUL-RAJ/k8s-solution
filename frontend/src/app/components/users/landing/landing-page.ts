@@ -1,7 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { ThemeService } from '../../services/theme.service';
+import { ThemeService } from '../../../core/theme/theme.service';
 
 type FeatureCard = {
   title: string;

@@ -1,0 +1,461 @@
+:host {
+  display: block;
+}
+
+.login {
+  position: relative;
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: minmax(300px, 0.95fr) minmax(0, 1.05fr);
+  background:
+    radial-gradient(circle at 8% 12%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 32%),
+    radial-gradient(circle at 88% 16%, color-mix(in srgb, var(--new) 20%, transparent), transparent 26%),
+    linear-gradient(165deg, color-mix(in srgb, var(--bg) 92%, var(--surface) 8%) 0%, var(--bg) 58%, color-mix(in srgb, var(--surface) 86%, var(--bg) 14%) 100%);
+  color: var(--text);
+  overflow: hidden;
+}
+
+.login__theme-toggle {
+  width: 50px;
+  height: 50px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 11px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  color: var(--text);
+  cursor: pointer;
+  box-shadow: 0 8px 18px -12px var(--shadow);
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.login__theme-toggle svg {
+  display: block;
+  width: 32px;
+  height: 32px;
+}
+
+.login__theme-toggle:hover {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+  transform: translateY(-1px);
+}
+
+.login__theme-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.login__theme-toggle--floating {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 6;
+}
+
+.login__shape {
+  position: absolute;
+  pointer-events: none;
+  filter: blur(2px);
+  z-index: 0;
+}
+
+.login__shape--one {
+  width: clamp(130px, 18vw, 240px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  top: 14%;
+  left: -5%;
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.login__shape--two {
+  width: clamp(110px, 16vw, 220px);
+  aspect-ratio: 1;
+  border-radius: 38% 62% 53% 47% / 48% 45% 55% 52%;
+  right: -4%;
+  top: 6%;
+  background: color-mix(in srgb, var(--new) 22%, transparent);
+}
+
+.login__aside,
+.login__main {
+  position: relative;
+  z-index: 1;
+}
+
+.login__aside {
+  display: grid;
+  align-content: space-between;
+  gap: clamp(1.1rem, 2vw, 1.8rem);
+  padding: clamp(1.2rem, 3.2vw, 2.4rem);
+  border-right: 1px solid color-mix(in srgb, var(--line) 78%, transparent);
+  background:
+    radial-gradient(circle at 18% 20%, color-mix(in srgb, var(--accent) 42%, transparent), transparent 46%),
+    radial-gradient(circle at 78% 82%, color-mix(in srgb, var(--new) 28%, transparent), transparent 52%),
+    linear-gradient(150deg, color-mix(in srgb, var(--brand-panel) 86%, #000 14%) 0%, var(--brand-panel) 48%, color-mix(in srgb, var(--brand-panel) 76%, var(--bg) 24%) 100%);
+  color: var(--on-brand);
+  overflow: hidden;
+}
+
+.login__aside::before,
+.login__aside::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+
+.login__aside::before {
+  inset: 0;
+  background:
+    repeating-radial-gradient(
+      circle at 0 0,
+      color-mix(in srgb, var(--on-brand) 26%, transparent) 0 2px,
+      transparent 2px 40px
+    ),
+    repeating-radial-gradient(
+      circle at 0 80px,
+      color-mix(in srgb, var(--on-brand) 20%, transparent) 0 2px,
+      transparent 2px 50px
+    ),
+    repeating-radial-gradient(
+      circle at 0 140px,
+      color-mix(in srgb, var(--on-brand) 18%, transparent) 0 2px,
+      transparent 2px 45px
+    );
+  background-size: 100% 280px, 100% 340px, 100% 240px;
+  background-position: 0 0, 0 -40px, 0 -20px;
+  background-attachment: fixed;
+  opacity: 0.32;
+}
+
+.login__aside::after {
+  width: clamp(150px, 24vw, 280px);
+  aspect-ratio: 1;
+  right: -13%;
+  bottom: -14%;
+  border-radius: 41% 59% 66% 34% / 44% 51% 49% 56%;
+  background: color-mix(in srgb, var(--accent) 38%, transparent);
+  filter: blur(2px);
+  opacity: 0.85;
+}
+
+.login__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  width: max-content;
+  color: var(--on-brand);
+  text-decoration: none;
+  font-family: "Avenir Next", "Segoe UI", sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.login__brand:focus-visible {
+  outline: 2px solid var(--on-brand);
+  outline-offset: 3px;
+}
+
+.login__aside-copy {
+  display: grid;
+  gap: 1rem;
+  max-width: 36ch;
+}
+
+.login__aside-title {
+  margin: 0;
+  font-family: "Canela", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  font-size: clamp(2rem, 4vw, 3.1rem);
+  line-height: 1.04;
+  letter-spacing: -0.012em;
+  color: var(--on-brand);
+  text-shadow: 0 10px 26px color-mix(in srgb, #000 32%, transparent);
+}
+
+.login__aside-text {
+  margin: 0;
+  line-height: 1.6;
+  color: color-mix(in srgb, var(--on-brand) 86%, transparent);
+}
+
+.login__main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(1.2rem, 3.4vw, 2.6rem);
+}
+
+.login-card {
+  position: relative;
+  overflow: hidden;
+  width: min(100%, 520px);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--surface) 96%, transparent), color-mix(in srgb, var(--surface) 90%, transparent));
+  box-shadow: 0 22px 52px -30px var(--shadow);
+  backdrop-filter: blur(4px);
+  padding: clamp(1.2rem, 2.2vw, 1.8rem);
+}
+
+.login-card__glow {
+  position: absolute;
+  width: 180px;
+  height: 180px;
+  top: -62px;
+  right: -54px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--accent) 24%, transparent);
+  filter: blur(10px);
+  pointer-events: none;
+}
+
+.login-header,
+.login-form {
+  position: relative;
+  z-index: 1;
+}
+
+.login-header {
+  margin-bottom: 1.4rem;
+}
+
+.login-header h1 {
+  margin: 0 0 0.36rem;
+  font-family: "Canela", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  font-weight: 500;
+  font-size: clamp(1.7rem, 2.4vw, 2.1rem);
+  letter-spacing: -0.012em;
+  color: var(--text);
+}
+
+.login-header p {
+  margin: 0;
+  font-size: 0.93rem;
+  line-height: 1.52;
+  color: var(--muted);
+}
+
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--reject-bg);
+  border: 1px solid var(--reject);
+  border-radius: 10px;
+  color: var(--reject);
+  padding: 0.7rem 0.9rem;
+  margin-bottom: 1rem;
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.error-banner svg {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+}
+
+.login-form {
+  display: grid;
+  gap: 1.05rem;
+  margin-bottom: 1.2rem;
+  padding: 0.95rem;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--line) 85%, transparent);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+}
+
+.form-group {
+  display: grid;
+  gap: 0.42rem;
+}
+
+.form-group label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--text) 85%, var(--muted));
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.input-wrap {
+  position: relative;
+}
+
+.input-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  pointer-events: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+.input-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.82rem 2.7rem 0.82rem 2.7rem;
+  font: inherit;
+  font-size: 0.95rem;
+  color: var(--text);
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.password-toggle svg {
+  width: 18px;
+  height: 18px;
+}
+
+.password-toggle:hover {
+  background: color-mix(in srgb, var(--line) 40%, transparent);
+  color: var(--text);
+}
+
+.password-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.form-input:hover {
+  border-color: color-mix(in srgb, var(--muted) 68%, var(--line));
+}
+
+.form-input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent);
+  background: color-mix(in srgb, var(--surface) 98%, transparent);
+}
+
+.form-input--error {
+  border-color: var(--reject);
+}
+
+.form-input--error:focus-visible {
+  outline-color: var(--reject);
+}
+
+.form-input:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.field-error {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--reject);
+  font-weight: 600;
+}
+
+.field-error svg {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+}
+
+.submit-button {
+  width: 100%;
+  margin-top: 0.45rem;
+  padding: 0.9rem 1rem;
+  font: inherit;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--on-accent);
+  background: linear-gradient(130deg, color-mix(in srgb, var(--accent) 92%, #000 8%), var(--accent));
+  border: 0;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+  box-shadow: 0 12px 24px -14px color-mix(in srgb, var(--accent) 62%, transparent);
+}
+
+.submit-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 28px -16px color-mix(in srgb, var(--accent) 66%, transparent);
+  filter: saturate(1.08);
+}
+
+.submit-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.submit-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.submit-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+@media (max-width: 940px) {
+  .login {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+
+  .login__aside {
+    border-right: 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--line) 78%, transparent);
+    min-height: 220px;
+  }
+}
+
+@media (max-width: 680px) {
+  .login__aside {
+    padding: 1rem 1.1rem;
+  }
+
+  .login__aside-copy {
+    display: none;
+  }
+
+  .login__main {
+    align-items: flex-start;
+    padding: 1rem;
+  }
+
+  .login-card {
+    width: 100%;
+    border-radius: 12px;
+    padding: 1rem;
+  }
+
+  .login__theme-toggle--floating {
+    top: 10px;
+    right: 10px;
+  }
+}
