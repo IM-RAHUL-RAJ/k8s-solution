@@ -21,6 +21,17 @@
     <div class="banner error" role="alert" data-testid="blotter-error">{{ error() }}</div>
   }
 
+  @if (actionError()) {
+    <div class="banner error" role="alert" data-testid="cancel-error">{{ actionError() }}</div>
+  }
+
+  @if (notice(); as message) {
+    <div class="banner success notice" role="status" data-testid="cancel-notice">
+      <span>{{ message }}</span>
+      <button type="button" class="notice__close" (click)="dismissNotice()" aria-label="Dismiss">&times;</button>
+    </div>
+  }
+
   @if (pollingMessage(); as message) {
     <div class="banner info working" role="status" data-testid="polling-message">
       <span class="working__dot" aria-hidden="true"></span>{{ message }}
@@ -58,20 +69,22 @@
         <table>
           <thead>
             <tr>
-              <th scope="col">Time</th>
+              <th scope="col">Placed</th>
               <th scope="col">Symbol</th>
               <th scope="col">Side</th>
               <th scope="col" class="num">Qty</th>
-              <th scope="col" class="num">Price</th>
+              <th scope="col" class="num">Limit price</th>
+              <th scope="col" class="num">Executed at</th>
               <th scope="col">Status</th>
+              <th scope="col" class="act"><span class="sr-only">Actions</span></th>
             </tr>
           </thead>
           <tbody>
             @for (order of visibleOrders(); track order.orderId; let i = $index) {
               <tr [style.animation-delay.ms]="i * 40" data-testid="order-row"
                   [attr.data-order-id]="order.orderId" [attr.data-status]="order.status">
-                <td class="tabular" [attr.title]="order.createdOn | date: 'medium'">
-                  {{ order.createdOn | date: 'HH:mm' }}
+                <td class="tabular" [attr.title]="order.orderId">
+                  {{ order.createdOn | date: 'd MMM y, HH:mm' }}
                 </td>
                 <td><strong>{{ order.symbol }}</strong></td>
                 <td>
@@ -84,10 +97,37 @@
                   @if (order.price !== null) {
                     {{ order.price | number: '1.2-2' }}
                   } @else {
-                    &mdash;
+                    <span class="muted">Market</span>
+                  }
+                </td>
+                <td class="tabular num">
+                  @if (order.executedPrice !== null) {
+                    {{ order.executedPrice | number: '1.2-2' }}
+                  } @else {
+                    <span class="muted">&mdash;</span>
                   }
                 </td>
                 <td data-testid="order-status"><app-status-badge [status]="order.status" /></td>
+                <td class="act">
+                  @if (order.status === 'NEW') {
+                    @if (confirmingId() === order.orderId) {
+                      <span class="confirm">
+                        <span class="confirm__ask">Cancel this order?</span>
+                        <button type="button" class="mini danger" (click)="confirmCancel(order)"
+                                [disabled]="cancellingId() !== null" data-testid="confirm-cancel">
+                          @if (cancellingId() === order.orderId) { Cancelling... } @else { Yes, cancel }
+                        </button>
+                        <button type="button" class="mini" (click)="keepOrder()"
+                                [disabled]="cancellingId() !== null" data-testid="keep-order">Keep</button>
+                      </span>
+                    } @else {
+                      <button type="button" class="mini ghost" (click)="askCancel(order.orderId)"
+                              [attr.aria-label]="'Cancel ' + order.symbol + ' order'" data-testid="cancel-order">
+                        Cancel
+                      </button>
+                    }
+                  }
+                </td>
               </tr>
             }
           </tbody>

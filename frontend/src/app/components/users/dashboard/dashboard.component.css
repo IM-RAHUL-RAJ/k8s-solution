@@ -9,25 +9,58 @@
 .intro {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 12px;
 }
 
-.intro__greeting {
-  color: var(--muted);
-  margin-bottom: 2px;
-}
-
-.intro h1 {
-  font-size: 20px;
+.who {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 14px;
+}
+
+.who__avatar {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: var(--ok-bg);
+  color: var(--ok);
+  font-size: 15px;
+  font-weight: 600;
+  animation: pop 500ms var(--ease) both;
+}
+
+.who__greeting {
+  color: var(--muted);
+}
+
+.who h1 {
+  font-size: 20px;
+  line-height: 1.3;
+}
+
+.who__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+  color: var(--muted);
+}
+
+.mono {
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 12px;
+  letter-spacing: 0.02em;
 }
 
 .pill {
-  padding: 2px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 1px 10px;
   border-radius: 99px;
   background-color: var(--ok-bg);
   color: var(--ok);
@@ -35,9 +68,26 @@
   font-weight: 600;
 }
 
+.pill__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: currentColor;
+}
+
 .pill--off {
   background-color: var(--reject-bg);
   color: var(--reject);
+}
+
+.cta {
+  transition:
+    transform 180ms var(--ease),
+    opacity 180ms ease;
+}
+
+.cta:active {
+  transform: scale(0.97);
 }
 
 .glyph {
@@ -47,16 +97,20 @@
   stroke: currentColor;
   stroke-width: 2;
   stroke-linecap: round;
+  transition: transform 300ms var(--ease);
+}
+
+.cta:hover .glyph {
+  transform: rotate(90deg);
 }
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
   gap: 10px;
 }
 
 .stat {
-  position: relative;
   display: grid;
   align-content: start;
   gap: 4px;
@@ -117,6 +171,11 @@
   color: var(--muted);
 }
 
+.stat__foot {
+  font-size: 12px;
+  color: var(--muted);
+}
+
 .panels {
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
@@ -147,20 +206,79 @@
 
 .table-card__header a:hover {
   text-decoration: none;
-  transform: translateX(2px);
+  transform: translateX(3px);
 }
 
 .num {
   text-align: right;
 }
 
-.side {
+/* A thin bar under each symbol shows its share of what is invested; it grows in from the left. */
+td:first-child {
+  position: relative;
+}
+
+.share {
+  position: absolute;
+  left: 10px;
+  bottom: 4px;
+  width: calc(var(--w, 0) * 0.6%);
+  max-width: calc(100% - 20px);
+  height: 2px;
+  border-radius: 2px;
+  background-color: var(--accent);
+  transform-origin: left;
+  animation: grow 700ms 200ms var(--ease) both;
+}
+
+.orders {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.orders li {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 6px;
+  margin: 0 -6px;
+  border-bottom: 1px solid var(--line);
+  border-radius: 8px;
+  animation: rowEnter 320ms var(--ease) both;
+  transition: background-color 160ms ease;
+}
+
+.orders li:last-child {
+  border-bottom: none;
+}
+
+.orders li:hover {
+  background-color: var(--bg);
+}
+
+.orders__side {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background-color: var(--ok-bg);
   color: var(--ok);
+  font-size: 12px;
   font-weight: 600;
 }
 
-.side--sell {
+.orders__side--sell {
+  background-color: var(--reject-bg);
   color: var(--reject);
+}
+
+.orders__main {
+  display: grid;
+  gap: 0;
+  min-width: 0;
 }
 
 .empty {
@@ -193,4 +311,35 @@
 .skeleton.tall {
   height: 24px;
   width: 60%;
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes rowEnter {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }

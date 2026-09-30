@@ -41,6 +41,13 @@ export const SIGN_IN_MESSAGES: Partial<Record<CatalogueCode, string>> = {
   'AUTH-401': 'Your username or password was not accepted. Check them and try again.'
 };
 
+/** Cancelling reads differently: ORD-409 there means the order is no longer working, not a holdings problem. */
+export const CANCEL_MESSAGES: Partial<Record<CatalogueCode, string>> = {
+  'ORD-409':
+    'This order can no longer be cancelled. It has already been filled, rejected or cancelled, or it just changed. Refresh the blotter to see where it stands.',
+  'ACC-403': 'This sign-in cannot cancel orders on this account.'
+};
+
 /** The request never got a response: a service that is down, or a CORS rule that blocks this origin. */
 export const UNREACHABLE_MESSAGE =
   'The trading service is currently unavailable. Check your connection and try again in a moment.';

@@ -1,15 +1,17 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { AccountResponse, BalanceResponse, PositionResponse } from '../../../core/models/account.model';
 import { AccountContextService } from '../../../core/services/account-context.service';
 import { AccountService } from '../../../core/services/account.service';
 import { ApiErrorMessageService } from '../../../core/services/api-error-message.service';
+import { AnimatedNumberComponent } from '../shared/animated-number/animated-number.component';
 
 @Component({
   selector: 'app-account',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterLink, AnimatedNumberComponent],
   templateUrl: './account.component.html',
   styleUrl: './account.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -25,13 +27,27 @@ export class AccountComponent {
   protected readonly balance = signal<BalanceResponse | null>(null);
   protected readonly positions = signal<PositionResponse[]>([]);
 
-  protected readonly totalValue = computed(() => {
-    const cash = this.balance()?.cashBalance ?? 0;
-    const positionsValue = this.positions().reduce(
-      (sum, position) => sum + position.averageCost * position.quantity,
-      0
-    );
-    return cash + positionsValue;
+  protected readonly initials = computed(() =>
+    (this.account()?.holderName ?? '?')
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((part) => part.charAt(0).toUpperCase())
+      .join('')
+  );
+
+  /** Cost of what is held. The API gives average cost, so this is cost, not market value. */
+  protected readonly invested = computed(() =>
+    this.positions().reduce((sum, position) => sum + position.quantity * position.averageCost, 0)
+  );
+
+  protected readonly rows = computed(() => {
+    const total = this.invested();
+    return [...this.positions()]
+      .sort((left, right) => left.symbol.localeCompare(right.symbol))
+      .map((position) => {
+        const cost = position.quantity * position.averageCost;
+        return { ...position, cost, share: total > 0 ? (cost / total) * 100 : 0 };
+      });
   });
 
   constructor() {

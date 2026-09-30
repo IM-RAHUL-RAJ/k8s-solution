@@ -2,6 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { ApiErrorResponse } from '../models/api-error.model';
 import {
+  CANCEL_MESSAGES,
   ERROR_MESSAGES,
   FALLBACK_MESSAGE,
   SIGN_IN_MESSAGES,
@@ -9,7 +10,7 @@ import {
   isCatalogueCode
 } from './error-catalogue';
 
-export type ErrorContext = 'default' | 'sign-in';
+export type ErrorContext = 'default' | 'sign-in' | 'cancel';
 
 @Injectable({ providedIn: 'root' })
 export class ApiErrorMessageService {
@@ -32,6 +33,10 @@ export class ApiErrorMessageService {
 
     if (context === 'sign-in') {
       return SIGN_IN_MESSAGES[code] ?? ERROR_MESSAGES[code];
+    }
+
+    if (context === 'cancel') {
+      return CANCEL_MESSAGES[code] ?? ERROR_MESSAGES[code];
     }
 
     return ERROR_MESSAGES[code];

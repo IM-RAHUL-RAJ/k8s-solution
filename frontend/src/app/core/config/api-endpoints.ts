@@ -29,7 +29,9 @@ export interface PlatformTarget {
 
 export function platformTargets(): readonly PlatformTarget[] {
   return [
-    { origin: originOf(environment.tradeApiBase), pathPrefixes: ['/api/v1/'], exactPaths: [] },
-    { origin: originOf(environment.authApiBase), pathPrefixes: [], exactPaths: ['/auth/me'] }
+    // Read from API_ENDPOINTS, the same values every request is built from, so the allow list
+    // can never drift from where calls actually go.
+    { origin: originOf(API_ENDPOINTS.tradeApiBase), pathPrefixes: ['/api/v1/'], exactPaths: [] },
+    { origin: originOf(API_ENDPOINTS.authApiBase), pathPrefixes: [], exactPaths: ['/auth/me'] }
   ];
 }

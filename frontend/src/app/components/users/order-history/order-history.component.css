@@ -57,6 +57,97 @@
   animation: pulse 1.5s ease-in-out infinite;
 }
 
+.notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.notice__close {
+  padding: 0 8px;
+  border: none;
+  background: none;
+  color: inherit;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.act {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.mini {
+  padding: 4px 10px;
+  border: 1px solid var(--line);
+  background-color: var(--surface);
+  color: var(--text);
+  font-size: 12px;
+}
+
+.mini:hover:not(:disabled) {
+  border-color: var(--muted);
+  background-color: var(--bg);
+}
+
+.mini:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.mini.ghost {
+  color: var(--muted);
+}
+
+.mini.ghost:hover:not(:disabled) {
+  border-color: var(--reject);
+  color: var(--reject);
+  background-color: var(--reject-bg);
+}
+
+.mini.danger {
+  border-color: var(--reject);
+  background-color: var(--reject);
+  color: var(--surface);
+}
+
+.mini.danger:hover:not(:disabled) {
+  background-color: var(--reject);
+  opacity: 0.9;
+}
+
+.confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  animation: confirmIn 220ms var(--ease);
+}
+
+.confirm__ask {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+@keyframes confirmIn {
+  from {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 .filters {
   display: flex;
   flex-wrap: wrap;

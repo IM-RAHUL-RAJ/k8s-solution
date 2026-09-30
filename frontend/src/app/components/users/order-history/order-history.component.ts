@@ -39,6 +39,13 @@ export class OrderHistoryComponent implements OnDestroy {
   readonly pollAttempt = signal(0);
   readonly pollingStopped = signal(false);
 
+  /** The order the user is being asked to confirm cancelling, and the one whose cancel is in flight. */
+  readonly confirmingId = signal<string | null>(null);
+  readonly cancellingId = signal<string | null>(null);
+  readonly actionError = signal<string | null>(null);
+  readonly notice = signal<string | null>(null);
+  private noticeTimer: ReturnType<typeof setTimeout> | null = null;
+
   readonly filter = signal<OrderFilter>('ALL');
 
   readonly filters = computed(() => {
@@ -91,8 +98,68 @@ export class OrderHistoryComponent implements OnDestroy {
     this.filter.set(filter);
   }
 
+  askCancel(orderId: string): void {
+    this.actionError.set(null);
+    this.confirmingId.set(orderId);
+  }
+
+  keepOrder(): void {
+    this.confirmingId.set(null);
+  }
+
+  /** DELETE /api/v1/orders/{id}. Only an order still at NEW can be cancelled; the API decides. */
+  confirmCancel(order: OrderHistoryEntry): void {
+    if (this.cancellingId() !== null) {
+      return;
+    }
+
+    this.cancellingId.set(order.orderId);
+    this.actionError.set(null);
+
+    this.orderService.cancelOrder(order.orderId).subscribe({
+      next: () => {
+        this.orders.update((orders) =>
+          orders.map((entry) =>
+            entry.orderId === order.orderId ? { ...entry, status: 'CANCELLED' as const } : entry
+          )
+        );
+        this.cancellingId.set(null);
+        this.confirmingId.set(null);
+        this.showNotice(`Cancelled your ${order.side === 'BUY' ? 'buy' : 'sell'} order for ${order.symbol}.`);
+        // Nothing may be working any more; if so the re-read stops, otherwise it carries on.
+        this.schedulePollIfWorking();
+      },
+      error: (error: unknown) => {
+        this.actionError.set(this.errorMessageService.getMessage(error, 'cancel'));
+        this.cancellingId.set(null);
+        this.confirmingId.set(null);
+        // The order changed under us (filled, say). Re-read so the row tells the truth.
+        this.load();
+      }
+    });
+  }
+
+  dismissNotice(): void {
+    this.notice.set(null);
+    this.clearNoticeTimer();
+  }
+
   ngOnDestroy(): void {
     this.stopPolling();
+    this.clearNoticeTimer();
+  }
+
+  private showNotice(message: string): void {
+    this.clearNoticeTimer();
+    this.notice.set(message);
+    this.noticeTimer = setTimeout(() => this.notice.set(null), 6000);
+  }
+
+  private clearNoticeTimer(): void {
+    if (this.noticeTimer !== null) {
+      clearTimeout(this.noticeTimer);
+      this.noticeTimer = null;
+    }
   }
 
   private load(): void {

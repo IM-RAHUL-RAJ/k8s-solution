@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
+import { HttpErrorResponse } from '@angular/common/http';
+import { of, throwError } from 'rxjs';
 import { MAX_POLL_ATTEMPTS, OrderHistoryComponent, POLL_INTERVAL_MS } from './order-history.component';
 import { AccountContextService } from '../../../core/services/account-context.service';
 import { OrderService } from '../../../core/services/order.service';
@@ -22,10 +23,12 @@ function order(orderId: string, status: string, createdOn: string) {
 
 describe('OrderHistoryComponent', () => {
   const getOrderHistory = vi.fn();
+  const cancelOrder = vi.fn();
 
   beforeEach(async () => {
     vi.useFakeTimers();
     getOrderHistory.mockReset();
+    cancelOrder.mockReset();
 
     await TestBed.configureTestingModule({
       imports: [OrderHistoryComponent],
@@ -37,7 +40,7 @@ describe('OrderHistoryComponent', () => {
             getCurrentAccount: () => ({ accountNumericId: 1, accountReference: '1', displayName: 'trader01' })
           }
         },
-        { provide: OrderService, useValue: { getOrderHistory } }
+        { provide: OrderService, useValue: { getOrderHistory, cancelOrder } }
       ]
     }).compileComponents();
   });
@@ -137,6 +140,75 @@ describe('OrderHistoryComponent', () => {
     expect(rejected?.count).toBe(2);
     expect(fixture.componentInstance.filters().find((f) => f.value === 'ALL')?.count).toBe(3);
     expect(fixture.nativeElement.querySelectorAll('[data-testid="order-row"]').length).toBe(2);
+  });
+
+  it('cancelling a working order asks first, then marks it cancelled and stops the re-read', () => {
+    getOrderHistory.mockReturnValue(of([order('a', 'NEW', '2026-01-01T10:00:00Z')]));
+    cancelOrder.mockReturnValue(of({ orderId: 'a', status: 'CANCELLED', message: 'Order cancelled successfully' }));
+    const fixture = create();
+    const component = fixture.componentInstance;
+
+    component.askCancel('a');
+    expect(component.confirmingId()).toBe('a');
+    expect(cancelOrder).not.toHaveBeenCalled();
+
+    component.confirmCancel(component.orders()[0]);
+    fixture.detectChanges();
+
+    expect(cancelOrder).toHaveBeenCalledWith('a');
+    expect(component.orders()[0].status).toBe('CANCELLED');
+    expect(component.workingCount()).toBe(0);
+    expect(component.pollingMessage()).toBeNull();
+    expect(component.notice()).toContain('Cancelled your buy order for AAPL');
+
+    vi.advanceTimersByTime(POLL_INTERVAL_MS * 3);
+    expect(getOrderHistory).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeping an order closes the confirmation without calling the API', () => {
+    getOrderHistory.mockReturnValue(of([order('a', 'NEW', '2026-01-01T10:00:00Z')]));
+    const fixture = create();
+
+    fixture.componentInstance.askCancel('a');
+    fixture.componentInstance.keepOrder();
+
+    expect(fixture.componentInstance.confirmingId()).toBeNull();
+    expect(cancelOrder).not.toHaveBeenCalled();
+  });
+
+  it('a cancel the API refuses shows the mapped message and re-reads the order', () => {
+    getOrderHistory.mockReturnValue(of([order('a', 'NEW', '2026-01-01T10:00:00Z')]));
+    cancelOrder.mockReturnValue(
+      throwError(
+        () =>
+          new HttpErrorResponse({ status: 409, error: { errorCode: 'ORD-409', message: 'Failed to cancel order: state' } })
+      )
+    );
+    const fixture = create();
+
+    fixture.componentInstance.confirmCancel(fixture.componentInstance.orders()[0]);
+    fixture.detectChanges();
+
+    const banner = (fixture.nativeElement as HTMLElement).querySelector('[data-testid="cancel-error"]');
+    expect(banner?.textContent).toContain('can no longer be cancelled');
+    expect(banner?.textContent).not.toContain('Failed to cancel order');
+    expect(getOrderHistory).toHaveBeenCalledTimes(2);
+  });
+
+  it('only a working order offers a cancel button', () => {
+    getOrderHistory.mockReturnValue(
+      of([order('a', 'NEW', '2026-01-01T11:00:00Z'), order('b', 'FILLED', '2026-01-01T10:00:00Z')])
+    );
+    const fixture = create();
+
+    expect((fixture.nativeElement as HTMLElement).querySelectorAll('[data-testid="cancel-order"]').length).toBe(1);
+  });
+
+  it('an order with no limit price is shown as a market order', () => {
+    getOrderHistory.mockReturnValue(of([{ ...order('m', 'FILLED', '2026-01-01T10:00:00Z'), price: null }]));
+    const fixture = create();
+
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Market');
   });
 
   it('empty history is handled gracefully', () => {

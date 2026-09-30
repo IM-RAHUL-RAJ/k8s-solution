@@ -37,8 +37,30 @@ export class DashboardComponent {
   protected readonly greeting = computed(() => {
     const hour = new Date().getHours();
     const part = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
-    const name = this.auth.user()?.username;
+    const name = this.account()?.holderName.split(' ')[0] ?? this.auth.user()?.username;
     return name ? `${part}, ${name}` : part;
+  });
+
+  protected readonly initials = computed(() =>
+    (this.account()?.holderName ?? this.auth.user()?.username ?? '?')
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((part) => part.charAt(0).toUpperCase())
+      .join('')
+  );
+
+  /** What the current holdings cost. The API returns average cost, not a live price, so this is cost, not market value. */
+  protected readonly invested = computed(() =>
+    this.positions().reduce((sum, position) => sum + position.quantity * position.averageCost, 0)
+  );
+
+  /** Each holding's share of cost, for the bar beside it. */
+  protected readonly holdingRows = computed(() => {
+    const total = this.invested();
+    return this.holdings().map((position) => {
+      const cost = position.quantity * position.averageCost;
+      return { ...position, cost, share: total > 0 ? (cost / total) * 100 : 0 };
+    });
   });
 
   protected readonly recentOrders = computed(() =>
