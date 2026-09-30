@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { ThemeToggleComponent } from '../theme-toggle/theme-toggle.component';
@@ -26,9 +26,6 @@ export class AppHeaderComponent {
     { label: 'Blotter', path: '/blotter' },
     { label: 'Account', path: '/account' }
   ];
-
-  protected readonly user = this.auth.user;
-  protected readonly initial = computed(() => (this.user()?.username ?? '?').charAt(0).toUpperCase());
 
   protected signOut(): void {
     this.auth.logout();

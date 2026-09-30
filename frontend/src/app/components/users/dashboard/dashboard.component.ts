@@ -49,12 +49,12 @@ export class DashboardComponent {
   protected readonly greeting = computed(() => {
     const hour = new Date().getHours();
     const part = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
-    const name = this.account()?.holderName.split(' ')[0] ?? this.auth.user()?.username;
+    const name = this.account()?.holderName;
     return name ? `${part}, ${name}` : part;
   });
 
   protected readonly initials = computed(() =>
-    (this.account()?.holderName ?? this.auth.user()?.username ?? '?')
+    (this.account()?.holderName ?? '?')
       .split(/\s+/)
       .slice(0, 2)
       .map((part) => part.charAt(0).toUpperCase())

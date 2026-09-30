@@ -2,6 +2,7 @@ import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
+import { vi } from 'vitest';
 import { AuthService } from '../auth/auth.service';
 import { API_ENDPOINTS } from '../config/api-endpoints';
 import { authInterceptor } from './auth.interceptor';
@@ -12,16 +13,16 @@ describe('authInterceptor', () => {
 
   let http: HttpClient;
   let httpMock: HttpTestingController;
-  const expireSession = vi.fn();
+  const logout = vi.fn();
 
   beforeEach(() => {
-    expireSession.mockReset();
+    logout.mockReset();
 
     TestBed.configureTestingModule({
       providers: [
         provideHttpClient(withInterceptors([authInterceptor])),
         provideHttpClientTesting(),
-        { provide: AuthService, useValue: { getToken: () => 'test-token', expireSession } },
+        { provide: AuthService, useValue: { getToken: () => 'test-token', logout } },
         { provide: Router, useValue: { url: '/blotter' } }
       ]
     });
@@ -104,13 +105,13 @@ describe('authInterceptor', () => {
     }
   });
 
-  it('a 401 from the trade API ends the session and returns to sign-in', () => {
+  it('a 401 from the trade API ends the session', () => {
     const url = `${trade}/api/v1/accounts/1`;
 
     http.get(url).subscribe({ error: () => undefined });
 
     httpMock.expectOne(url).flush({ errorCode: 'AUTH-401' }, { status: 401, statusText: 'Unauthorized' });
 
-    expect(expireSession).toHaveBeenCalledWith('/blotter');
+    expect(logout).toHaveBeenCalled();
   });
 });

@@ -4,7 +4,7 @@ import { provideRouter, Router } from '@angular/router';
 import { Observable, of, Subject, throwError } from 'rxjs';
 import { vi } from 'vitest';
 import { LoginComponent } from './login.component';
-import { AuthService } from '../../../services/auth.service';
+import { AuthService } from '../../../core/auth/auth.service';
 
 describe('LoginComponent', () => {
   let component: LoginComponent;

@@ -23,6 +23,13 @@ export interface LoginResponse {
   expiresIn?: number;
 }
 
+export interface User {
+  id?: string;
+  username?: string;
+  email?: string;
+  accountId?: number;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -30,6 +37,7 @@ export class AuthService {
   private http = inject(HttpClient);
   private router = inject(Router);
   private readonly storageKey = 'access_token';
+  private readonly userStorageKey = 'auth_user';
 
   /**
    * Token is mirrored in memory and localStorage so auth survives refresh.
@@ -37,9 +45,19 @@ export class AuthService {
   private tokenSignal = signal<string | null>(this.readTokenFromStorage());
 
   /**
+   * User information from login response
+   */
+  private userSignal = signal<User | null>(this.readUserFromStorage());
+
+  /**
    * Computed signal to track authentication state
    */
   isAuthenticated = computed(() => this.tokenSignal() !== null);
+
+  /**
+   * Get current user
+   */
+  user = this.userSignal.asReadonly();
 
   /**
    * Get current token (memory-only, cleared on logout)
@@ -57,11 +75,35 @@ export class AuthService {
   }
 
   /**
+   * Store user in memory and localStorage.
+   */
+  private setUser(user: User | null): void {
+    this.userSignal.set(user);
+    if (user) {
+      localStorage.setItem(this.userStorageKey, JSON.stringify(user));
+    } else {
+      localStorage.removeItem(this.userStorageKey);
+    }
+  }
+
+  /**
    * Restore token from localStorage if available.
    */
   private readTokenFromStorage(): string | null {
     const token = localStorage.getItem(this.storageKey);
     return token && token.trim().length > 0 ? token : null;
+  }
+
+  /**
+   * Restore user from localStorage if available.
+   */
+  private readUserFromStorage(): User | null {
+    try {
+      const user = localStorage.getItem(this.userStorageKey);
+      return user ? JSON.parse(user) : null;
+    } catch {
+      return null;
+    }
   }
 
   /**
@@ -78,6 +120,15 @@ export class AuthService {
           if (token) {
             this.setToken(token);
           }
+          
+          // Store user info if provided
+          if (response.user) {
+            this.setUser({
+              id: response.user.id,
+              username: response.user.username,
+              email: response.user.email
+            });
+          }
         }),
         catchError(error => {
           // Never log the credentials or token
@@ -92,9 +143,11 @@ export class AuthService {
    * Clears token immediately and navigates to sign-in page
    */
   logout(): void {
-    // Immediately clear token from memory and local storage
+    // Immediately clear token and user from memory and local storage
     this.tokenSignal.set(null);
+    this.userSignal.set(null);
     localStorage.removeItem(this.storageKey);
+    localStorage.removeItem(this.userStorageKey);
     // Navigate to sign-in page
     this.router.navigate(['/sign-in']);
   }

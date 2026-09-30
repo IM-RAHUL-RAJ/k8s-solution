@@ -20,7 +20,7 @@ export class AccountContextService {
 
     return {
       accountNumericId: user?.accountId ?? 0,
-      accountReference: user && user.accountId > 0 ? String(user.accountId) : 'Unknown',
+      accountReference: user && (user.accountId ?? 0) > 0 ? String(user.accountId) : 'Unknown',
       displayName: user?.username ?? ''
     };
   }

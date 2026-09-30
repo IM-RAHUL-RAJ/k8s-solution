@@ -45,7 +45,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     catchError((error: unknown) => {
       // The session ended while a signed-in call was in flight: sign out and say so.
       if (error instanceof HttpErrorResponse && error.status === 401 && token) {
-        auth.expireSession(router.url);
+        auth.logout();
       }
       return throwError(() => error);
     })

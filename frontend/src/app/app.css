@@ -4,16 +4,11 @@
 }
 
 :host {
-	display: block;
-	min-height: 100dvh;
 	background-color: var(--bg);
 }
 
 .shell {
-	min-height: 100dvh;
-	padding: 3rem clamp(1.25rem, 4vw, 3rem);
 	display: grid;
-	gap: 2rem;
 }
 
 .shell__header {

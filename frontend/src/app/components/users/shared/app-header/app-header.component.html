@@ -13,9 +13,6 @@
 
   <div class="header__user">
     <app-theme-toggle />
-    <span class="avatar" aria-hidden="true">{{ initial() }}</span>
-    <span class="header__name" data-testid="signed-in-user">{{ user()?.username }}</span>
-    <span class="header__sep" aria-hidden="true">·</span>
     <button type="button" class="header__signout" (click)="signOut()" data-testid="sign-out">
       Sign out
     </button>
