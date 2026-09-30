@@ -1,0 +1,81 @@
+<section class="page" data-testid="dashboard">
+  <h1>Welcome back, Trader</h1>
+  <p class="muted">Account {{ account()?.accountId ?? 'Loading...' }}</p>
+
+  @if (loading()) {
+    <p>Loading dashboard...</p>
+  } @else if (error()) {
+    <div class="banner error" role="alert">{{ error() }}</div>
+  } @else {
+    <div class="cards">
+      <article class="card">
+        <p class="card__label">Available cash</p>
+        <p class="card__value">
+          {{ balance()?.cashBalance ?? 0 | number:'1.2-2' }}
+          {{ balance()?.currency ?? '' }}
+        </p>
+      </article>
+      <article class="card">
+        <p class="card__label">Positions</p>
+        <p class="card__value">{{ positions().length }}</p>
+      </article>
+      <article class="card">
+        <p class="card__label">Working orders</p>
+        <p class="card__value">{{ workingOrders() }}</p>
+      </article>
+      <article class="card">
+        <p class="card__label">Account status</p>
+        <p class="card__value">{{ account()?.status ?? 'UNKNOWN' }}</p>
+      </article>
+    </div>
+
+    <article class="card table-card">
+      <div class="table-card__header">
+        <h2>Recent orders</h2>
+        <a routerLink="/blotter">View blotter</a>
+      </div>
+
+      @if (recentOrders().length === 0) {
+        <p>No orders yet. Orders you place will appear here.</p>
+      } @else {
+        <table>
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Symbol</th>
+              <th>Side</th>
+              <th>Qty</th>
+              <th>Price</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (order of recentOrders(); track order.orderId) {
+              <tr>
+                <td>{{ order.createdOn | date:'shortTime' }}</td>
+                <td>{{ order.symbol }}</td>
+                <td>{{ order.side }}</td>
+                <td class="tabular">{{ order.quantity }}</td>
+                <td class="tabular">{{ order.price | number:'1.2-2' }}</td>
+                <td>
+                  <span class="status-badge" [attr.data-status]="order.status">
+                    {{ statusMarker(order.status) }} {{ order.status }}
+                  </span>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </article>
+
+    <article class="card quick-actions">
+      <h2>Quick actions</h2>
+      <div class="quick-actions__items">
+        <a routerLink="/order-ticket">Place order</a>
+        <a routerLink="/blotter">View blotter</a>
+        <a routerLink="/account">Account</a>
+      </div>
+    </article>
+  }
+</section>

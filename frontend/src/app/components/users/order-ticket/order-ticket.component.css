@@ -1,0 +1,88 @@
+:host {
+  display: block;
+}
+
+.page {
+  max-width: 640px;
+}
+
+.card {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px;
+  background-color: var(--surface);
+}
+
+h1,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: 15px;
+}
+
+form {
+  display: grid;
+  gap: 10px;
+}
+
+.field {
+  display: grid;
+  gap: 4px;
+}
+
+.field-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+label {
+  font-weight: 600;
+}
+
+input,
+select {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 12px;
+  background-color: var(--bg);
+  color: var(--text);
+}
+
+input[readonly] {
+  border-style: dashed;
+  color: var(--muted);
+  background-color: var(--surface);
+}
+
+.field-error {
+  color: var(--reject);
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+}
+
+button {
+  border-radius: 8px;
+  padding: 10px 16px;
+}
+
+.primary {
+  border: none;
+  background-color: var(--accent);
+  color: var(--on-accent);
+}
+
+.secondary {
+  border: 1px solid var(--line);
+  background-color: var(--surface);
+  color: var(--text);
+}
+

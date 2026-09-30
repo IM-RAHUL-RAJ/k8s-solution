@@ -1,0 +1,15 @@
+<header class="header">
+  <div class="header__brand">Enterprise Trading Platform</div>
+
+  <nav class="header__nav" aria-label="Primary">
+    @for (item of navigationItems; track item.path) {
+      <a [routerLink]="item.path" routerLinkActive="active">{{ item.label }}</a>
+    }
+  </nav>
+
+  <div class="header__user">
+    <span>{{ displayName() }}</span>
+    <button type="button">Sign out</button>
+  </div>
+</header>
+

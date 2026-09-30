@@ -1,0 +1,52 @@
+:host {
+  display: block;
+}
+
+.page {
+  display: grid;
+  gap: 10px;
+}
+
+h1,
+h2 {
+  margin: 0;
+}
+
+h1,
+h2 {
+  font-size: 15px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 10px;
+}
+
+.card {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background-color: var(--surface);
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+dl {
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+
+dt {
+  color: var(--muted);
+}
+
+dd {
+  margin: 0;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+

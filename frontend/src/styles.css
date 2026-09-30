@@ -1,1 +1,142 @@
-/* You can add global styles to this file, and also import other style files */
+:root {
+  --bg: #f3f5ef;
+  --surface: #fcfdf9;
+  --line: #d8dfcf;
+  --text: #1f2a22;
+  --muted: #66736a;
+  --accent: #2f6b4f;
+  --on-accent: #ffffff;
+  --ok: #2f6b4f;
+  --ok-bg: #e0eee5;
+  --new: #345f8a;
+  --new-bg: #e2ecf5;
+  --reject: #a5382c;
+  --reject-bg: #f8e5e1;
+  --cancel: #5f6a62;
+  --cancel-bg: #e8ebe4;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
+  font-size: 13px;
+  color: var(--text);
+  background-color: var(--bg);
+}
+
+a,
+button,
+input,
+select {
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    transform 180ms ease;
+}
+
+button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+input:focus,
+select:focus,
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.card {
+  transition:
+    transform 220ms ease,
+    border-color 220ms ease;
+  animation: cardFadeIn 260ms ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  border-color: var(--muted);
+}
+
+.banner {
+  border-radius: 8px;
+  border: 1px solid;
+  padding: 12px 14px;
+}
+
+.banner.error {
+  color: var(--reject);
+  border-color: var(--reject);
+  background-color: var(--reject-bg);
+}
+
+.banner.info {
+  color: var(--new);
+  border-color: var(--new);
+  background-color: var(--new-bg);
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 99px;
+  border: 1px solid var(--line);
+  padding: 2px 10px;
+  font-weight: 600;
+}
+
+.status-badge[data-status='NEW'] {
+  color: var(--new);
+  background-color: var(--new-bg);
+  border-color: var(--new);
+}
+
+.status-badge[data-status='FILLED'],
+.status-badge[data-status='ONLINE'] {
+  color: var(--ok);
+  background-color: var(--ok-bg);
+  border-color: var(--ok);
+}
+
+.status-badge[data-status='REJECTED'],
+.status-badge[data-status='UNAVAILABLE'] {
+  color: var(--reject);
+  background-color: var(--reject-bg);
+  border-color: var(--reject);
+}
+
+.status-badge[data-status='CANCELLED'],
+.status-badge[data-status='NOT_CONFIGURED'] {
+  color: var(--cancel);
+  background-color: var(--cancel-bg);
+  border-color: var(--cancel);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@keyframes cardFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

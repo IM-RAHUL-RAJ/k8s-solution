@@ -1,24 +1,13 @@
-import { Component, signal } from '@angular/core';
-import { RouterLink, RouterOutlet } from '@angular/router';
-
-type NavigationItem = {
-  label: string;
-  path: string;
-};
+import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { RouterOutlet } from '@angular/router';
+import { AppHeaderComponent } from './components/users/shared/app-header/app-header.component';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterLink, RouterOutlet],
+  standalone: true,
+  imports: [AppHeaderComponent, RouterOutlet],
   templateUrl: './app.html',
-  styleUrl: './app.css'
+  styleUrl: './app.css',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class App {
-  protected readonly title = signal('Frontend');
-
-  protected readonly navigation = signal<NavigationItem[]>([
-    {
-      label: 'Landing',
-      path: '/'
-    }
-  ]);
-}
+export class App {}

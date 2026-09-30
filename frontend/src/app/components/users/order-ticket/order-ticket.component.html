@@ -1,0 +1,134 @@
+<section class="page" data-testid="order-ticket">
+  <article class="card">
+    <h1>New order</h1>
+
+@if (errorMessage()) {
+  <div class="banner error" role="alert" data-testid="order-error">
+    {{ errorMessage() }}
+  </div>
+}
+
+@if (success()) {
+  <div class="banner info" data-testid="order-success">
+    <p><strong>Order submitted successfully.</strong></p>
+    <p>
+      {{ success()?.symbol }} · {{ success()?.side }} · {{ success()?.quantity }}
+      @ {{ success()?.price | number:'1.2-2' }}
+    </p>
+    <p data-testid="order-status">
+      Status: {{ success()?.status }}
+    </p>
+    <p>Order ID: {{ success()?.orderId }}</p>
+
+    @if (success()?.status === 'NEW') {
+      <p>Your order is still working.</p>
+    }
+  </div>
+}
+
+<form [formGroup]="form" (ngSubmit)="onSubmit()">
+
+  <div class="field">
+    <label for="account">Account</label>
+    <input
+      id="account"
+      type="text"
+      [value]="accountReference"
+      readonly
+      data-testid="order-account"
+    />
+  </div>
+
+  <div class="field">
+    <label for="symbol">Symbol</label>
+    <input
+      id="symbol"
+      type="text"
+      formControlName="symbol"
+      data-testid="order-symbol"
+    />
+
+    @if (getSymbolError()) {
+      <span class="field-error">
+        {{ getSymbolError() }}
+      </span>
+    }
+  </div>
+
+  <div class="field">
+    <label for="side">Side</label>
+    <select
+      id="side"
+      formControlName="side"
+      data-testid="order-side"
+    >
+      <option value="BUY">BUY</option>
+      <option value="SELL">SELL</option>
+    </select>
+  </div>
+
+  <div class="field-grid">
+
+    <div class="field">
+      <label for="quantity">Quantity</label>
+      <input
+        id="quantity"
+        type="text"
+        formControlName="quantity"
+        data-testid="order-quantity"
+      />
+
+      @if (getQuantityError()) {
+        <span class="field-error">
+          {{ getQuantityError() }}
+        </span>
+      }
+    </div>
+
+    <div class="field">
+      <label for="price">Price</label>
+      <input
+        id="price"
+        type="text"
+        formControlName="price"
+        data-testid="order-price"
+      />
+
+      @if (getPriceError()) {
+        <span class="field-error">
+          {{ getPriceError() }}
+        </span>
+      }
+    </div>
+
+  </div>
+
+  <div class="actions">
+    <button
+      class="primary"
+      type="submit"
+      [disabled]="form.invalid || isSubmitting()"
+      data-testid="place-order"
+    >
+      @if (isSubmitting()) {
+        Submitting...
+      } @else {
+        Place Order
+      }
+    </button>
+
+    <button
+      type="button"
+      class="secondary"
+      (click)="onReset()"
+      data-testid="reset-order"
+    >
+      Reset
+    </button>
+  </div>
+
+</form>
+
+
+  </article>
+</section>
