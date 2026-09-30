@@ -5,7 +5,7 @@
 .app-shell {
   min-height: 100dvh;
   padding: 20px 16px 24px;
-  background: radial-gradient(circle at top, var(--surface) 0%, var(--bg) 52%);
+  background-color: var(--bg);
   display: grid;
   align-items: start;
   justify-items: center;
@@ -13,14 +13,24 @@
 
 .app-frame {
   width: min(100%, 1160px);
-  min-height: calc(100dvh - 40px);
-  background-color: var(--surface);
+  min-height: calc(100dvh - 44px);
+  background-color: var(--bg);
   border: 1px solid var(--line);
   border-radius: 12px;
   overflow: hidden;
   display: grid;
   grid-template-rows: auto 1fr;
   animation: shellEnter 320ms ease-out;
+}
+
+.app-frame--bare {
+  grid-template-rows: 1fr;
+}
+
+/* The sign-in screen runs edge to edge inside the frame. */
+.app-frame--bare .app-content {
+  padding: 0;
+  overflow: hidden;
 }
 
 .app-content {

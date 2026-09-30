@@ -1,0 +1,139 @@
+<section class="sign-in" data-testid="sign-in">
+  <aside class="hero" aria-hidden="true">
+    <div class="hero__brand">
+      <span class="logo"><span class="logo__mark"></span></span>
+      Fauxtrade
+    </div>
+
+    <div class="hero__copy">
+      <h2>Trade with clarity.</h2>
+      <p>Place an order, watch it move from working to filled, and keep the record of every attempt.</p>
+    </div>
+
+    <div class="preview">
+      <div class="preview__head">
+        <span>Live blotter</span>
+        <span class="preview__live"><span class="dot"></span>Synced</span>
+      </div>
+      <ul>
+        <li style="--i: 0">
+          <span class="sym">ABC</span><span class="side">Buy</span><span class="qty">50</span>
+          <span class="flip">
+            <span class="flip__a"><app-status-badge status="NEW" /></span>
+            <span class="flip__b"><app-status-badge status="FILLED" /></span>
+          </span>
+        </li>
+        <li style="--i: 1">
+          <span class="sym">XYZ</span><span class="side">Sell</span><span class="qty">20</span>
+          <span><app-status-badge status="FILLED" /></span>
+        </li>
+        <li style="--i: 2">
+          <span class="sym">ABC</span><span class="side">Buy</span><span class="qty">900</span>
+          <span><app-status-badge status="REJECTED" /></span>
+        </li>
+      </ul>
+    </div>
+  </aside>
+
+  <div class="panel">
+    <form
+      class="form"
+      [class.shake-a]="errorCount() % 2 === 1"
+      [class.shake-b]="errorCount() > 0 && errorCount() % 2 === 0"
+      [formGroup]="form"
+      (ngSubmit)="onSubmit()"
+      novalidate
+    >
+      <div class="form__head">
+        <span class="logo logo--small"><span class="logo__mark"></span></span>
+        <h1>Sign in to Fauxtrade</h1>
+        <p class="muted">Welcome back. Enter your details to open your desk.</p>
+      </div>
+
+      @if (errorMessage()) {
+        <div class="banner error" role="alert" data-testid="sign-in-error">{{ errorMessage() }}</div>
+      } @else if (sessionExpired()) {
+        <div class="banner info" role="status" data-testid="session-expired">
+          Your session has expired. Sign in again to continue.
+        </div>
+      }
+
+      <div class="field" [class.field--invalid]="showError('username')" [class.field--valid]="isValid('username')">
+        <label for="username">Username</label>
+        <div class="control">
+          <svg class="icon" viewBox="0 0 20 20" aria-hidden="true">
+            <circle cx="10" cy="7" r="3.2" />
+            <path d="M3.5 17c.6-3.2 3.2-5 6.5-5s5.9 1.8 6.5 5" />
+          </svg>
+          <input
+            id="username"
+            type="text"
+            formControlName="username"
+            autocomplete="username"
+            autocapitalize="none"
+            spellcheck="false"
+            [attr.aria-invalid]="showError('username')"
+            [attr.aria-describedby]="showError('username') ? 'username-error' : null"
+            data-testid="username"
+          />
+          <svg class="status" viewBox="0 0 20 20" aria-hidden="true"><path d="M4.5 10.5l3.6 3.6 7.4-7.6" /></svg>
+        </div>
+        @if (showError('username')) {
+          <span class="field-error" id="username-error">Enter your username (3 to 64 characters).</span>
+        }
+      </div>
+
+      <div class="field" [class.field--invalid]="showError('password')" [class.field--valid]="isValid('password')">
+        <label for="password">Password</label>
+        <div class="control">
+          <svg class="icon" viewBox="0 0 20 20" aria-hidden="true">
+            <rect x="4" y="9" width="12" height="8" rx="2" />
+            <path d="M7 9V6.5a3 3 0 0 1 6 0V9" />
+          </svg>
+          <input
+            id="password"
+            [type]="showPassword() ? 'text' : 'password'"
+            formControlName="password"
+            autocomplete="current-password"
+            (keydown)="onPasswordKey($event)"
+            (keyup)="onPasswordKey($event)"
+            [attr.aria-invalid]="showError('password')"
+            [attr.aria-describedby]="showError('password') ? 'password-error' : null"
+            data-testid="password"
+          />
+          <button
+            type="button"
+            class="reveal"
+            (click)="togglePassword()"
+            [attr.aria-pressed]="showPassword()"
+            [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+            data-testid="toggle-password"
+          >
+            {{ showPassword() ? 'Hide' : 'Show' }}
+          </button>
+        </div>
+        @if (showError('password')) {
+          <span class="field-error" id="password-error">Enter your password (at least 12 characters).</span>
+        } @else if (capsLockOn()) {
+          <span class="field-hint caps" role="status">Caps Lock is on.</span>
+        }
+      </div>
+
+      <button class="primary submit" type="submit" [disabled]="isSubmitting()" data-testid="submit">
+        @if (isSubmitting()) {
+          <span class="spinner" aria-hidden="true"></span> Signing in...
+        } @else {
+          Sign in <span class="arrow" aria-hidden="true">&rarr;</span>
+        }
+      </button>
+
+      @if (returnUrl) {
+        <p class="note" data-testid="return-note">
+          You will return to <strong>{{ returnUrl }}</strong> after signing in.
+        </p>
+      }
+    </form>
+
+    <p class="fine muted">Sessions live in this tab only and end when you close it.</p>
+  </div>
+</section>

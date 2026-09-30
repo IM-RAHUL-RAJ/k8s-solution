@@ -1,15 +1,18 @@
 <header class="header">
-  <div class="header__brand">Enterprise Trading Platform</div>
+  <div class="header__brand">Fauxtrade</div>
 
   <nav class="header__nav" aria-label="Primary">
     @for (item of navigationItems; track item.path) {
-      <a [routerLink]="item.path" routerLinkActive="active">{{ item.label }}</a>
+      <a [routerLink]="item.path" routerLinkActive="active" #link="routerLinkActive"
+         [attr.aria-current]="link.isActive ? 'page' : null">{{ item.label }}</a>
     }
   </nav>
 
   <div class="header__user">
-    <span>{{ displayName() }}</span>
-    <button type="button">Sign out</button>
+    <span class="header__name" data-testid="signed-in-user">{{ user()?.username }}</span>
+    <span class="header__sep" aria-hidden="true">·</span>
+    <button type="button" class="header__signout" (click)="signOut()" data-testid="sign-out">
+      Sign out
+    </button>
   </div>
 </header>
-

@@ -2,73 +2,21 @@
   display: block;
 }
 
-.page {
-  display: grid;
-  gap: 10px;
-}
-
-h1,
-p {
-  margin: 0;
-}
-
-h1 {
-  font-size: 15px;
-}
-
 .header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
   gap: 10px;
 }
 
-.card {
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background-color: var(--surface);
-  padding: 14px;
+.page > .banner {
+  margin: 0;
 }
 
 .table-card {
   overflow-x: auto;
 }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
+.skeleton {
+  margin-bottom: 8px;
 }
-
-th,
-td {
-  text-align: left;
-  border-bottom: 1px solid var(--line);
-  padding: 8px;
-}
-
-th {
-  color: var(--muted);
-}
-
-.tabular {
-  font-variant-numeric: tabular-nums;
-}
-
-.order-id {
-  max-width: 240px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.muted {
-  color: var(--muted);
-}
-
-.secondary {
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background-color: var(--surface);
-  color: var(--text);
-  padding: 8px 12px;
-}
-

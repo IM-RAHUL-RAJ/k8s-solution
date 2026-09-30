@@ -1,74 +1,70 @@
 <section class="page" data-testid="order-history">
   <div class="header">
     <h1>Orders, newest first</h1>
-    <button type="button" class="secondary" (click)="refreshOrders()" data-testid="refresh-orders">
-      Refresh
+    <button type="button" class="secondary" (click)="refreshOrders()" [disabled]="refreshing()"
+            data-testid="refresh-orders">
+      @if (refreshing() && !loading()) {
+        Refreshing...
+      } @else {
+        Refresh
+      }
     </button>
   </div>
 
-  @if (loading()) {
-    <p>Loading orders...</p>
-  } @else if (error()) {
-    <div class="banner error" role="alert">{{ error() }}</div>
-  } @else {
-    @if (pollingMessage()) {
-      <div class="banner info" role="status">{{ pollingMessage() }}</div>
-    }
+  @if (error()) {
+    <div class="banner error" role="alert" data-testid="blotter-error">{{ error() }}</div>
+  }
 
-    @if (orders().length === 0) {
-      <article class="card">
-        <p>No orders yet.</p>
-        <p class="muted">Orders you place will appear here.</p>
-      </article>
-    } @else {
-      <article class="card table-card">
-        <table>
-          <thead>
-            <tr>
-              <th>Order ID</th>
-              <th>Account ID</th>
-              <th>Symbol</th>
-              <th>Side</th>
-              <th>Qty</th>
-              <th>Price</th>
-              <th>Executed Price</th>
-              <th>Status</th>
-              <th>Created On</th>
+  @if (pollingMessage(); as message) {
+    <div class="banner info" role="status" data-testid="polling-message">{{ message }}</div>
+  }
+
+  @if (loading()) {
+    <article class="card" aria-busy="true" aria-label="Loading orders">
+      <span class="skeleton"></span>
+      <span class="skeleton"></span>
+      <span class="skeleton"></span>
+    </article>
+  } @else if (orders().length === 0 && !error()) {
+    <article class="card" data-testid="blotter-empty">
+      <p>No orders yet.</p>
+      <p class="muted">Place your first order from the <a routerLink="/order-ticket">Order ticket</a>.</p>
+    </article>
+  } @else if (orders().length > 0) {
+    <article class="card table-card">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Time</th>
+            <th scope="col">Symbol</th>
+            <th scope="col">Side</th>
+            <th scope="col">Qty</th>
+            <th scope="col">Price</th>
+            <th scope="col">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (order of orders(); track order.orderId; let i = $index) {
+            <tr [style.animation-delay.ms]="i * 40" data-testid="order-row"
+                [attr.data-order-id]="order.orderId" [attr.data-status]="order.status">
+              <td class="tabular" [attr.title]="order.createdOn | date: 'medium'">
+                {{ order.createdOn | date: 'HH:mm' }}
+              </td>
+              <td>{{ order.symbol }}</td>
+              <td>{{ order.side === 'BUY' ? 'Buy' : 'Sell' }}</td>
+              <td class="tabular">{{ order.quantity }}</td>
+              <td class="tabular">
+                @if (order.price !== null) {
+                  {{ order.price | number: '1.2-2' }}
+                } @else {
+                  &mdash;
+                }
+              </td>
+              <td data-testid="order-status"><app-status-badge [status]="order.status" /></td>
             </tr>
-          </thead>
-          <tbody>
-            @for (order of orders(); track order.orderId) {
-              <tr>
-                <td class="order-id">{{ order.orderId }}</td>
-                <td class="tabular">{{ order.accountId }}</td>
-                <td>{{ order.symbol }}</td>
-                <td>{{ order.side }}</td>
-                <td class="tabular">{{ order.quantity }}</td>
-                <td class="tabular">
-                  @if (order.price !== null) {
-                    {{ order.price | number:'1.2-2' }}
-                  } @else {
-                    N/A
-                  }
-                </td>
-                <td class="tabular">
-                  @if (order.executedPrice !== null) {
-                    {{ order.executedPrice | number:'1.2-2' }}
-                  } @else {
-                    N/A
-                  }
-                </td>
-                <td data-testid="order-status">
-                  <span class="status-badge" [attr.data-status]="order.status">
-                    {{ statusMarker(order.status) }} {{ order.status }}
-                  </span>
-                </td>
-                <td>{{ order.createdOn | date:'medium' }}</td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </article>
-    }
+          }
+        </tbody>
+      </table>
+    </article>
   }
 </section>

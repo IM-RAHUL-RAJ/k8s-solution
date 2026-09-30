@@ -1,6 +1,6 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
-import { RouterLink, RouterLinkActive } from '@angular/router';
-import { AccountContextService } from '../../../../core/services/account-context.service';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { AuthService } from '../../../../core/auth/auth.service';
 
 interface NavigationItem {
   label: string;
@@ -16,16 +16,20 @@ interface NavigationItem {
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AppHeaderComponent {
-  private readonly accountContext = inject(AccountContextService);
+  private readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
 
   protected readonly navigationItems: NavigationItem[] = [
     { label: 'Dashboard', path: '/dashboard' },
-    { label: 'Order Placement', path: '/order-ticket' },
-    { label: 'Order History', path: '/blotter' },
+    { label: 'Order ticket', path: '/order-ticket' },
+    { label: 'Blotter', path: '/blotter' },
     { label: 'Account', path: '/account' }
   ];
 
-  protected readonly displayName = computed(
-    () => this.accountContext.getCurrentAccount().displayName
-  );
+  protected readonly user = this.auth.user;
+
+  protected signOut(): void {
+    this.auth.logout();
+    void this.router.navigate(['/sign-in']);
+  }
 }

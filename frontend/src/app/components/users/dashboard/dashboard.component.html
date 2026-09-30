@@ -1,31 +1,43 @@
 <section class="page" data-testid="dashboard">
-  <h1>Welcome back, Trader</h1>
-  <p class="muted">Account {{ account()?.accountId ?? 'Loading...' }}</p>
+  <h1 data-testid="dashboard-account">
+    Account {{ account()?.accountId ?? '' }}
+    @if (account()) {
+      <span class="muted status">· {{ account()?.status }}</span>
+    }
+  </h1>
 
   @if (loading()) {
-    <p>Loading dashboard...</p>
+    <div class="cards" aria-busy="true" aria-label="Loading dashboard">
+      @for (placeholder of [1, 2, 3]; track placeholder) {
+        <article class="card stat">
+          <span class="skeleton short"></span>
+          <span class="skeleton tall"></span>
+        </article>
+      }
+    </div>
+    <article class="card">
+      <span class="skeleton"></span>
+      <span class="skeleton"></span>
+      <span class="skeleton"></span>
+    </article>
   } @else if (error()) {
     <div class="banner error" role="alert">{{ error() }}</div>
+    <div><button type="button" class="secondary" (click)="loadDashboard()">Try again</button></div>
   } @else {
     <div class="cards">
-      <article class="card">
-        <p class="card__label">Available cash</p>
-        <p class="card__value">
-          {{ balance()?.cashBalance ?? 0 | number:'1.2-2' }}
-          {{ balance()?.currency ?? '' }}
+      <article class="card stat" style="animation-delay: 0ms">
+        <p class="stat__label">Cash</p>
+        <p class="stat__value" data-testid="stat-cash">
+          {{ balance()?.cashBalance ?? 0 | number: '1.2-2' }}
         </p>
       </article>
-      <article class="card">
-        <p class="card__label">Positions</p>
-        <p class="card__value">{{ positions().length }}</p>
+      <article class="card stat" style="animation-delay: 60ms">
+        <p class="stat__label">Positions</p>
+        <p class="stat__value" data-testid="stat-positions">{{ positions().length }}</p>
       </article>
-      <article class="card">
-        <p class="card__label">Working orders</p>
-        <p class="card__value">{{ workingOrders() }}</p>
-      </article>
-      <article class="card">
-        <p class="card__label">Account status</p>
-        <p class="card__value">{{ account()?.status ?? 'UNKNOWN' }}</p>
+      <article class="card stat" style="animation-delay: 120ms">
+        <p class="stat__label">Working orders</p>
+        <p class="stat__value" data-testid="stat-working">{{ workingOrders() }}</p>
       </article>
     </div>
 
@@ -36,46 +48,29 @@
       </div>
 
       @if (recentOrders().length === 0) {
-        <p>No orders yet. Orders you place will appear here.</p>
+        <p class="muted">No orders yet. Place your first order from the Order ticket.</p>
       } @else {
         <table>
           <thead>
             <tr>
-              <th>Time</th>
-              <th>Symbol</th>
-              <th>Side</th>
-              <th>Qty</th>
-              <th>Price</th>
-              <th>Status</th>
+              <th scope="col">Symbol</th>
+              <th scope="col">Side</th>
+              <th scope="col">Qty</th>
+              <th scope="col">Status</th>
             </tr>
           </thead>
           <tbody>
-            @for (order of recentOrders(); track order.orderId) {
-              <tr>
-                <td>{{ order.createdOn | date:'shortTime' }}</td>
+            @for (order of recentOrders(); track order.orderId; let i = $index) {
+              <tr [style.animation-delay.ms]="i * 50">
                 <td>{{ order.symbol }}</td>
-                <td>{{ order.side }}</td>
+                <td>{{ order.side === 'BUY' ? 'Buy' : 'Sell' }}</td>
                 <td class="tabular">{{ order.quantity }}</td>
-                <td class="tabular">{{ order.price | number:'1.2-2' }}</td>
-                <td>
-                  <span class="status-badge" [attr.data-status]="order.status">
-                    {{ statusMarker(order.status) }} {{ order.status }}
-                  </span>
-                </td>
+                <td><app-status-badge [status]="order.status" /></td>
               </tr>
             }
           </tbody>
         </table>
       }
-    </article>
-
-    <article class="card quick-actions">
-      <h2>Quick actions</h2>
-      <div class="quick-actions__items">
-        <a routerLink="/order-ticket">Place order</a>
-        <a routerLink="/blotter">View blotter</a>
-        <a routerLink="/account">Account</a>
-      </div>
     </article>
   }
 </section>

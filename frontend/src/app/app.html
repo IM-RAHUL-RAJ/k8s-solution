@@ -1,7 +1,9 @@
 <div class="app-shell">
-  <div class="app-frame">
-    <app-app-header />
-    <main class="app-content">
+  <div class="app-frame" [class.app-frame--bare]="!auth.isAuthenticated()">
+    @if (auth.isAuthenticated()) {
+      <app-app-header />
+    }
+    <main class="app-content" id="main">
       <router-outlet />
     </main>
   </div>

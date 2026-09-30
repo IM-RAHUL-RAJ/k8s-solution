@@ -11,7 +11,7 @@ export class ApiStatusService {
 
   getStatuses(accountId: number): Observable<ServiceStatus[]> {
     return forkJoin([
-      this.probe('Trading API', `${API_ENDPOINTS.tradeApiBase}/accounts/${accountId}`),
+      this.probe('Trading API', `${API_ENDPOINTS.tradeApiBase}/api/v1/accounts/${accountId}`),
       this.probe('Trading Health', API_ENDPOINTS.tradeApiHealth),
       this.probe('Auth Service', API_ENDPOINTS.authApiHealth),
       of({

@@ -1,4 +1,5 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
+import { AuthService } from '../auth/auth.service';
 
 export interface AccountContext {
   accountNumericId: number;
@@ -6,86 +7,21 @@ export interface AccountContext {
   displayName: string;
 }
 
+/**
+ * The account this session may trade, taken from the signed-in session (the token's
+ * `accountId` claim). Components render it read-only; the Trade REST API re-checks it.
+ */
 @Injectable({ providedIn: 'root' })
 export class AccountContextService {
-  private readonly localStorageTokenKeys = [
-    'jwt',
-    'accessToken',
-    'token',
-    'etp-access-token'
-  ];
-
-  private readonly currentAccountSignal = signal<AccountContext>({
-    accountNumericId: 1,
-    accountReference: '1',
-    displayName: 'trader01'
-  });
-
-  constructor() {
-    const accountFromToken = this.getAccountFromJwt();
-    if (accountFromToken) {
-      this.currentAccountSignal.set(accountFromToken);
-    }
-  }
+  private readonly auth = inject(AuthService);
 
   getCurrentAccount(): AccountContext {
-    const accountFromToken = this.getAccountFromJwt();
-    if (
-      accountFromToken &&
-      accountFromToken.accountNumericId !== this.currentAccountSignal().accountNumericId
-    ) {
-      this.currentAccountSignal.set(accountFromToken);
-    }
-
-    return this.currentAccountSignal();
-  }
-
-  setCurrentAccount(context: AccountContext): void {
-    this.currentAccountSignal.set(context);
-  }
-
-  private getAccountFromJwt(): AccountContext | null {
-    const token = this.getTokenFromLocalStorage();
-    if (!token) {
-      return null;
-    }
-
-    const tokenParts = token.split('.');
-    if (tokenParts.length < 2) {
-      return null;
-    }
-
-    const payloadSegment = tokenParts[1]
-      .replaceAll('-', '+')
-      .replaceAll('_', '/');
-    const paddedPayload =
-      payloadSegment + '='.repeat((4 - (payloadSegment.length % 4)) % 4);
-    const jsonPayload = atob(paddedPayload);
-    const payload = JSON.parse(jsonPayload) as {
-      accountId?: number | string;
-      sub?: string;
-    };
-
-    const numericAccountId = Number(payload.accountId);
-    if (!Number.isInteger(numericAccountId) || numericAccountId <= 0) {
-      return null;
-    }
+    const user = this.auth.user();
 
     return {
-      accountNumericId: numericAccountId,
-      accountReference: String(numericAccountId),
-      displayName: payload.sub ? payload.sub.slice(0, 12) : `trader-${numericAccountId}`
+      accountNumericId: user?.accountId ?? 0,
+      accountReference: user && user.accountId > 0 ? String(user.accountId) : 'Unknown',
+      displayName: user?.username ?? ''
     };
-  }
-
-  private getTokenFromLocalStorage(): string | null {
-    for (const key of this.localStorageTokenKeys) {
-      const value = localStorage.getItem(key);
-      if (value && value.trim().length > 0) {
-        return value.trim();
-      }
-    }
-
-    return null;
   }
 }

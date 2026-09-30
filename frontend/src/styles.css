@@ -1,3 +1,4 @@
+/* Sage and forest theme. Every colour is a token; components never hard-code a hex value. */
 :root {
   --bg: #f3f5ef;
   --surface: #fcfdf9;
@@ -14,6 +15,8 @@
   --reject-bg: #f8e5e1;
   --cancel: #5f6a62;
   --cancel-bg: #e8ebe4;
+
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
 * {
@@ -24,27 +27,73 @@ body {
   margin: 0;
   font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
   font-size: 13px;
+  line-height: 1.5;
   color: var(--text);
   background-color: var(--bg);
 }
 
-a,
-button,
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+h1,
+h2 {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Pages fade and rise in when the route changes. */
+.page {
+  display: grid;
+  gap: 10px;
+  animation: pageEnter 280ms var(--ease);
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Form controls */
+label {
+  display: block;
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
 input,
 select {
+  width: 100%;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background-color: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
   transition:
-    background-color 180ms ease,
     border-color 180ms ease,
-    color 180ms ease,
-    transform 180ms ease;
+    background-color 180ms ease;
 }
 
-button:hover:not(:disabled) {
-  transform: translateY(-1px);
-}
-
-button:active:not(:disabled) {
-  transform: translateY(0);
+input:hover:not(:disabled):not([readonly]),
+select:hover:not(:disabled) {
+  border-color: var(--muted);
 }
 
 input:focus,
@@ -55,22 +104,103 @@ a:focus-visible {
   outline-offset: 2px;
 }
 
-.card {
-  transition:
-    transform 220ms ease,
-    border-color 220ms ease;
-  animation: cardFadeIn 260ms ease;
+input:focus {
+  border-color: var(--accent);
 }
 
-.card:hover {
-  transform: translateY(-2px);
+input.invalid {
+  border-color: var(--reject);
+}
+
+input[readonly] {
+  background-color: var(--surface);
+  color: var(--muted);
+  border-style: dashed;
+  cursor: default;
+}
+
+.field-hint,
+.field-error {
+  display: block;
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+.field-hint {
+  color: var(--muted);
+}
+
+.field-error {
+  color: var(--reject);
+  animation: bannerEnter 200ms var(--ease);
+}
+
+/* Buttons */
+button {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    opacity 180ms ease,
+    transform 180ms var(--ease);
+}
+
+button.primary {
+  background-color: var(--accent);
+  color: var(--on-accent);
+}
+
+button.primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+button.primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+button.primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+button.secondary {
+  background-color: var(--surface);
+  color: var(--text);
+  border-color: var(--line);
+}
+
+button.secondary:hover:not(:disabled) {
+  background-color: var(--bg);
   border-color: var(--muted);
 }
 
+button.secondary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Cards */
+.card {
+  background-color: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px;
+  animation: cardFadeIn 300ms var(--ease) both;
+}
+
+/* Banners: a word always accompanies the colour. */
 .banner {
   border-radius: 8px;
   border: 1px solid;
   padding: 12px 14px;
+  animation: bannerEnter 240ms var(--ease);
 }
 
 .banner.error {
@@ -85,48 +215,96 @@ a:focus-visible {
   background-color: var(--new-bg);
 }
 
+.banner.success {
+  color: var(--ok);
+  border-color: var(--ok);
+  background-color: var(--ok-bg);
+}
+
+/* Tables */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+th {
+  padding: 10px;
+  text-align: left;
+  font-weight: 400;
+  color: var(--muted);
+  border-bottom: 1px solid var(--line);
+}
+
+td {
+  padding: 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+tbody tr {
+  transition: background-color 160ms ease;
+  animation: rowEnter 280ms var(--ease) both;
+}
+
+tbody tr:hover {
+  background-color: var(--bg);
+}
+
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Loading skeleton */
+.skeleton {
+  display: block;
+  height: 14px;
+  border-radius: 8px;
+  background-color: var(--line);
+  animation: skeletonPulse 1.4s ease-in-out infinite;
+}
+
+/* Status pills used by the system-status screen; order status uses <app-status-badge>. */
 .status-badge {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   border-radius: 99px;
-  border: 1px solid var(--line);
   padding: 2px 10px;
+  font-size: 11.5px;
   font-weight: 600;
 }
 
 .status-badge[data-status='NEW'] {
   color: var(--new);
   background-color: var(--new-bg);
-  border-color: var(--new);
 }
 
 .status-badge[data-status='FILLED'],
 .status-badge[data-status='ONLINE'] {
   color: var(--ok);
   background-color: var(--ok-bg);
-  border-color: var(--ok);
 }
 
 .status-badge[data-status='REJECTED'],
 .status-badge[data-status='UNAVAILABLE'] {
   color: var(--reject);
   background-color: var(--reject-bg);
-  border-color: var(--reject);
 }
 
 .status-badge[data-status='CANCELLED'],
 .status-badge[data-status='NOT_CONFIGURED'] {
   color: var(--cancel);
   background-color: var(--cancel-bg);
-  border-color: var(--cancel);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  * {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
@@ -138,5 +316,45 @@ a:focus-visible {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes bannerEnter {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes rowEnter {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes skeletonPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

@@ -1,12 +1,23 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { of, Subject, throwError } from 'rxjs';
 import { OrderTicketComponent } from './order-ticket.component';
 import { AccountContextService } from '../../../core/services/account-context.service';
-import { ApiErrorMessageService } from '../../../core/services/api-error-message.service';
 import { OrderService } from '../../../core/services/order.service';
 
 describe('OrderTicketComponent', () => {
   const placeOrder = vi.fn();
+
+  const placed = {
+    orderId: 'id-1',
+    status: 'NEW',
+    message: 'ok',
+    symbol: 'AAPL',
+    side: 'BUY',
+    quantity: 10,
+    price: 150.5
+  };
 
   beforeEach(async () => {
     placeOrder.mockReset();
@@ -14,150 +25,158 @@ describe('OrderTicketComponent', () => {
     await TestBed.configureTestingModule({
       imports: [OrderTicketComponent],
       providers: [
+        provideRouter([]),
         {
           provide: AccountContextService,
           useValue: {
             getCurrentAccount: () => ({
-              accountNumericId: 1,
-              accountReference: 'ACC-1042',
+              accountNumericId: 1042,
+              accountReference: '1042',
               displayName: 'trader01'
             })
           }
         },
-        {
-          provide: ApiErrorMessageService,
-          useValue: {
-            getMessage: () => 'Readable mapped error'
-          }
-        },
-        {
-          provide: OrderService,
-          useValue: {
-            placeOrder
-          }
-        }
+        { provide: OrderService, useValue: { placeOrder } }
       ]
     }).compileComponents();
   });
 
-  function fillValidForm(fixture: ReturnType<typeof TestBed.createComponent<OrderTicketComponent>>) {
+  function create() {
+    const fixture = TestBed.createComponent(OrderTicketComponent);
+    fixture.detectChanges();
+    return fixture;
+  }
+
+  function fillValidForm(fixture: ReturnType<typeof create>) {
     fixture.componentInstance.form.setValue({
-      symbol: 'AAPL',
+      symbol: 'aapl',
       side: 'BUY',
       quantity: '10',
       price: '150.50'
     });
   }
 
-  it('submits a valid order', () => {
-    placeOrder.mockReturnValue(
-      of({
-        orderId: 'id-1',
-        status: 'NEW',
-        message: 'ok',
-        symbol: 'AAPL',
-        side: 'BUY',
-        quantity: 10,
-        price: 150.5
-      })
-    );
+  it('a valid order submits and shows the returned status', () => {
+    placeOrder.mockReturnValue(of(placed));
+    const fixture = create();
 
-    const fixture = TestBed.createComponent(OrderTicketComponent);
     fillValidForm(fixture);
     fixture.componentInstance.onSubmit();
+    fixture.detectChanges();
 
-    expect(placeOrder).toHaveBeenCalledTimes(1);
+    expect(placeOrder).toHaveBeenCalledWith(
+      expect.objectContaining({ accountId: 1042, symbol: 'AAPL', side: 'BUY', quantity: 10, price: 150.5 })
+    );
+    const status = (fixture.nativeElement as HTMLElement).querySelector('[data-testid="order-status"]');
+    expect(status?.textContent).toContain('NEW');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('The order is working');
   });
 
-  it('blocks empty symbol', () => {
-    const fixture = TestBed.createComponent(OrderTicketComponent);
-    fixture.componentInstance.form.setValue({
-      symbol: ' ',
-      side: 'BUY',
-      quantity: '10',
-      price: '150.50'
-    });
-    fixture.componentInstance.onSubmit();
+  it('an invalid quantity is blocked before submission', () => {
+    const fixture = create();
+
+    for (const quantity of ['0', '-1', '10.5', 'abc', '']) {
+      fixture.componentInstance.form.setValue({ symbol: 'AAPL', side: 'BUY', quantity, price: '150.50' });
+      fixture.componentInstance.onSubmit();
+    }
+
     expect(placeOrder).not.toHaveBeenCalled();
   });
 
-  it('blocks zero, negative, and decimal quantities', () => {
-    const fixture = TestBed.createComponent(OrderTicketComponent);
-    fixture.componentInstance.form.setValue({
-      symbol: 'AAPL',
-      side: 'BUY',
-      quantity: '0',
-      price: '150.50'
-    });
-    fixture.componentInstance.onSubmit();
-    fixture.componentInstance.form.controls.quantity.setValue('-1');
-    fixture.componentInstance.onSubmit();
-    fixture.componentInstance.form.controls.quantity.setValue('10.5');
-    fixture.componentInstance.onSubmit();
+  it('an invalid price is blocked before submission', () => {
+    const fixture = create();
+
+    for (const price of ['0', '-5', '10.123', 'abc', '']) {
+      fixture.componentInstance.form.setValue({ symbol: 'AAPL', side: 'BUY', quantity: '10', price });
+      fixture.componentInstance.onSubmit();
+    }
+
     expect(placeOrder).not.toHaveBeenCalled();
   });
 
-  it('blocks invalid prices', () => {
-    const fixture = TestBed.createComponent(OrderTicketComponent);
-    fixture.componentInstance.form.setValue({
-      symbol: 'AAPL',
-      side: 'BUY',
-      quantity: '10',
-      price: '0'
-    });
-    fixture.componentInstance.onSubmit();
-    fixture.componentInstance.form.controls.price.setValue('-5');
-    fixture.componentInstance.onSubmit();
-    fixture.componentInstance.form.controls.price.setValue('10.123');
-    fixture.componentInstance.onSubmit();
+  it('an empty or over-long symbol is blocked before submission', () => {
+    const fixture = create();
+
+    for (const symbol of [' ', 'A'.repeat(21), 'AB CD']) {
+      fixture.componentInstance.form.setValue({ symbol, side: 'BUY', quantity: '10', price: '150.50' });
+      fixture.componentInstance.onSubmit();
+    }
+
     expect(placeOrder).not.toHaveBeenCalled();
+  });
+
+  it('the account is rendered read-only', () => {
+    const fixture = create();
+    const account = (fixture.nativeElement as HTMLElement).querySelector<HTMLInputElement>(
+      '[data-testid="order-account"]'
+    );
+
+    expect(account?.readOnly).toBe(true);
+    expect(account?.value).toBe('1042');
+  });
+
+  it('a business-rule rejection shows the mapped message, not the developer message', () => {
+    placeOrder.mockReturnValue(
+      throwError(
+        () =>
+          new HttpErrorResponse({
+            status: 400,
+            error: { errorCode: 'ORD-400', message: 'InsufficientFundsException required=99999' }
+          })
+      )
+    );
+    const fixture = create();
+
+    fillValidForm(fixture);
+    fixture.componentInstance.onSubmit();
+    fixture.detectChanges();
+
+    const banner = (fixture.nativeElement as HTMLElement).querySelector('[data-testid="order-error"]');
+    expect(banner?.textContent).toContain('not enough cash');
+    expect(banner?.textContent).not.toContain('InsufficientFundsException');
   });
 
   it('disables submit while submitting', () => {
-    const subject = new Subject<unknown>();
-    placeOrder.mockReturnValue(subject.asObservable());
+    const pending = new Subject<unknown>();
+    placeOrder.mockReturnValue(pending.asObservable());
+    const fixture = create();
 
-    const fixture = TestBed.createComponent(OrderTicketComponent);
     fillValidForm(fixture);
+    fixture.componentInstance.onSubmit();
     fixture.componentInstance.onSubmit();
 
     expect(fixture.componentInstance.isSubmitting()).toBe(true);
-    subject.next({});
-    subject.complete();
+    expect(placeOrder).toHaveBeenCalledTimes(1);
   });
 
-  it('shows successful NEW response', () => {
-    placeOrder.mockReturnValue(
-      of({
-        orderId: 'id-1',
-        status: 'NEW',
-        message: 'ok',
-        symbol: 'AAPL',
-        side: 'BUY',
-        quantity: 10,
-        price: 150.5
-      })
-    );
+  it('retrying after a response that never arrived reuses the idempotency key', () => {
+    placeOrder
+      .mockReturnValueOnce(throwError(() => new HttpErrorResponse({ status: 0 })))
+      .mockReturnValueOnce(of(placed));
+    const fixture = create();
 
-    const fixture = TestBed.createComponent(OrderTicketComponent);
     fillValidForm(fixture);
     fixture.componentInstance.onSubmit();
+    fixture.componentInstance.onSubmit();
 
-    expect(fixture.componentInstance.success()?.status).toBe('NEW');
+    const [first, second] = placeOrder.mock.calls.map(([request]) => request.idempotencyKey);
+    expect(first).toBe(second);
   });
 
-  it('maps backend rejection to readable message', () => {
-    placeOrder.mockReturnValue(throwError(() => new Error('boom')));
+  it('a definite answer means the next order gets a fresh idempotency key', () => {
+    placeOrder.mockReturnValue(of(placed));
+    const fixture = create();
 
-    const fixture = TestBed.createComponent(OrderTicketComponent);
     fillValidForm(fixture);
     fixture.componentInstance.onSubmit();
+    fixture.componentInstance.onSubmit();
 
-    expect(fixture.componentInstance.errorMessage()).toBe('Readable mapped error');
+    const [first, second] = placeOrder.mock.calls.map(([request]) => request.idempotencyKey);
+    expect(first).not.toBe(second);
   });
 
   it('resets order fields', () => {
-    const fixture = TestBed.createComponent(OrderTicketComponent);
+    const fixture = create();
     fillValidForm(fixture);
 
     fixture.componentInstance.onReset();
@@ -167,4 +186,3 @@ describe('OrderTicketComponent', () => {
     expect(fixture.componentInstance.form.controls.price.value).toBe('');
   });
 });
-

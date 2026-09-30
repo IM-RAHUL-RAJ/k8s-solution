@@ -1,32 +1,53 @@
 :host {
   display: block;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .header {
-  display: grid;
-  gap: 12px;
-  padding: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 24px;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--line);
   background-color: var(--surface);
+  animation: headerIn 300ms var(--ease);
 }
 
 .header__brand {
+  font-size: 15px;
   font-weight: 600;
-  color: var(--text);
 }
 
 .header__nav {
   display: flex;
-  gap: 10px;
+  flex: 1;
   flex-wrap: wrap;
+  gap: 8px 20px;
 }
 
 .header__nav a {
-  text-decoration: none;
+  position: relative;
+  padding: 4px 0;
   color: var(--muted);
-  padding: 2px 0;
-  border-bottom: 2px solid transparent;
-  transition: color 180ms ease, border-color 180ms ease;
+  text-decoration: none;
+  transition: color 180ms ease;
+}
+
+/* The active underline grows in from the left. */
+.header__nav a::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 2px;
+  background-color: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 240ms var(--ease);
 }
 
 .header__nav a:hover {
@@ -35,27 +56,40 @@
 
 .header__nav a.active {
   color: var(--text);
-  border-bottom-color: var(--accent);
+}
+
+.header__nav a.active::after {
+  transform: scaleX(1);
 }
 
 .header__user {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: 10px;
-  color: var(--text);
+  gap: 8px;
+  color: var(--muted);
 }
 
-.header__user button {
-  border: 1px solid var(--line);
-  background-color: var(--surface);
-  color: var(--text);
-  border-radius: 8px;
-  padding: 8px 12px;
-  transition: transform 180ms ease, background-color 180ms ease;
+.header__signout {
+  padding: 4px 0;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-weight: 400;
+  transition: color 180ms ease;
 }
 
-.header__user button:hover {
-  transform: translateY(-1px);
-  background-color: var(--bg);
+.header__signout:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+@keyframes headerIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

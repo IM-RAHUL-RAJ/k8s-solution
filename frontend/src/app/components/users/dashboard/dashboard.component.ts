@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { StatusBadgeComponent } from '../shared/status-badge/status-badge.component';
 import { forkJoin } from 'rxjs';
 import { AccountResponse, BalanceResponse, PositionResponse } from '../../../core/models/account.model';
 import { OrderHistoryEntry } from '../../../core/models/order.model';
@@ -12,7 +13,7 @@ import { OrderService } from '../../../core/services/order.service';
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, StatusBadgeComponent],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -68,20 +69,5 @@ export class DashboardComponent {
         this.loading.set(false);
       }
     });
-  }
-
-  protected statusMarker(status: string): string {
-    switch (status) {
-      case 'NEW':
-        return '●';
-      case 'FILLED':
-        return '◇';
-      case 'REJECTED':
-        return '—';
-      case 'CANCELLED':
-        return '○';
-      default:
-        return '•';
-    }
   }
 }
