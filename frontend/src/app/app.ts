@@ -1,5 +1,6 @@
-import { Component, signal } from '@angular/core';
-import { RouterLink, RouterOutlet } from '@angular/router';
+import { Component, inject, signal } from '@angular/core';
+import { RouterOutlet } from '@angular/router';
+import { ThemeService } from './core/theme/theme.service';
 
 type NavigationItem = {
   label: string;
@@ -8,11 +9,12 @@ type NavigationItem = {
 
 @Component({
   selector: 'app-root',
-  imports: [RouterLink, RouterOutlet],
+  imports: [RouterOutlet],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
 export class App {
+  private readonly themeService = inject(ThemeService);
   protected readonly title = signal('Frontend');
 
   protected readonly navigation = signal<NavigationItem[]>([
@@ -21,4 +23,10 @@ export class App {
       path: '/'
     }
   ]);
+
+  constructor() {
+    // Ensure theme preference is applied on every app startup/refresh,
+    // regardless of which route loads first.
+    this.themeService.getCurrentTheme();
+  }
 }
