@@ -122,8 +122,54 @@
 }
 
 .stat:hover {
-  transform: translateY(-3px);
-  border-color: var(--accent);
+  border-color: var(--stat, var(--accent));
+}
+
+/* Each stat card carries its own colour: icon tile, and a thin top edge that widens on hover. */
+.stat--teal {
+  --stat: var(--teal);
+  --stat-bg: var(--teal-bg);
+}
+
+.stat--blue {
+  --stat: var(--blue);
+  --stat-bg: var(--blue-bg);
+}
+
+.stat--amber {
+  --stat: var(--amber);
+  --stat-bg: var(--amber-bg);
+}
+
+.stat {
+  position: relative;
+  overflow: hidden;
+}
+
+.stat::before {
+  content: '';
+  position: absolute;
+  left: 14px;
+  top: 0;
+  width: 36px;
+  height: 3px;
+  border-radius: 0 0 3px 3px;
+  background-color: var(--stat);
+  transition: width 320ms var(--ease);
+}
+
+.stat:hover::before {
+  width: calc(100% - 28px);
+}
+
+.panels--charts {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
+}
+
+@media (max-width: 900px) {
+  .panels--charts {
+    grid-template-columns: 1fr;
+  }
 }
 
 .stat__icon {
@@ -133,8 +179,8 @@
   height: 32px;
   margin-bottom: 8px;
   border-radius: 8px;
-  background-color: var(--ok-bg);
-  color: var(--ok);
+  background-color: var(--stat-bg, var(--ok-bg));
+  color: var(--stat, var(--ok));
   transition: transform 300ms var(--ease);
 }
 

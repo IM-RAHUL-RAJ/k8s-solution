@@ -3,18 +3,63 @@
 }
 
 .app-shell {
+  position: relative;
   min-height: 100dvh;
   padding: 20px 16px 24px;
   background-color: var(--bg);
   display: grid;
   align-items: start;
   justify-items: center;
+  overflow: hidden;
+}
+
+/* Two soft colour washes drift slowly behind the frame so the page is never flat. */
+.app-shell::before,
+.app-shell::after {
+  content: '';
+  position: fixed;
+  z-index: 0;
+  width: 46vw;
+  height: 46vw;
+  max-width: 620px;
+  max-height: 620px;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.35;
+  pointer-events: none;
+  animation: float 22s ease-in-out infinite alternate;
+}
+
+.app-shell::before {
+  top: -12vw;
+  right: -8vw;
+  background-color: var(--teal-bg);
+}
+
+.app-shell::after {
+  bottom: -14vw;
+  left: -10vw;
+  background-color: var(--violet-bg);
+  animation-delay: -9s;
+}
+
+@keyframes float {
+  from {
+    transform: translate(0, 0) scale(1);
+  }
+  to {
+    transform: translate(40px, 28px) scale(1.12);
+  }
 }
 
 .app-frame {
+  position: relative;
+  z-index: 1;
+  box-shadow: var(--shadow-md);
   width: min(100%, 1160px);
   min-height: calc(100dvh - 44px);
-  background-color: var(--bg);
+  background-color: color-mix(in srgb, var(--bg) 80%, transparent);
+  backdrop-filter: blur(8px);
   border: 1px solid var(--line);
   border-radius: 12px;
   overflow: hidden;
@@ -46,6 +91,13 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell::before,
+  .app-shell::after {
+    animation: none;
   }
 }
 

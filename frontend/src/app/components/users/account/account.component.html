@@ -10,7 +10,7 @@
     <div><button type="button" class="secondary" (click)="loadAccount()">Try again</button></div>
   } @else {
     <div class="top">
-      <article class="card profile" style="--i: 0">
+      <article class="card lift profile" style="--i: 0">
         <span class="profile__avatar" aria-hidden="true">{{ initials() }}</span>
         <div class="profile__body">
           <h1 data-testid="account-holder">{{ account()?.holderName }}</h1>
@@ -35,7 +35,7 @@
         </div>
       </article>
 
-      <article class="card balance" style="--i: 1">
+      <article class="card lift balance" style="--i: 1">
         <p class="muted">Cash balance</p>
         <p class="balance__value" data-testid="account-cash">
           <app-animated-number [value]="balance()?.cashBalance ?? 0" [decimals]="2" />
@@ -48,7 +48,18 @@
       </article>
     </div>
 
-    <article class="card table-card" style="--i: 2">
+    <div class="lower" [class.lower--solo]="slices().length === 0">
+    @if (slices().length > 0) {
+      <article class="card lift alloc" style="--i: 2">
+        <div class="table-card__header">
+          <h2>Allocation</h2>
+          <span class="muted">By cost</span>
+        </div>
+        <app-donut-chart [slices]="slices()" [unit]="balance()?.currency ?? ''" centreLabel="Invested" />
+      </article>
+    }
+
+    <article class="card table-card" style="--i: 3">
       <div class="table-card__header">
         <h2>Positions</h2>
         <span class="muted" data-testid="account-invested">
@@ -70,7 +81,6 @@
               <th scope="col" class="num">Quantity</th>
               <th scope="col" class="num">Average cost</th>
               <th scope="col" class="num">Cost value</th>
-              <th scope="col" class="share-col">Share of invested</th>
             </tr>
           </thead>
           <tbody>
@@ -80,15 +90,12 @@
                 <td class="tabular num">{{ row.quantity }}</td>
                 <td class="tabular num">{{ row.averageCost | number: '1.2-2' }}</td>
                 <td class="tabular num">{{ row.cost | number: '1.2-2' }}</td>
-                <td class="share-col">
-                  <span class="bar"><span class="bar__fill" [style.--w]="row.share"></span></span>
-                  <span class="tabular muted">{{ row.share | number: '1.0-0' }}%</span>
-                </td>
               </tr>
             }
           </tbody>
         </table>
       }
     </article>
+    </div>
   }
 </section>

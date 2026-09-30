@@ -18,6 +18,31 @@
 
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
   color-scheme: light;
+
+  /* Secondary palette: green stays the brand; these colour charts, stat icons and accents.
+     Buy is always green and sell always red, so colour never contradicts meaning. */
+  --teal: #1f8a83;
+  --teal-bg: #dcf0ee;
+  --blue: #3567b0;
+  --blue-bg: #e1ebf7;
+  --amber: #b97a12;
+  --amber-bg: #f8ecd2;
+  --violet: #7654b4;
+  --violet-bg: #ebe5f6;
+  --slate: #7d8a80;
+
+  /* Chart series, in the order they are used. */
+  --c1: var(--accent);
+  --c2: var(--blue);
+  --c3: var(--amber);
+  --c4: var(--violet);
+  --c5: var(--teal);
+  --c6: var(--slate);
+
+  /* Depth: two soft layers, deeper on hover. */
+  --shadow-sm: 0 1px 2px rgba(31, 42, 34, 0.06), 0 2px 8px -2px rgba(31, 42, 34, 0.08);
+  --shadow-md: 0 2px 4px rgba(31, 42, 34, 0.06), 0 14px 28px -10px rgba(31, 42, 34, 0.22);
+  --ring: rgba(47, 107, 79, 0.16);
 }
 
 /* Dark theme: same roles, night values. Set on <html data-theme="dark"> by ThemeService.
@@ -39,6 +64,21 @@
   --cancel: #a8b3ab;
   --cancel-bg: #262e28;
   color-scheme: dark;
+
+  --teal: #4fc3b8;
+  --teal-bg: #133029;
+  --blue: #86aee6;
+  --blue-bg: #172a40;
+  --amber: #e6b660;
+  --amber-bg: #34290f;
+  --violet: #b39be6;
+  --violet-bg: #271f3f;
+  --slate: #7f8b83;
+
+  /* In the dark, depth is a lit top edge and a deep pool underneath, not a grey smudge. */
+  --shadow-sm: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 6px 16px -8px rgba(0, 0, 0, 0.7);
+  --shadow-md: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 18px 32px -12px rgba(0, 0, 0, 0.85);
+  --ring: rgba(95, 176, 138, 0.22);
 }
 
 * {
@@ -47,7 +87,6 @@
 
 /* The theme change cross-fades instead of snapping. */
 body,
-.card,
 input,
 select,
 th,
@@ -248,7 +287,19 @@ button.secondary:disabled {
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 14px;
-  animation: cardFadeIn 300ms var(--ease) both;
+  box-shadow: var(--shadow-sm);
+  animation: cardFadeIn 300ms var(--ease) backwards;
+  transition:
+    background-color 300ms ease,
+    border-color 300ms ease,
+    box-shadow 260ms ease,
+    transform 260ms var(--ease);
+}
+
+/* Cards that respond to the pointer: lift and deepen. */
+.card.lift:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
 }
 
 /* Banners: a word always accompanies the colour. */

@@ -121,8 +121,38 @@ dd {
 }
 
 .balance:hover {
-  transform: translateY(-3px);
-  border-color: var(--accent);
+  border-color: var(--teal);
+}
+
+.balance {
+  position: relative;
+  overflow: hidden;
+}
+
+/* A teal wash behind the cash figure gives the card its own colour. */
+.balance::after {
+  content: '';
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background-color: var(--teal-bg);
+  transition: transform 500ms var(--ease);
+}
+
+.balance:hover::after {
+  transform: scale(1.3);
+}
+
+.balance > * {
+  position: relative;
+  z-index: 1;
+}
+
+.table-card__header {
+  margin-bottom: 8px;
 }
 
 .balance__value {
@@ -239,5 +269,22 @@ dd {
   }
   to {
     transform: scaleX(1);
+  }
+}
+
+.lower {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.lower--solo {
+  grid-template-columns: 1fr;
+}
+
+@media (max-width: 900px) {
+  .lower {
+    grid-template-columns: 1fr;
   }
 }

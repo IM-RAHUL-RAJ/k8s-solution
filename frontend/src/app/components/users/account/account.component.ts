@@ -6,12 +6,14 @@ import { AccountResponse, BalanceResponse, PositionResponse } from '../../../cor
 import { AccountContextService } from '../../../core/services/account-context.service';
 import { AccountService } from '../../../core/services/account.service';
 import { ApiErrorMessageService } from '../../../core/services/api-error-message.service';
+import { allocation } from '../../../core/stats/portfolio-stats';
 import { AnimatedNumberComponent } from '../shared/animated-number/animated-number.component';
+import { DonutChartComponent } from '../shared/donut-chart/donut-chart.component';
 
 @Component({
   selector: 'app-account',
   standalone: true,
-  imports: [CommonModule, RouterLink, AnimatedNumberComponent],
+  imports: [CommonModule, RouterLink, AnimatedNumberComponent, DonutChartComponent],
   templateUrl: './account.component.html',
   styleUrl: './account.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -39,6 +41,8 @@ export class AccountComponent {
   protected readonly invested = computed(() =>
     this.positions().reduce((sum, position) => sum + position.quantity * position.averageCost, 0)
   );
+
+  protected readonly slices = computed(() => allocation(this.positions()));
 
   protected readonly rows = computed(() => {
     const total = this.invested();

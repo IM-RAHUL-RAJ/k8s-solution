@@ -9,13 +9,25 @@ import { AccountContextService } from '../../../core/services/account-context.se
 import { AccountService } from '../../../core/services/account.service';
 import { ApiErrorMessageService } from '../../../core/services/api-error-message.service';
 import { OrderService } from '../../../core/services/order.service';
+import { activityByDay, allocation, executionQuality } from '../../../core/stats/portfolio-stats';
+import { ActivityChartComponent } from '../shared/activity-chart/activity-chart.component';
 import { AnimatedNumberComponent } from '../shared/animated-number/animated-number.component';
+import { DonutChartComponent } from '../shared/donut-chart/donut-chart.component';
+import { ExecutionQualityComponent } from '../shared/execution-quality/execution-quality.component';
 import { StatusBadgeComponent } from '../shared/status-badge/status-badge.component';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterLink, StatusBadgeComponent, AnimatedNumberComponent],
+  imports: [
+    CommonModule,
+    RouterLink,
+    StatusBadgeComponent,
+    AnimatedNumberComponent,
+    DonutChartComponent,
+    ActivityChartComponent,
+    ExecutionQualityComponent
+  ],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -72,6 +84,10 @@ export class DashboardComponent {
   protected readonly holdings = computed(() =>
     [...this.positions()].sort((left, right) => left.symbol.localeCompare(right.symbol)).slice(0, 6)
   );
+
+  protected readonly slices = computed(() => allocation(this.positions()));
+  protected readonly activity = computed(() => activityByDay(this.orders(), 14));
+  protected readonly quality = computed(() => executionQuality(this.orders()));
 
   protected readonly workingOrders = computed(
     () => this.orders().filter((order) => order.status === 'NEW').length
