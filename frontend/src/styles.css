@@ -1,1 +1,272 @@
-/* You can add global styles to this file, and also import other style files */
+/* Fauxtrade "Sage and forest": light (default) and dark. */
+:root {
+  color-scheme: light;
+  --bg: #f3f5ef;
+  --surface: #fcfdf9;
+  --line: #d8dfcf;
+  --text: #1f2a22;
+  --muted: #66736a;
+  --accent: #2f6b4f;
+  --accent-hover: #275a42;
+  --accent-rgb: 47, 107, 79;
+  --on-accent: #ffffff;
+  --brand-panel: #2f6b4f;
+  --on-brand: #ffffff;
+  --ok: #2f6b4f;
+  --ok-bg: #e0eee5;
+  --new: #345f8a;
+  --new-bg: #e2ecf5;
+  --reject: #a5382c;
+  --reject-bg: #f8e5e1;
+  --cancel: #5f6a62;
+  --cancel-bg: #e8ebe4;
+  --shadow: rgba(31, 42, 34, 0.35);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0f1512;
+  --surface: #161e1a;
+  --line: #26332c;
+  --text: #e6ece7;
+  --muted: #93a198;
+  --accent: #5fbf94;
+  --accent-hover: #7bd0a9;
+  --accent-rgb: 95, 191, 148;
+  --on-accent: #08170f;
+  --brand-panel: #17392b;
+  --on-brand: #f1f6f2;
+  --ok: #6fcf9f;
+  --ok-bg: #143024;
+  --new: #8ab8ee;
+  --new-bg: #16283d;
+  --reject: #f08a7e;
+  --reject-bg: #3a1a17;
+  --cancel: #a4afa8;
+  --cancel-bg: #232d28;
+  --shadow: rgba(0, 0, 0, 0.55);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0f1512;
+    --surface: #161e1a;
+    --line: #26332c;
+    --text: #e6ece7;
+    --muted: #93a198;
+    --accent: #5fbf94;
+    --accent-hover: #7bd0a9;
+    --accent-rgb: 95, 191, 148;
+    --on-accent: #08170f;
+    --brand-panel: #17392b;
+    --on-brand: #f1f6f2;
+    --ok: #6fcf9f;
+    --ok-bg: #143024;
+    --new: #8ab8ee;
+    --new-bg: #16283d;
+    --reject: #f08a7e;
+    --reject-bg: #3a1a17;
+    --cancel: #a4afa8;
+    --cancel-bg: #232d28;
+    --shadow: rgba(0, 0, 0, 0.55);
+  }
+}
+
+/* Global styles */
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  font-family: "Segoe UI", Helvetica, Arial, sans-serif;
+  font-size: 13px;
+  color: var(--text);
+  background-color: var(--bg);
+}
+
+/* Respect motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Inputs */
+input, textarea, select {
+  font-family: inherit;
+  font-size: inherit;
+  color: var(--text);
+  background-color: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 12px;
+  transition: border-color 0.2s;
+}
+
+input:focus, textarea:focus, select:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-color: var(--accent);
+}
+
+input:disabled, textarea:disabled, select:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Read-only fields (dashed border, muted text) */
+input:read-only {
+  border: 1px dashed var(--muted);
+  color: var(--muted);
+  background-color: var(--surface);
+}
+
+/* Buttons */
+button {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+/* Primary button */
+button.primary {
+  background-color: var(--accent);
+  color: var(--on-accent);
+}
+
+button.primary:hover {
+  opacity: 0.9;
+}
+
+button.primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Secondary/outline button */
+button.secondary {
+  background-color: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--line);
+}
+
+button.secondary:hover {
+  background-color: var(--bg);
+}
+
+/* Segmented control */
+.segmented-control {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.segmented-control button {
+  flex: 1;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 0;
+  background-color: var(--bg);
+  color: var(--text);
+  margin: 0;
+  border-right: 1px solid var(--line);
+}
+
+.segmented-control button:last-child {
+  border-right: none;
+}
+
+.segmented-control button.selected {
+  background-color: var(--accent);
+  color: var(--on-accent);
+}
+
+/* Labels */
+label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+/* Field hints / errors */
+.field-hint {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.field-error {
+  font-size: 13px;
+  color: var(--reject);
+  margin-top: 4px;
+}
+
+/* Cards */
+.card {
+  background-color: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px;
+}
+
+/* Headings */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text);
+  margin: 0;
+}
+
+/* Links */
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Status badges */
+.badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.badge.ok {
+  background-color: var(--ok-bg);
+  color: var(--ok);
+}
+
+.badge.new {
+  background-color: var(--new-bg);
+  color: var(--new);
+}
+
+.badge.reject {
+  background-color: var(--reject-bg);
+  color: var(--reject);
+}
+
+.badge.cancel {
+  background-color: var(--cancel-bg);
+  color: var(--cancel);
+}
