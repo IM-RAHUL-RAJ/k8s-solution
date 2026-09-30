@@ -11,62 +11,60 @@
 
 .shell {
 	min-height: 100dvh;
-	display: block;
+	padding: 3rem clamp(1.25rem, 4vw, 3rem);
+	display: grid;
+	gap: 2rem;
+}
+
+.shell__header {
+	max-width: 42rem;
+	display: grid;
+	gap: 1rem;
 }
 
 .shell__eyebrow {
 	margin: 0;
 	text-transform: uppercase;
 	letter-spacing: 0.2em;
-	color: var(--muted);
+	color: #7dd3fc;
 	font-size: 0.76rem;
-	grid-column: 1;
 }
 
-h1 {
-	margin: 0;
-	font-size: clamp(1.8rem, 3vw, 2.5rem);
-	line-height: 1.2;
-	color: var(--text);
-	grid-column: 1;
+/* The sign-in screen runs edge to edge inside the frame. */
+.app-frame--bare .app-content {
+  padding: 0;
+  overflow: hidden;
 }
 
-.shell__lead {
-	margin: 0;
-	max-width: 50rem;
-	font-size: 0.95rem;
-	line-height: 1.6;
-	color: var(--muted);
-	grid-column: 1;
+.app-content {
+  overflow: auto;
+  padding: 16px;
 }
 
-.shell__nav {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 0.5rem;
-	grid-column: 2;
-	justify-self: end;
+@keyframes shellEnter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.shell__nav a {
-	color: var(--text);
-	text-decoration: none;
-	padding: 0.6rem 1rem;
-	border: 1px solid var(--line);
-	border-radius: 8px;
-	background: var(--surface);
-	font-weight: 500;
-	font-size: 13px;
-	transition: all 0.2s;
+@media (prefers-reduced-motion: reduce) {
+  .app-shell::before,
+  .app-shell::after {
+    animation: none;
+  }
 }
 
-.shell__nav a:hover {
-	border-color: var(--accent);
-	background: var(--bg);
-	color: var(--accent);
-}
+@media (max-width: 760px) {
+  .app-shell {
+    padding: 12px;
+  }
 
-.shell__content {
-	display: grid;
-	align-items: start;
+  .app-frame {
+    min-height: calc(100dvh - 24px);
+  }
 }

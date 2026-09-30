@@ -1,0 +1,50 @@
+:host {
+  display: inline-block;
+}
+
+.toggle {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background-color: var(--surface);
+  color: var(--text);
+}
+
+.toggle:hover {
+  border-color: var(--muted);
+  background-color: var(--bg);
+}
+
+svg {
+  grid-area: 1 / 1;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition:
+    transform 400ms var(--ease),
+    opacity 250ms ease;
+}
+
+.moon {
+  opacity: 0;
+  transform: rotate(-90deg) scale(0.5);
+}
+
+.toggle[aria-pressed='true'] .sun {
+  opacity: 0;
+  transform: rotate(90deg) scale(0.5);
+}
+
+.toggle[aria-pressed='true'] .moon {
+  opacity: 1;
+  transform: rotate(0) scale(1);
+}

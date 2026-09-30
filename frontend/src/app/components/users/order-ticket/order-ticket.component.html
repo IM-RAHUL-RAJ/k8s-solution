@@ -1,0 +1,170 @@
+<section class="page" data-testid="order-ticket">
+  <div class="layout">
+    <form class="card ticket" [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+      <div class="ticket__head">
+        <h1>New order</h1>
+        <p class="muted">Orders are checked by the trading service when you place them.</p>
+      </div>
+
+      @if (errorMessage()) {
+        <div class="banner error" role="alert" data-testid="order-error">{{ errorMessage() }}</div>
+      }
+
+      @if (success(); as placed) {
+        <div class="banner success placed" role="status" data-testid="order-success">
+          <svg class="tick" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M7.5 12.5l3 3 6-6.5" />
+          </svg>
+          <div>
+            <p><strong>Order placed.</strong> {{ placed.side === 'BUY' ? 'Buy' : 'Sell' }}
+              {{ placed.quantity }} {{ placed.symbol }} at {{ placed.price | number: '1.2-2' }}</p>
+            <p class="placed__status">
+              Status <span data-testid="order-status"><app-status-badge [status]="placed.status" /></span>
+            </p>
+            @if (placed.status === 'NEW') {
+              <p>The order is working. The executor has not resolved it yet, so it may change.
+                <a routerLink="/blotter">Follow it on the blotter</a>.</p>
+            }
+          </div>
+        </div>
+      }
+
+      <div class="field">
+        <label for="account">Account</label>
+        <input
+          id="account"
+          type="text"
+          [value]="accountReference()"
+          readonly
+          aria-readonly="true"
+          data-testid="order-account"
+        />
+        <span class="field-hint">Read only. Set by your sign-in.</span>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label for="symbol">Symbol</label>
+          <input
+            id="symbol"
+            type="text"
+            formControlName="symbol"
+            autocomplete="off"
+            autocapitalize="characters"
+            [class.invalid]="getSymbolError()"
+            [attr.aria-invalid]="getSymbolError() ? true : null"
+            [attr.aria-describedby]="getSymbolError() ? 'symbol-error' : null"
+            data-testid="order-symbol"
+          />
+          @if (getSymbolError()) {
+            <span class="field-error" id="symbol-error">{{ getSymbolError() }}</span>
+          }
+        </div>
+
+        <div class="field">
+          <span class="label" id="side-label">Side</span>
+          <div class="segmented" [class.sell]="form.controls.side.value === 'SELL'" role="radiogroup"
+               aria-labelledby="side-label"
+               (keydown.arrowleft)="toggleSide()" (keydown.arrowright)="toggleSide()"
+               data-testid="order-side">
+            <span class="thumb" aria-hidden="true"></span>
+            <button type="button" role="radio" [attr.aria-checked]="form.controls.side.value === 'BUY'"
+                    [class.selected]="form.controls.side.value === 'BUY'"
+                    [attr.tabindex]="form.controls.side.value === 'BUY' ? 0 : -1"
+                    (click)="selectSide('BUY')" data-testid="side-buy">Buy</button>
+            <button type="button" role="radio" [attr.aria-checked]="form.controls.side.value === 'SELL'"
+                    [class.selected]="form.controls.side.value === 'SELL'"
+                    [attr.tabindex]="form.controls.side.value === 'SELL' ? 0 : -1"
+                    (click)="selectSide('SELL')" data-testid="side-sell">Sell</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label for="quantity">Quantity</label>
+          <input
+            id="quantity"
+            type="text"
+            inputmode="numeric"
+            formControlName="quantity"
+            autocomplete="off"
+            [class.invalid]="getQuantityError()"
+            [attr.aria-invalid]="getQuantityError() ? true : null"
+            [attr.aria-describedby]="getQuantityError() ? 'quantity-error' : null"
+            data-testid="order-quantity"
+          />
+          @if (getQuantityError()) {
+            <span class="field-error" id="quantity-error">{{ getQuantityError() }}</span>
+          }
+        </div>
+
+        <div class="field">
+          <label for="price">Price</label>
+          <input
+            id="price"
+            type="text"
+            inputmode="decimal"
+            formControlName="price"
+            autocomplete="off"
+            [class.invalid]="getPriceError()"
+            [attr.aria-invalid]="getPriceError() ? true : null"
+            [attr.aria-describedby]="getPriceError() ? 'price-error' : null"
+            data-testid="order-price"
+          />
+          @if (getPriceError()) {
+            <span class="field-error" id="price-error">{{ getPriceError() }}</span>
+          }
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="primary" type="submit" [disabled]="form.invalid || isSubmitting()"
+                data-testid="place-order">
+          @if (isSubmitting()) {
+            <span class="spinner" aria-hidden="true"></span> Placing order...
+          } @else {
+            Place order
+          }
+        </button>
+        <button type="button" class="secondary" (click)="onReset()" data-testid="reset-order">Reset</button>
+      </div>
+    </form>
+
+    <aside class="card summary" aria-label="Order summary" data-testid="order-summary">
+      <h2>Order summary</h2>
+      <dl>
+        <div>
+          <dt>Action</dt>
+          <dd><span class="chip" [class.chip--sell]="summary().side === 'Sell'">{{ summary().side }}</span></dd>
+        </div>
+        <div>
+          <dt>Symbol</dt>
+          <dd>{{ summary().symbol || '—' }}</dd>
+        </div>
+        <div>
+          <dt>Quantity</dt>
+          <dd class="tabular">{{ summary().quantity ?? '—' }}</dd>
+        </div>
+        <div>
+          <dt>Price</dt>
+          <dd class="tabular">
+            @if (summary().price !== null) { {{ summary().price | number: '1.2-2' }} } @else { — }
+          </dd>
+        </div>
+      </dl>
+      <div class="estimate">
+        <span class="muted">Estimated value</span>
+        <strong class="tabular" data-testid="order-estimate">
+          @if (summary().estimate !== null) {
+            {{ summary().estimate | number: '1.2-2' }}
+          } @else {
+            —
+          }
+        </strong>
+      </div>
+      <p class="muted fine">An estimate from what you typed. Cash and holdings are checked by the trading service.</p>
+    </aside>
+  </div>
+</section>

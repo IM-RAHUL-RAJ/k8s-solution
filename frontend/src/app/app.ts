@@ -1,28 +1,20 @@
-import { Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { AppHeaderComponent } from './components/users/shared/app-header/app-header.component';
+import { AuthService } from './core/auth/auth.service';
 import { ThemeService } from './core/theme/theme.service';
-
-type NavigationItem = {
-  label: string;
-  path: string;
-};
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
+  standalone: true,
+  imports: [AppHeaderComponent, RouterOutlet],
   templateUrl: './app.html',
-  styleUrl: './app.css'
+  styleUrl: './app.css',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class App {
   private readonly themeService = inject(ThemeService);
-  protected readonly title = signal('Frontend');
-
-  protected readonly navigation = signal<NavigationItem[]>([
-    {
-      label: 'Landing',
-      path: '/'
-    }
-  ]);
+  protected readonly auth = inject(AuthService);
 
   constructor() {
     // Ensure theme preference is applied on every app startup/refresh,

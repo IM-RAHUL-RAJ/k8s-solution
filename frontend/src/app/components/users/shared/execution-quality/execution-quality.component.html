@@ -1,0 +1,25 @@
+<div class="quality" data-testid="execution-quality">
+  @if (view().length === 0) {
+    <p class="muted empty">Appears once orders with a limit price have filled.</p>
+  } @else {
+    <ul>
+      @for (row of view(); track row.symbol; let i = $index) {
+        <li [style.animation-delay.ms]="i * 70" data-testid="quality-row">
+          <span class="sym">
+            <strong>{{ row.symbol }}</strong>
+            <span class="muted">{{ row.orders }} {{ row.orders === 1 ? 'fill' : 'fills' }}</span>
+          </span>
+          <span class="track" aria-hidden="true">
+            <span class="mid"></span>
+            <span class="bar" [class.bar--good]="row.good" [class.bar--bad]="!row.good"
+                  [style.width.%]="row.width" [style.animation-delay.ms]="200 + i * 70"></span>
+          </span>
+          <span class="val tabular" [class.val--good]="row.good" [class.val--bad]="!row.good">
+            {{ row.improvementPct >= 0 ? '+' : '' }}{{ row.improvementPct | number: '1.1-1' }}%
+          </span>
+        </li>
+      }
+    </ul>
+    <p class="muted note">Executed price against your limit. A buy filled below its limit, or a sell above it, counts in your favour.</p>
+  }
+</div>

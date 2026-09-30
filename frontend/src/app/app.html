@@ -1,5 +1,10 @@
-<main class="shell">
-  <section class="shell__content">
-    <router-outlet />
-  </section>
-</main>
+<div class="app-shell shell">
+  <div class="app-frame" [class.app-frame--bare]="!auth.isAuthenticated()">
+    @if (auth.isAuthenticated()) {
+      <app-app-header />
+    }
+    <main class="app-content shell__content" id="main">
+      <router-outlet />
+    </main>
+  </div>
+</div>

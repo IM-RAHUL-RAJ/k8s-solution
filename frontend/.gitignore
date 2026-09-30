@@ -42,3 +42,21 @@ __screenshots__/
 # System files
 .DS_Store
 Thumbs.db
+
+# Secrets and local environment (the template .env.example is committed)
+.env
+.env.local
+
+# Playwright output
+/test-results
+/playwright-report
+
+# The lock file is committed so `npm ci` reproduces the same tree (the repo-root .gitignore
+# ignores package-lock.json; this re-includes it for the frontend).
+!package-lock.json
+
+# Generated API clients are COMMITTED, on purpose. They are machine output from ../contracts,
+# regenerated with `npm run generate:clients` on every contract change and never edited by
+# hand. Committing them lets a clone build with no Java runtime and no network, and turns a
+# contract change into a diff a reviewer has to read.
+!/src/generated/

@@ -1,72 +1,125 @@
-import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { RouterLink } from '@angular/router';
+import { forkJoin } from 'rxjs';
+import { AccountResponse, BalanceResponse, PositionResponse } from '../../../core/models/account.model';
+import { OrderHistoryEntry } from '../../../core/models/order.model';
 import { AuthService } from '../../../core/auth/auth.service';
+import { AccountContextService } from '../../../core/services/account-context.service';
+import { AccountService } from '../../../core/services/account.service';
+import { ApiErrorMessageService } from '../../../core/services/api-error-message.service';
+import { OrderService } from '../../../core/services/order.service';
+import { activityByDay, allocation, executionQuality } from '../../../core/stats/portfolio-stats';
+import { ActivityChartComponent } from '../shared/activity-chart/activity-chart.component';
+import { AnimatedNumberComponent } from '../shared/animated-number/animated-number.component';
+import { DonutChartComponent } from '../shared/donut-chart/donut-chart.component';
+import { ExecutionQualityComponent } from '../shared/execution-quality/execution-quality.component';
+import { StatusBadgeComponent } from '../shared/status-badge/status-badge.component';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule],
-  template: `
-    <div class="dashboard">
-      <div class="dashboard__header">
-        <h1>Dashboard</h1>
-        <button (click)="logout()" class="primary">Sign Out</button>
-      </div>
-      <div class="dashboard__content">
-        <p>Welcome to the trading dashboard. This is a placeholder for your trading interface.</p>
-      </div>
-    </div>
-  `,
-  styles: [`
-    .dashboard {
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-
-    .dashboard__header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 2rem 0;
-      border-bottom: 1px solid var(--line);
-      margin-bottom: 2rem;
-    }
-
-    .dashboard__header h1 {
-      margin: 0;
-      color: var(--text);
-    }
-
-    .dashboard__header button {
-      background-color: var(--accent);
-      color: var(--on-accent);
-      padding: 10px 16px;
-      border: none;
-      border-radius: 8px;
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    .dashboard__header button:hover {
-      opacity: 0.9;
-    }
-
-    .dashboard__content {
-      padding: 2rem;
-      background-color: var(--surface);
-      border: 1px solid var(--line);
-      border-radius: 10px;
-    }
-  `],
+  imports: [
+    CommonModule,
+    RouterLink,
+    StatusBadgeComponent,
+    AnimatedNumberComponent,
+    DonutChartComponent,
+    ActivityChartComponent,
+    ExecutionQualityComponent
+  ],
+  templateUrl: './dashboard.component.html',
+  styleUrl: './dashboard.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class DashboardComponent {
-  private authService = inject(AuthService);
-  private router = inject(Router);
+  private readonly accountService = inject(AccountService);
+  private readonly orderService = inject(OrderService);
+  private readonly accountContext = inject(AccountContextService);
+  private readonly apiErrorMessageService = inject(ApiErrorMessageService);
+  private readonly auth = inject(AuthService);
 
-  logout(): void {
-    this.authService.logout();
-    this.router.navigate(['/'], { replaceUrl: true });
+  protected readonly loading = signal(true);
+  protected readonly error = signal<string | null>(null);
+  protected readonly account = signal<AccountResponse | null>(null);
+  protected readonly balance = signal<BalanceResponse | null>(null);
+  protected readonly positions = signal<PositionResponse[]>([]);
+  protected readonly orders = signal<OrderHistoryEntry[]>([]);
+
+  protected readonly greeting = computed(() => {
+    const hour = new Date().getHours();
+    const part = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+    const name = this.account()?.holderName.split(' ')[0] ?? this.auth.user()?.username;
+    return name ? `${part}, ${name}` : part;
+  });
+
+  protected readonly initials = computed(() =>
+    (this.account()?.holderName ?? this.auth.user()?.username ?? '?')
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((part) => part.charAt(0).toUpperCase())
+      .join('')
+  );
+
+  /** What the current holdings cost. The API returns average cost, not a live price, so this is cost, not market value. */
+  protected readonly invested = computed(() =>
+    this.positions().reduce((sum, position) => sum + position.quantity * position.averageCost, 0)
+  );
+
+  /** Each holding's share of cost, for the bar beside it. */
+  protected readonly holdingRows = computed(() => {
+    const total = this.invested();
+    return this.holdings().map((position) => {
+      const cost = position.quantity * position.averageCost;
+      return { ...position, cost, share: total > 0 ? (cost / total) * 100 : 0 };
+    });
+  });
+
+  protected readonly recentOrders = computed(() =>
+    [...this.orders()]
+      .sort((left, right) => Date.parse(right.createdOn) - Date.parse(left.createdOn))
+      .slice(0, 5)
+  );
+
+  protected readonly holdings = computed(() =>
+    [...this.positions()].sort((left, right) => left.symbol.localeCompare(right.symbol)).slice(0, 6)
+  );
+
+  protected readonly slices = computed(() => allocation(this.positions()));
+  protected readonly activity = computed(() => activityByDay(this.orders(), 14));
+  protected readonly quality = computed(() => executionQuality(this.orders()));
+
+  protected readonly workingOrders = computed(
+    () => this.orders().filter((order) => order.status === 'NEW').length
+  );
+
+  constructor() {
+    this.loadDashboard();
+  }
+
+  protected loadDashboard(): void {
+    const current = this.accountContext.getCurrentAccount();
+
+    this.loading.set(true);
+    this.error.set(null);
+
+    forkJoin({
+      account: this.accountService.getAccount(current.accountNumericId),
+      balance: this.accountService.getBalance(current.accountNumericId),
+      positions: this.accountService.getPositions(current.accountNumericId),
+      orders: this.orderService.getOrderHistory(current.accountNumericId)
+    }).subscribe({
+      next: (result) => {
+        this.account.set(result.account);
+        this.balance.set(result.balance);
+        this.positions.set(result.positions);
+        this.orders.set(result.orders);
+        this.loading.set(false);
+      },
+      error: (error: unknown) => {
+        this.error.set(this.apiErrorMessageService.getMessage(error));
+        this.loading.set(false);
+      }
+    });
   }
 }
