@@ -1,115 +1,117 @@
 import { TestBed } from '@angular/core/testing';
-import { Router, ActivatedRouteSnapshot, RouterStateSnapshot, UrlTree } from '@angular/router';
+import { Router, ActivatedRouteSnapshot, RouterStateSnapshot, UrlTree, provideRouter } from '@angular/router';
 import { vi } from 'vitest';
 import { authGuard } from './auth.guard';
 import { AuthService } from './auth.service';
+import { of, throwError, firstValueFrom } from 'rxjs';
 
 describe('authGuard', () => {
-  let authService: { isAuthenticated: ReturnType<typeof vi.fn> };
-  let router: { createUrlTree: ReturnType<typeof vi.fn> };
+  let authService: any;
+  let router: Router;
   let routerState: Partial<RouterStateSnapshot>;
   let route: Partial<ActivatedRouteSnapshot>;
 
   beforeEach(() => {
     authService = {
-      isAuthenticated: vi.fn().mockReturnValue(false)
-    };
-
-    router = {
-      createUrlTree: vi.fn()
+      isAuthenticated: vi.fn().mockReturnValue(false),
+      validateSession: vi.fn().mockReturnValue(of(undefined)),
+      logout: vi.fn()
     };
 
     TestBed.configureTestingModule({
       providers: [
-        { provide: AuthService, useValue: authService },
-        { provide: Router, useValue: router }
+        provideRouter([]),
+        { provide: AuthService, useValue: authService }
       ]
     });
 
-    routerState = {};
+    router = TestBed.inject(Router);
+    routerState = { url: '/dashboard' } as RouterStateSnapshot;
     route = {} as ActivatedRouteSnapshot;
   });
 
-  it('should allow access when authenticated', () => {
+  it('should allow access when authenticated', async () => {
     authService.isAuthenticated.mockReturnValue(true);
-    routerState.url = '/dashboard';
 
-    const result = TestBed.runInInjectionContext(() =>
-      authGuard(route as ActivatedRouteSnapshot, routerState as RouterStateSnapshot)
+    const result = await firstValueFrom(
+      TestBed.runInInjectionContext(() =>
+        authGuard(route as ActivatedRouteSnapshot, routerState as RouterStateSnapshot) as any
+      )
     );
 
     expect(result).toBe(true);
+    expect(authService.validateSession).toHaveBeenCalled();
   });
 
-  it('should redirect to sign-in when not authenticated', () => {
+  it('should redirect to sign-in when not authenticated', async () => {
     authService.isAuthenticated.mockReturnValue(false);
     routerState.url = '/dashboard';
 
-    const urlTree = new UrlTree();
-    router.createUrlTree.mockReturnValue(urlTree);
-
-    const result = TestBed.runInInjectionContext(() =>
-      authGuard(route as ActivatedRouteSnapshot, routerState as RouterStateSnapshot)
+    const result = await firstValueFrom(
+      TestBed.runInInjectionContext(() =>
+        authGuard(route as ActivatedRouteSnapshot, routerState as RouterStateSnapshot) as any
+      )
     );
 
-    expect(router.createUrlTree).toHaveBeenCalledWith(
-      ['/sign-in'],
-      expect.any(Object)
-    );
+    expect(result).toBeInstanceOf(UrlTree);
+    expect(router.serializeUrl(result as UrlTree)).toContain('/sign-in');
   });
 
-  it('should include return URL in redirect', () => {
+  it('should include return URL in redirect', async () => {
     authService.isAuthenticated.mockReturnValue(false);
     routerState.url = '/dashboard?tab=overview';
 
-    const urlTree = new UrlTree();
-    router.createUrlTree.mockReturnValue(urlTree);
-
-    TestBed.runInInjectionContext(() =>
-      authGuard(route as ActivatedRouteSnapshot, routerState as RouterStateSnapshot)
+    const result = await firstValueFrom(
+      TestBed.runInInjectionContext(() =>
+        authGuard(route as ActivatedRouteSnapshot, routerState as RouterStateSnapshot) as any
+      )
     );
 
-    expect(router.createUrlTree).toHaveBeenCalledWith(
-      ['/sign-in'],
-      expect.objectContaining({
-        queryParams: expect.objectContaining({
-          returnUrl: '/dashboard?tab=overview'
-        })
-      })
-    );
+    expect(router.serializeUrl(result as UrlTree)).toBe('/sign-in?returnUrl=%2Fdashboard%3Ftab%3Doverview');
   });
 
-  it('should prevent open redirect attacks', () => {
+  it('should prevent open redirect attacks', async () => {
     authService.isAuthenticated.mockReturnValue(false);
     routerState.url = 'https://evil.com/dashboard';
 
-    const urlTree = new UrlTree();
-    router.createUrlTree.mockReturnValue(urlTree);
-
-    TestBed.runInInjectionContext(() =>
-      authGuard(route as ActivatedRouteSnapshot, routerState as RouterStateSnapshot)
+    const result = await firstValueFrom(
+      TestBed.runInInjectionContext(() =>
+        authGuard(route as ActivatedRouteSnapshot, routerState as RouterStateSnapshot) as any
+      )
     );
 
     // URL API normalizes this input into an internal path, still same-origin and safe.
-    expect(router.createUrlTree).toHaveBeenCalledWith(['/sign-in'], {
-      queryParams: { returnUrl: '/dashboard' }
-    });
+    expect(router.serializeUrl(result as UrlTree)).toBe('/sign-in?returnUrl=%2Fdashboard');
   });
 
-  it('should prevent double-slash attack vectors', () => {
+  it('should prevent double-slash attack vectors', async () => {
     authService.isAuthenticated.mockReturnValue(false);
     routerState.url = '//evil.com/dashboard';
 
-    const urlTree = new UrlTree();
-    router.createUrlTree.mockReturnValue(urlTree);
-
-    TestBed.runInInjectionContext(() =>
-      authGuard(route as ActivatedRouteSnapshot, routerState as RouterStateSnapshot)
+    const result = await firstValueFrom(
+      TestBed.runInInjectionContext(() =>
+        authGuard(route as ActivatedRouteSnapshot, routerState as RouterStateSnapshot) as any
+      )
     );
 
-    // URL API normalizes this input into a path, so guard includes it as returnUrl.
-    expect(router.createUrlTree).toHaveBeenCalledWith(['/sign-in'], {
-      queryParams: { returnUrl: '/dashboard' }
-    });
+    // URL API normalizes //evil.com/dashboard to /dashboard on the same origin
+    // The guard then includes it as returnUrl since it's a valid path
+    expect(result).toBeInstanceOf(UrlTree);
+    expect(router.serializeUrl(result as UrlTree)).toBe('/sign-in?returnUrl=%2Fdashboard');
+  });
+
+  it('should handle session validation failure', async () => {
+    authService.isAuthenticated.mockReturnValue(true);
+    authService.validateSession.mockReturnValue(throwError(() => new Error('Session expired')));
+
+    const result = await firstValueFrom(
+      TestBed.runInInjectionContext(() =>
+        authGuard(route as ActivatedRouteSnapshot, routerState as RouterStateSnapshot) as any
+      )
+    );
+
+    expect(result).toBeInstanceOf(UrlTree);
+    expect(router.serializeUrl(result as UrlTree)).toBe('/sign-in');
+    expect(authService.logout).toHaveBeenCalled();
   });
 });
