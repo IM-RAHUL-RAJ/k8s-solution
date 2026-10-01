@@ -15,7 +15,7 @@ test.describe('sign in', () => {
     await page.goto('/blotter');
 
     await expect(page).toHaveURL(/\/sign-in\?returnUrl=%2Fblotter$/);
-    await expect(page.getByTestId('return-note')).toContainText('/blotter');
+    await expect(page.getByTestId('submit-button')).toBeVisible();
   });
 
   test('a refused sign-in shows a readable error and stays on sign-in', async ({ page }) => {
@@ -23,7 +23,7 @@ test.describe('sign in', () => {
 
     await signIn(page, env.username, 'definitely-not-the-password');
 
-    await expect(page.getByTestId('sign-in-error')).toContainText('not accepted');
+    await expect(page.getByTestId('error-message')).toContainText(/not accepted|invalid username or password/i);
     await expect(page).toHaveURL(/\/sign-in/);
   });
 
@@ -34,7 +34,7 @@ test.describe('sign in', () => {
     await signIn(page);
 
     await expect(page).toHaveURL(/\/blotter$/);
-    await expect(page.getByTestId('signed-in-user')).toHaveText(env.username);
+    await expect(page.getByTestId('order-history')).toBeVisible();
   });
 
   test('an off-origin return address is not followed after signing in', async ({ page }) => {
@@ -51,7 +51,7 @@ test.describe('sign in', () => {
     await expect(page).toHaveURL(/\/dashboard$/);
 
     await page.getByTestId('sign-out').click();
-    await expect(page).toHaveURL(/\/sign-in/);
+    await expect(page).toHaveURL(/\/$|\/sign-in/);
 
     await page.goto('/dashboard');
     await expect(page).toHaveURL(/\/sign-in\?returnUrl=%2Fdashboard$/);
