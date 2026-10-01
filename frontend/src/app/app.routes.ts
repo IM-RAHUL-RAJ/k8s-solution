@@ -1,17 +1,15 @@
 import { Routes } from '@angular/router';
-import { authGuard, guestGuard } from './core/auth/auth.guard';
+import { authGuard } from './core/auth/auth.guard';
 
-// /sign-in is the only route a signed-out visitor can reach. Every other route runs authGuard.
+// Public pages stay reachable directly. Protected workspace routes run authGuard.
 export const routes: Routes = [
 	{
 		path: '',
-		canActivate: [guestGuard],
 		loadComponent: () =>
 			import('./components/users/landing/landing-page').then((m) => m.LandingPage)
 	},
 	{
 		path: 'sign-in',
-		canActivate: [guestGuard],
 		loadComponent: () =>
 			import('./components/users/login/login.component').then((m) => m.LoginComponent)
 	},

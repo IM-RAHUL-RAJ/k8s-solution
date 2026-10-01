@@ -38,6 +38,7 @@ export class AuthService {
   private router = inject(Router);
   private readonly storageKey = 'access_token';
   private readonly userStorageKey = 'auth_user';
+  private readonly sessionIdKey = 'session_id';
 
   /**
    * Token is mirrored in memory and localStorage so auth survives refresh.
@@ -48,6 +49,11 @@ export class AuthService {
    * User information from login response
    */
   private userSignal = signal<User | null>(this.readUserFromStorage());
+
+  /**
+   * Session ID from JWT token (for multi-device logout detection)
+   */
+  private sessionIdSignal = signal<string | null>(this.readSessionIdFromStorage());
 
   /**
    * Computed signal to track authentication state
@@ -67,11 +73,30 @@ export class AuthService {
   }
 
   /**
+   * Get current session ID
+   */
+  getSessionId(): string | null {
+    return this.sessionIdSignal();
+  }
+
+  /**
    * Store token in memory and localStorage.
    */
   private setToken(token: string): void {
     this.tokenSignal.set(token);
     localStorage.setItem(this.storageKey, token);
+  }
+
+  /**
+   * Store session ID in memory and localStorage.
+   */
+  private setSessionId(sessionId: string | null): void {
+    this.sessionIdSignal.set(sessionId);
+    if (sessionId) {
+      localStorage.setItem(this.sessionIdKey, sessionId);
+    } else {
+      localStorage.removeItem(this.sessionIdKey);
+    }
   }
 
   /**
@@ -92,6 +117,14 @@ export class AuthService {
   private readTokenFromStorage(): string | null {
     const token = localStorage.getItem(this.storageKey);
     return token && token.trim().length > 0 ? token : null;
+  }
+
+  /**
+   * Restore session ID from localStorage if available.
+   */
+  private readSessionIdFromStorage(): string | null {
+    const sessionId = localStorage.getItem(this.sessionIdKey);
+    return sessionId && sessionId.trim().length > 0 ? sessionId : null;
   }
 
   /**
@@ -135,6 +168,15 @@ export class AuthService {
           if (token) {
             this.setToken(token);
             
+            // Extract claims from JWT
+            const claims = this.decodeToken(token);
+            if (claims) {
+              // Store sessionId for multi-device logout detection
+              if (claims.sessionId) {
+                this.setSessionId(claims.sessionId);
+              }
+            }
+            
             // Extract user info from response or decode from JWT
             let user: User | null = null;
             
@@ -148,7 +190,6 @@ export class AuthService {
             }
             
             // Also try to extract accountId from JWT claims
-            const claims = this.decodeToken(token);
             if (claims) {
               if (!user) {
                 user = {};
@@ -175,13 +216,33 @@ export class AuthService {
    * Clears token immediately and navigates to landing page
    */
   logout(): void {
-    // Immediately clear token and user from memory and local storage
+    // Immediately clear token, user, and session ID from memory and local storage
     this.tokenSignal.set(null);
     this.userSignal.set(null);
+    this.sessionIdSignal.set(null);
     localStorage.removeItem(this.storageKey);
     localStorage.removeItem(this.userStorageKey);
+    localStorage.removeItem(this.sessionIdKey);
     // Navigate to landing page
     this.router.navigate(['/']);
+  }
+
+  /**
+   * Validate if current session is still active on the server
+   * Detects when session was invalidated from another device/tab
+   * @returns Observable<{isValid: boolean}>
+   */
+  validateSession(): Observable<{isValid: boolean}> {
+    return this.http.get<{isValid: boolean}>('http://localhost:3000/auth/session/validate')
+      .pipe(
+        catchError((error) => {
+          // If we get a 401, the session was invalidated
+          if (error instanceof HttpErrorResponse && error.status === 401) {
+            return throwError(() => new Error('Session invalidated'));
+          }
+          return throwError(() => error);
+        })
+      );
   }
 
   /**

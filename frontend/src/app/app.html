@@ -1,6 +1,6 @@
 <div class="app-shell shell">
-  <div class="app-frame" [class.app-frame--bare]="!auth.isAuthenticated()">
-    @if (auth.isAuthenticated()) {
+  <div class="app-frame" [class.app-frame--bare]="!showHeader()">
+    @if (showHeader()) {
       <app-app-header />
     }
     <main class="app-content shell__content" id="main">
