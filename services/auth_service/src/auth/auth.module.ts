@@ -40,6 +40,7 @@ import { AuthUser }
 import { RefreshToken }
     from './entity/refresh-token.entity';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { SessionGateway } from './gateways/session.gateway';
 
 
 
@@ -108,7 +109,9 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
         RefreshTokenService,
 
-        JwtAuthGuard
+        JwtAuthGuard,
+
+        SessionGateway
 
     ]
 
