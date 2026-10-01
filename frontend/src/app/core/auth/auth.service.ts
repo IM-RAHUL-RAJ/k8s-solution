@@ -213,7 +213,7 @@ export class AuthService {
 
   /**
    * Sign out and clear session
-   * Clears token immediately and navigates to sign-in page
+   * Clears token immediately and navigates to landing page
    */
   logout(): void {
     // Immediately clear token, user, and session ID from memory and local storage
@@ -222,9 +222,8 @@ export class AuthService {
     this.sessionIdSignal.set(null);
     localStorage.removeItem(this.storageKey);
     localStorage.removeItem(this.userStorageKey);
-    localStorage.removeItem(this.sessionIdKey);
-    // Navigate to sign-in page
-    this.router.navigate(['/sign-in']);
+    // Navigate to landing page
+    this.router.navigate(['/']);
   }
 
   /**

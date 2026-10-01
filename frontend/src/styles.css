@@ -97,6 +97,21 @@ td {
     color 300ms ease;
 }
 
+/* Theme mode switches are animated only while ThemeService toggles this class. */
+:root.theme-transitioning *,
+:root.theme-transitioning *::before,
+:root.theme-transitioning *::after {
+  transition:
+    background-color 320ms ease,
+    border-color 320ms ease,
+    color 320ms ease,
+    box-shadow 320ms ease,
+    opacity 320ms ease,
+    fill 320ms ease,
+    stroke 320ms ease,
+    filter 320ms ease;
+}
+
 body {
   margin: 0;
   font-family: 'Segoe UI', Helvetica, Arial, sans-serif;

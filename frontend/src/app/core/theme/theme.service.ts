@@ -17,6 +17,7 @@ export type ThemeMode = 'light' | 'dark' | 'auto';
 })
 export class ThemeService {
   private document = inject(DOCUMENT);
+  private transitionCleanupHandle: number | null = null;
 
   /**
    * Current theme mode: 'light', 'dark', or 'auto' (follows system)
@@ -154,11 +155,22 @@ export class ThemeService {
    */
   private applyTheme(mode: ThemeMode): void {
     const root = this.document.documentElement;
+
+    // Enable a short transition window so theme token changes animate smoothly.
+    root.classList.add('theme-transitioning');
+    if (this.transitionCleanupHandle !== null) {
+      this.document.defaultView?.clearTimeout(this.transitionCleanupHandle);
+    }
     
     if (mode === 'auto') {
       root.removeAttribute('data-theme');
     } else {
       root.setAttribute('data-theme', mode);
     }
+
+    this.transitionCleanupHandle = this.document.defaultView?.setTimeout(() => {
+      root.classList.remove('theme-transitioning');
+      this.transitionCleanupHandle = null;
+    }, 420) ?? null;
   }
 }
