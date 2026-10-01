@@ -5,7 +5,8 @@ import {
     UseGuards,
     Get,
     HttpCode,
-    HttpStatus
+    HttpStatus,
+    UnauthorizedException
 } from '@nestjs/common';
 import {
     ApiBearerAuth,
@@ -240,6 +241,57 @@ export class AuthController {
         );
 
         return this.service.getCurrentUser(user.sub);
+    }
+
+    @Get('session/validate')
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth('bearerAuth')
+    @ApiOperation({
+        operationId: 'validateSession',
+        summary: 'Validate if current session is active',
+        description:
+            'Protected endpoint that validates if the sessionId in the token matches the active session for this user. Used to detect when session was invalidated on another device.',
+    })
+    @ApiResponse({
+        status: 200,
+        description: 'Session is valid.',
+        schema: {
+            example: {
+                isValid: true,
+            },
+        },
+    })
+    @ApiResponse({
+        status: 401,
+        description: 'Session is invalid (was logged out from another device).',
+        type: ErrorResponseDto,
+        schema: {
+            example: {
+                errorCode: 'AUTH-401',
+                message: 'Session invalidated',
+            },
+        },
+    })
+    validateSession(
+        @CurrentUser() user: JwtPayload,
+    ) {
+        this.logger.debug(
+            `[AUTH_EVENT] session_validate_request userId=${user.sub} sessionId=${user.sessionId}`
+        );
+
+        const isValid = this.service.isSessionValid(user.sub, user.sessionId);
+        
+        if (!isValid) {
+            this.logger.warn(
+                `[AUTH_EVENT] session_invalid userId=${user.sub} sessionId=${user.sessionId}`
+            );
+            throw new UnauthorizedException({
+                errorCode: 'AUTH-401',
+                message: 'Session invalidated',
+            });
+        }
+
+        return { isValid: true };
     }
 
 }

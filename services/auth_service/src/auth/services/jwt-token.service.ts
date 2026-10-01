@@ -19,7 +19,8 @@ export class JwtTokenService {
     generateAccessToken(
         userId: string,
         accountId: number,
-        roles: string[]
+        roles: string[],
+        sessionId: string
     ) {
 
 
@@ -27,7 +28,8 @@ export class JwtTokenService {
 
             sub: userId,
             accountId: Number(accountId),
-            roles: roles
+            roles: roles,
+            sessionId: sessionId
         },
             {
                 issuer: "auth-service",

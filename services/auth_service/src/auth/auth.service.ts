@@ -20,6 +20,7 @@ import { JwtTokenService }
 
 import { AuthUser } from './entity/auth-user.entity';
 import { RefreshTokenRepository } from './repository/refresh-token.repository';
+import { SessionGateway } from './gateways/session.gateway';
 
 
 
@@ -40,6 +41,9 @@ export class AuthService {
     private readonly LOGIN_THROTTLE_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
     private readonly loginAttempts = new Map<string, { count: number; firstAttempt: number }>();
 
+    // Session management: Map of userId -> active sessionId
+    private readonly activeSessionIds = new Map<string, string>();
+
     constructor(
 
         private userRepo: AuthUserRepository,
@@ -48,7 +52,9 @@ export class AuthService {
 
         private refreshService: RefreshTokenService,
 
-        private refreshTokenRepo: RefreshTokenRepository
+        private refreshTokenRepo: RefreshTokenRepository,
+
+        private sessionGateway: SessionGateway
 
     ) { 
         // Clean up expired throttle entries periodically
@@ -99,6 +105,37 @@ export class AuthService {
 
     private clearLoginAttempts(username: string): void {
         this.loginAttempts.delete(username);
+    }
+
+    /**
+     * Generate a unique session ID
+     */
+    private generateSessionId(): string {
+        return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    }
+
+    /**
+     * Set active session for a user (invalidates previous session)
+     */
+    private setActiveSession(userId: string, sessionId: string): void {
+        this.activeSessionIds.set(userId, sessionId);
+        this.logger.debug(`[SESSION] New session created for userId=${userId} sessionId=${sessionId}`);
+    }
+
+    /**
+     * Validate if a sessionId is active for a user
+     */
+    isSessionValid(userId: string, sessionId: string): boolean {
+        const activeSessionId = this.activeSessionIds.get(userId);
+        return activeSessionId === sessionId;
+    }
+
+    /**
+     * Invalidate all sessions for a user
+     */
+    private invalidateUserSessions(userId: string): void {
+        this.activeSessionIds.delete(userId);
+        this.logger.debug(`[SESSION] All sessions invalidated for userId=${userId}`);
     }
 
 
@@ -158,6 +195,13 @@ export class AuthService {
         }
 
         // Password is valid and user exists
+        const sessionId = this.generateSessionId();
+        this.setActiveSession(user.id, sessionId);
+
+        // Kick all other sessions for this user (multi-device logout)
+        // This sends SESSION_KICKED message to all other browsers/tabs
+        this.sessionGateway.kickOtherSessions(user.id);
+
         const accessToken =
             this.jwtService.generateAccessToken(
 
@@ -165,7 +209,9 @@ export class AuthService {
 
                 user.accountId,
 
-                user.roles
+                user.roles,
+
+                sessionId
 
             );
 
@@ -178,7 +224,7 @@ export class AuthService {
         this.clearLoginAttempts(username);
 
         this.logger.log(
-            `[AUTH_EVENT] login_succeeded userId=${user.id} accountId=${user.accountId} roles=${user.roles.join(',')}`
+            `[AUTH_EVENT] login_succeeded userId=${user.id} accountId=${user.accountId} roles=${user.roles.join(',')} sessionId=${sessionId}`
         );
 
         return {
@@ -319,17 +365,31 @@ export class AuthService {
             });
         }
 
-        // Generate new tokens
+        // Get the current active session ID for this user
+        // (session ID doesn't change on refresh, only on login)
+        const sessionId = this.activeSessionIds.get(user.id);
+        if (!sessionId) {
+            this.logger.error(
+                `[AUTH_EVENT] refresh_failed_no_session userId=${user.id}`
+            );
+            throw new UnauthorizedException({
+                errorCode: 'AUTH-401',
+                message: 'Unauthorised',
+            });
+        }
+
+        // Generate new tokens with same session ID
         const accessToken = this.jwtService.generateAccessToken(
             user.id,
             user.accountId,
-            user.roles
+            user.roles,
+            sessionId
         );
 
         const newRefreshToken = await this.refreshService.create(user.id);
 
         this.logger.log(
-            `[AUTH_EVENT] refresh_succeeded userId=${user.id} accountId=${user.accountId}`
+            `[AUTH_EVENT] refresh_succeeded userId=${user.id} accountId=${user.accountId} sessionId=${sessionId}`
         );
 
         return {
