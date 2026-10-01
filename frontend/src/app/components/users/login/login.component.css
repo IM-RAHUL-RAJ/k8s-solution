@@ -80,53 +80,30 @@
   background: color-mix(in srgb, var(--new) 22%, transparent);
 }
 
-.login__aside,
 .login__main {
   position: relative;
   z-index: 1;
 }
 
+/* ---------- Left panel: rolling wave ridges ---------- */
+
 .login__aside {
-  display: grid;
-  align-content: space-between;
-  gap: clamp(1.1rem, 2vw, 1.8rem);
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1.6rem, 5vh, 3rem);
   padding: clamp(1.2rem, 3.2vw, 2.4rem);
   border-right: 1px solid color-mix(in srgb, var(--line) 78%, transparent);
-  background:
-    radial-gradient(circle at 18% 20%, color-mix(in srgb, var(--accent) 42%, transparent), transparent 46%),
-    radial-gradient(circle at 78% 82%, color-mix(in srgb, var(--new) 28%, transparent), transparent 52%),
-    linear-gradient(150deg, color-mix(in srgb, var(--brand-panel) 86%, #000 14%) 0%, var(--brand-panel) 48%, color-mix(in srgb, var(--brand-panel) 76%, var(--bg) 24%) 100%);
+  background: var(--brand-panel);
   color: var(--on-brand);
   overflow: hidden;
+  --wave: #6fe3b4;
 }
 
-.login__aside::before,
-.login__aside::after {
-  content: "";
-  position: absolute;
-  pointer-events: none;
-}
-
-.login__aside::before {
-  inset: 0;
-  background:
-    linear-gradient(120deg, transparent 47%, color-mix(in srgb, var(--on-brand) 15%, transparent) 48%, transparent 49%),
-    linear-gradient(60deg, transparent 47%, color-mix(in srgb, var(--on-brand) 12%, transparent) 48%, transparent 49%),
-    radial-gradient(circle, color-mix(in srgb, var(--on-brand) 24%, transparent) 1px, transparent 1px);
-  background-size: 42px 42px, 42px 42px, 18px 18px;
-  background-position: 0 0, 0 0, 0 0;
-  opacity: 0.24;
-}
-
-.login__aside::after {
-  width: clamp(150px, 24vw, 280px);
-  aspect-ratio: 1;
-  right: -13%;
-  bottom: -14%;
-  border-radius: 41% 59% 66% 34% / 44% 51% 49% 56%;
-  background: color-mix(in srgb, var(--accent) 38%, transparent);
-  filter: blur(2px);
-  opacity: 0.85;
+.login__aside > :not(.login__waves) {
+  position: relative;
+  z-index: 1;
 }
 
 .login__brand {
@@ -149,24 +126,46 @@
 .login__aside-copy {
   display: grid;
   gap: 1rem;
-  max-width: 36ch;
+  max-width: 34ch;
 }
 
 .login__aside-title {
   margin: 0;
   font-family: "Canela", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
-  font-size: clamp(2rem, 4vw, 3.1rem);
+  font-size: clamp(2.2rem, 4.2vw, 3.4rem);
   line-height: 1.04;
   letter-spacing: -0.012em;
   color: var(--on-brand);
-  text-shadow: 0 10px 26px color-mix(in srgb, #000 32%, transparent);
 }
 
 .login__aside-text {
   margin: 0;
   line-height: 1.6;
-  color: color-mix(in srgb, var(--on-brand) 86%, transparent);
+  color: color-mix(in srgb, var(--on-brand) 80%, transparent);
 }
+
+.login__waves {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 62%;
+  color: var(--wave);
+  pointer-events: none;
+}
+
+.login__waves path {
+  fill: var(--brand-panel);
+  stroke: currentColor;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.login__waves .is-front {
+  stroke-width: 1.6;
+}
+
+/* ---------- Right panel: sign-in card ---------- */
 
 .login__main {
   display: flex;
@@ -408,6 +407,8 @@
   cursor: not-allowed;
 }
 
+/* ---------- Responsive ---------- */
+
 @media (max-width: 940px) {
   .login {
     grid-template-columns: 1fr;
@@ -417,7 +418,11 @@
   .login__aside {
     border-right: 0;
     border-bottom: 1px solid color-mix(in srgb, var(--line) 78%, transparent);
-    min-height: 220px;
+    min-height: 240px;
+  }
+
+  .login__waves {
+    height: 70%;
   }
 }
 

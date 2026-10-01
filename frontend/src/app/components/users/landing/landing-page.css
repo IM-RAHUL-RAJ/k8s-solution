@@ -342,6 +342,9 @@
   width: min(100%, 620px);
   height: clamp(280px, 43vh, 420px);
   justify-self: center;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(12px, 2vh, 20px);
   transform-origin: center;
 }
 
@@ -673,9 +676,20 @@
   }
 
   .stage {
-    width: min(100%, 560px);
-    height: clamp(240px, 38vh, 320px);
-    transform: scale(0.88);
+    width: min(100%, 600px);
+    height: auto;
+    max-height: 500px;
+    gap: 16px;
+    transform: scale(1);
+    margin: 0 auto;
+  }
+
+  .card {
+    position: relative !important;
+    top: auto !important;
+    right: auto !important;
+    width: 100% !important;
+    margin: 0 !important;
   }
 
   .ticker {
@@ -742,9 +756,22 @@
   }
 
   .stage {
-    height: 220px;
-    transform: scale(0.78);
-    margin-top: -2px;
+    height: auto;
+    max-height: 450px;
+    gap: 12px;
+    transform: scale(1);
+    zoom: 1;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  .card {
+    position: relative !important;
+    top: auto !important;
+    right: auto !important;
+    width: 100% !important;
+    margin: 0 !important;
+    max-height: 160px;
   }
 
   .ticker__track {
