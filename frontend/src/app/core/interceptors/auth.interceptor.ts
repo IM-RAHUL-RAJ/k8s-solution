@@ -30,7 +30,7 @@ function shouldAttachToken(url: string): boolean {
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AuthService);
-  const router = inject(Router);
+  // const router = inject(Router);
 
   if (!shouldAttachToken(req.url)) {
     return next(req);

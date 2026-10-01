@@ -222,10 +222,7 @@ export class AuthService {
     this.sessionIdSignal.set(null);
     localStorage.removeItem(this.storageKey);
     localStorage.removeItem(this.userStorageKey);
-<<<<<<< HEAD
     localStorage.removeItem(this.sessionIdKey);
-=======
->>>>>>> a230a29e6d2a4552214609c6c21a9f82384b166d
     // Navigate to landing page
     this.router.navigate(['/']);
   }

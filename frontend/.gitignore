@@ -60,3 +60,5 @@ Thumbs.db
 # hand. Committing them lets a clone build with no Java runtime and no network, and turns a
 # contract change into a diff a reviewer has to read.
 !/src/generated/
+
+README-madhu.md
