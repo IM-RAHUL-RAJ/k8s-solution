@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { Router, RouterLink } from '@angular/router';
 import { AuthService, LoginRequest } from '../../../core/auth/auth.service';
 import { ThemeService } from '../../../core/theme/theme.service';
+import { SessionSocketService } from '../../../core/auth/session-socket.service';
 
 @Component({
   selector: 'app-login',
@@ -18,6 +19,7 @@ export class LoginComponent {
   private authService = inject(AuthService);
   private router = inject(Router);
   private themeService = inject(ThemeService);
+  private sessionSocket = inject(SessionSocketService);
 
   /**
    * Form group for sign-in with username and password validation
@@ -106,6 +108,11 @@ export class LoginComponent {
         this.isSubmitting.set(false);
         // Clear form on success
         this.signInForm.reset();
+        
+        // Connect to session WebSocket for real-time multi-device logout
+        console.log('[Login] Connecting to session gateway...');
+        this.sessionSocket.connect();
+        
         // Navigate to dashboard
         this.router.navigate(['/dashboard'], { replaceUrl: true });
       },
