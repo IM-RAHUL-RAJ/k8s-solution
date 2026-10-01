@@ -196,9 +196,9 @@ describe('AuthService', () => {
       expect(service.isAuthenticated()).toBe(false);
     });
 
-    it('should navigate to sign-in on logout', () => {
+    it('should navigate to landing page on logout', () => {
       service.logout();
-      expect(router.navigate).toHaveBeenCalledWith(['/sign-in']);
+      expect(router.navigate).toHaveBeenCalledWith(['/']);
     });
   });
 

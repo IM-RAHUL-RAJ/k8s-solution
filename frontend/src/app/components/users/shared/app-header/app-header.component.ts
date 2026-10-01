@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { ThemeToggleComponent } from '../theme-toggle/theme-toggle.component';
 
@@ -18,7 +18,6 @@ interface NavigationItem {
 })
 export class AppHeaderComponent {
   private readonly auth = inject(AuthService);
-  private readonly router = inject(Router);
 
   protected readonly navigationItems: NavigationItem[] = [
     { label: 'Dashboard', path: '/dashboard' },
@@ -29,6 +28,5 @@ export class AppHeaderComponent {
 
   protected signOut(): void {
     this.auth.logout();
-    void this.router.navigate(['/sign-in']);
   }
 }
