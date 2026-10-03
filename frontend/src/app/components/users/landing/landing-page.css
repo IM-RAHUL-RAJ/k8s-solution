@@ -337,7 +337,6 @@
 }
 
 .stage {
-  zoom: 1.2;
   position: relative;
   width: min(100%, 620px);
   height: clamp(280px, 43vh, 420px);
@@ -346,6 +345,7 @@
   flex-direction: column;
   gap: clamp(12px, 2vh, 20px);
   transform-origin: center;
+  transform: scale(1.15);
 }
 
 .card {
@@ -646,7 +646,7 @@
   }
 
   .stage {
-    transform: scale(0.92);
+    transform: scale(0.88);
   }
 }
 
@@ -681,6 +681,7 @@
     max-height: 500px;
     gap: 16px;
     transform: scale(1);
+    zoom: 1;
     margin: 0 auto;
   }
 
@@ -697,23 +698,22 @@
   }
 }
 
-@media (max-width: 680px), (max-height: 740px) {
+@media (max-width: 768px) {
   .landing {
-    padding: 8px 10px;
-    gap: 6px;
+    padding: 10px 12px 8px;
+    gap: 8px;
   }
 
   .landing__bar {
-    min-height: 46px;
+    min-height: 44px;
   }
 
-  .landing__brand {
-    font-size: 0.92rem;
+  .landing__main {
+    gap: 12px;
   }
 
-  .landing__bar-link {
-    padding: 7px 12px;
-    font-size: 0.83rem;
+  .landing__copy {
+    padding-left: 1.2rem;
   }
 
   .landing__eyebrow {
@@ -721,44 +721,122 @@
   }
 
   .landing__copy h1 {
-    font-size: clamp(1.38rem, 5.8vw, 1.9rem);
-    line-height: 1.07;
+    font-size: clamp(1.35rem, 5vw, 1.8rem);
+    max-width: 20ch;
   }
 
   .landing__lead {
-    margin-top: 10px;
-    font-size: 0.88rem;
+    font-size: clamp(0.85rem, 0.9vw, 0.95rem);
+    line-height: 1.55;
+    margin-top: 8px;
+  }
+
+  .landing__button {
+    padding: 9px 14px;
+    font-size: 0.8rem;
+  }
+
+  .landing__metrics {
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .stage {
+    zoom: 1;
+    transform: scale(1);
+  }
+}
+
+@media (max-width: 680px), (max-height: 740px) {
+  .landing {
+    padding: 8px 10px 6px;
+    gap: 6px;
+  }
+
+  .landing__bar {
+    min-height: 42px;
+    padding-inline: clamp(8px, 1.5vw, 12px);
+    padding-top: 12px;
+  }
+
+  .landing__brand {
+    font-size: 0.85rem;
+  }
+
+  .landing__bar-link {
+    padding: 6px 10px;
+    font-size: 0.75rem;
+  }
+
+  .landing__main {
+    gap: 10px;
+  }
+
+  .landing__copy {
+    padding-left: 0.8rem;
+  }
+
+  .landing__eyebrow {
+    margin-bottom: 6px;
+    font-size: 0.6rem;
+  }
+
+  .landing__copy h1 {
+    font-size: clamp(1.2rem, 4.5vw, 1.6rem);
+    line-height: 1.08;
+    max-width: 22ch;
+  }
+
+  .landing__lead {
+    margin-top: 8px;
+    font-size: 0.8rem;
     line-height: 1.5;
   }
 
   .landing__actions {
     margin-top: 10px;
-    gap: 9px;
+    gap: 8px;
   }
 
   .landing__button {
-    padding: 9px 14px;
-    font-size: 0.84rem;
+    padding: 8px 12px;
+    font-size: 0.75rem;
   }
 
   .landing__kpi {
-    min-width: 120px;
-    padding: 7px 10px;
+    min-width: 110px;
+    padding: 7px 9px;
+  }
+
+  .landing__kpi strong {
+    font-size: 0.9rem;
+  }
+
+  .landing__kpi span {
+    font-size: 0.7rem;
   }
 
   .landing__metrics {
-    margin-top: 9px;
-    gap: 7px;
+    margin-top: 8px;
+    gap: 6px;
   }
 
   .landing__metrics article {
-    padding: 8px 9px;
+    padding: 7px 8px;
+  }
+
+  .landing__metrics span {
+    font-size: 0.65rem;
+  }
+
+  .landing__metrics b {
+    font-size: 0.85rem;
   }
 
   .stage {
     height: auto;
-    max-height: 450px;
-    gap: 12px;
+    max-height: 400px;
+    gap: 10px;
     transform: scale(1);
     zoom: 1;
     margin: 0 auto;
@@ -771,12 +849,72 @@
     right: auto !important;
     width: 100% !important;
     margin: 0 !important;
-    max-height: 160px;
+    max-height: 150px;
   }
 
   .ticker__track {
     font-size: 0.7rem;
-    gap: 24px;
+    gap: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .landing {
+    padding: 6px 8px 4px;
+    gap: 4px;
+  }
+
+  .landing__bar {
+    min-height: 38px;
+    padding: 8px 6px 0;
+  }
+
+  .landing__brand {
+    font-size: 0.78rem;
+  }
+
+  .landing__bar-link {
+    padding: 5px 8px;
+    font-size: 0.7rem;
+  }
+
+  .landing__copy h1 {
+    font-size: clamp(1rem, 4vw, 1.35rem);
+    max-width: 24ch;
+  }
+
+  .landing__lead {
+    font-size: 0.75rem;
+  }
+
+  .landing__button {
+    padding: 7px 10px;
+    font-size: 0.7rem;
+  }
+
+  .landing__kpi {
+    min-width: 90px;
+    padding: 6px 8px;
+  }
+
+  .landing__metrics {
+    margin-top: 6px;
+    gap: 4px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .landing__metrics article {
+    padding: 6px 7px;
+  }
+
+  .stage {
+    max-height: 350px;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .card {
+    max-height: 120px !important;
   }
 }
 

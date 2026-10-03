@@ -15,7 +15,8 @@ describe('authGuard', () => {
     authService = {
       isAuthenticated: vi.fn().mockReturnValue(false),
       validateSession: vi.fn().mockReturnValue(of(undefined)),
-      logout: vi.fn()
+      logout: vi.fn(),
+      shouldForceLandingAfterLogout: vi.fn().mockReturnValue(false)
     };
 
     TestBed.configureTestingModule({
@@ -41,6 +42,20 @@ describe('authGuard', () => {
 
     expect(result).toBe(true);
     expect(authService.validateSession).toHaveBeenCalled();
+  });
+
+  it('should redirect to landing when logout marker is set', async () => {
+    authService.shouldForceLandingAfterLogout.mockReturnValue(true);
+    authService.isAuthenticated.mockReturnValue(true);
+
+    const result = await firstValueFrom(
+      TestBed.runInInjectionContext(() =>
+        authGuard(route as ActivatedRouteSnapshot, routerState as RouterStateSnapshot) as any
+      )
+    );
+
+    expect(result).toBeInstanceOf(UrlTree);
+    expect(router.serializeUrl(result as UrlTree)).toBe('/');
   });
 
   it('should redirect to sign-in when not authenticated', async () => {
@@ -111,7 +126,7 @@ describe('authGuard', () => {
     );
 
     expect(result).toBeInstanceOf(UrlTree);
-    expect(router.serializeUrl(result as UrlTree)).toBe('/sign-in');
+    expect(router.serializeUrl(result as UrlTree)).toBe('/');
     expect(authService.logout).toHaveBeenCalled();
   });
 });

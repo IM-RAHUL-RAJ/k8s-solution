@@ -81,6 +81,7 @@
               type="text" id="username" formControlName="username"
               data-testid="username-input" class="form-input"
               autocomplete="username" autocapitalize="none" spellcheck="false"
+              (keydown.enter)="onSubmit()"
               [class.form-input--error]="usernameError()"
               [attr.aria-invalid]="usernameError() ? true : null"
               [attr.aria-describedby]="usernameError() ? 'username-error' : null"
@@ -109,6 +110,7 @@
               [type]="showPassword() ? 'text' : 'password'" id="password" formControlName="password"
               data-testid="password-input" class="form-input"
               autocomplete="current-password"
+              (keydown.enter)="onSubmit()"
               [class.form-input--error]="passwordError()"
               [attr.aria-invalid]="passwordError() ? true : null"
               [attr.aria-describedby]="passwordError() ? 'password-error' : null"
@@ -143,7 +145,13 @@
 
         <button type="submit" data-testid="submit-button" class="submit-button"
                 [disabled]="!canSubmit()" [attr.aria-busy]="isSubmitting()">
-          @if (isSubmitting()) { Signing in... } @else { Sign in }
+          @if (lockoutSecondsRemaining() > 0) {
+            {{ lockoutButtonText() }}
+          } @else if (isSubmitting()) { 
+            Signing in... 
+          } @else { 
+            Sign in 
+          }
         </button>
       </form>
 

@@ -20,6 +20,11 @@ export const authGuard: CanActivateFn = (
   const authService = inject(AuthService);
   const router = inject(Router);
 
+  // After logout, keep user on landing even if browser back lands on a guarded URL.
+  if (authService.shouldForceLandingAfterLogout()) {
+    return of(router.createUrlTree(['/']));
+  }
+
   // Check if user is authenticated
   if (!authService.isAuthenticated()) {
     // Extract return URL from current route
@@ -45,7 +50,7 @@ export const authGuard: CanActivateFn = (
     catchError(() => {
       // Session is invalid (logged out from another device)
       authService.logout();
-      return of(router.createUrlTree(['/sign-in']));
+      return of(router.createUrlTree(['/']));
     })
   );
 };

@@ -2,6 +2,7 @@ import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
+import { of, throwError } from 'rxjs';
 import { vi } from 'vitest';
 import { AuthService } from '../auth/auth.service';
 import { API_ENDPOINTS } from '../config/api-endpoints';
@@ -14,15 +15,18 @@ describe('authInterceptor', () => {
   let http: HttpClient;
   let httpMock: HttpTestingController;
   const logout = vi.fn();
+  const refreshAccessToken = vi.fn();
 
   beforeEach(() => {
     logout.mockReset();
+    refreshAccessToken.mockReset();
+    refreshAccessToken.mockReturnValue(throwError(() => new Error('refresh failed')));
 
     TestBed.configureTestingModule({
       providers: [
         provideHttpClient(withInterceptors([authInterceptor])),
         provideHttpClientTesting(),
-        { provide: AuthService, useValue: { getToken: () => 'test-token', logout } },
+        { provide: AuthService, useValue: { getToken: () => 'test-token', logout, refreshAccessToken } },
         { provide: Router, useValue: { url: '/blotter' } }
       ]
     });
@@ -110,6 +114,23 @@ describe('authInterceptor', () => {
 
   it('a 401 from the trade API ends the session', () => {
     const url = `${trade}/api/v1/accounts/1`;
+    refreshAccessToken.mockReturnValue(of('new-token'));
+
+    http.get(url).subscribe({ error: () => undefined });
+
+    httpMock.expectOne(url).flush({ errorCode: 'AUTH-401' }, { status: 401, statusText: 'Unauthorized' });
+
+    const retried = httpMock.expectOne(url);
+    expect(retried.request.headers.get('Authorization')).toBe('Bearer new-token');
+    retried.flush({});
+
+    expect(logout).not.toHaveBeenCalled();
+  });
+
+  it('logs out when refresh token is invalid during 401 recovery', () => {
+    const url = `${trade}/api/v1/accounts/1`;
+
+    refreshAccessToken.mockReturnValue(throwError(() => new Error('Session expired. Please sign in again.')));
 
     http.get(url).subscribe({ error: () => undefined });
 
