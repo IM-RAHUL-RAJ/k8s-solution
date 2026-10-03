@@ -38,7 +38,7 @@ export class AuthService {
 
     // Login throttle configuration
     private readonly LOGIN_ATTEMPT_LIMIT = 5;
-    private readonly LOGIN_THROTTLE_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+    private readonly LOGIN_THROTTLE_WINDOW_MS = 60 * 1000; // 60 seconds (matches frontend)
     private readonly loginAttempts = new Map<string, { count: number; firstAttempt: number }>();
 
     // Session management: Map of userId -> active sessionId

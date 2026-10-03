@@ -1,13 +1,20 @@
+import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { provideRouter, Router } from '@angular/router';
-import { signal } from '@angular/core';
+import { provideRouter, Router, Routes } from '@angular/router';
 import { vi } from 'vitest';
 import { of } from 'rxjs';
 import { App } from './app';
-import { routes } from './app.routes';
 import { AuthService } from './core/auth/auth.service';
 import { SessionSocketService } from './core/auth/session-socket.service';
 import { ThemeService } from './core/theme/theme.service';
+
+@Component({ standalone: true, template: '<p>dummy</p>' })
+class DummyPageComponent {}
+
+const testRoutes: Routes = [
+  { path: '', component: DummyPageComponent },
+  { path: 'dashboard', component: DummyPageComponent }
+];
 
 describe('App', () => {
   const isAuthenticated = signal(false);
@@ -27,7 +34,7 @@ describe('App', () => {
     await TestBed.configureTestingModule({
       imports: [App],
       providers: [
-        provideRouter(routes),
+        provideRouter(testRoutes),
         {
           provide: AuthService,
           useValue: {
@@ -35,7 +42,9 @@ describe('App', () => {
             user: signal(null),
             logout: () => undefined,
             getToken: () => null,
-            validateSession: () => of(undefined)
+            getTokenClaims: () => null,
+            validateSession: () => of(undefined),
+            shouldForceLandingAfterLogout: () => false
           }
         },
         { provide: SessionSocketService, useValue: sessionSocketMock },
@@ -59,10 +68,8 @@ describe('App', () => {
   it('shows the header once signed in', async () => {
     isAuthenticated.set(true);
     const router = TestBed.inject(Router);
-    
-    // Navigate to a protected route to set the URL properly
     await router.navigateByUrl('/dashboard');
-    
+
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();
     fixture.detectChanges();

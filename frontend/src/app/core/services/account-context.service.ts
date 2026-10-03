@@ -17,11 +17,19 @@ export class AccountContextService {
 
   getCurrentAccount(): AccountContext {
     const user = this.auth.user();
+    const claims = this.auth.getTokenClaims();
+    const claimAccountId = Number(claims?.accountId ?? claims?.sub?.accountId ?? 0);
+    const effectiveAccountId = Number.isFinite(claimAccountId) && claimAccountId > 0
+      ? claimAccountId
+      : (user?.accountId ?? 0);
+    const claimUsername = typeof claims?.username === 'string'
+      ? claims.username
+      : (typeof claims?.sub?.username === 'string' ? claims.sub.username : null);
 
     return {
-      accountNumericId: user?.accountId ?? 0,
-      accountReference: user && (user.accountId ?? 0) > 0 ? String(user.accountId) : 'Unknown',
-      displayName: user?.username ?? ''
+      accountNumericId: effectiveAccountId,
+      accountReference: effectiveAccountId > 0 ? String(effectiveAccountId) : 'Unknown',
+      displayName: claimUsername ?? user?.username ?? ''
     };
   }
 }

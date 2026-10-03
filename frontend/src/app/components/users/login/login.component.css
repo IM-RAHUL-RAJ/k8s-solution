@@ -326,7 +326,7 @@
 
 .form-input {
   width: 100%;
-  padding: 0.82rem 2.7rem 0.82rem 2.7rem;
+  padding: 0.82rem 3.2rem 0.82rem 2.7rem;
   font: inherit;
   font-size: 0.95rem;
   color: var(--text);
@@ -338,11 +338,12 @@
 
 .password-toggle {
   position: absolute;
-  right: 10px;
+  right: 8px;
   top: 50%;
+  z-index: 10;
   transform: translateY(-50%);
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   border: 0;
   border-radius: 8px;
   background: transparent;
@@ -351,21 +352,28 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+  padding: 0;
+  margin: 0;
+  opacity: 1;
+  visibility: visible;
 }
 
 .password-toggle svg {
   width: 18px;
   height: 18px;
+  display: block;
 }
 
 .password-toggle:hover {
-  background: color-mix(in srgb, var(--line) 40%, transparent);
-  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  color: var(--accent);
 }
 
 .password-toggle:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
 }
 
 .form-input:hover {
@@ -446,6 +454,16 @@
 
 /* ---------- Responsive ---------- */
 
+@media (max-width: 1024px) {
+  .login-card {
+    width: min(100%, 480px);
+  }
+
+  .login__aside-title {
+    font-size: clamp(2rem, 3.8vw, 2.8rem);
+  }
+}
+
 @media (max-width: 940px) {
   .login {
     grid-template-columns: 1fr;
@@ -455,7 +473,8 @@
   .login__aside {
     border-right: 0;
     border-bottom: 1px solid color-mix(in srgb, var(--line) 78%, transparent);
-    min-height: 240px;
+    min-height: 200px;
+    max-height: 35vh;
   }
 
   .login__waves {
@@ -463,9 +482,42 @@
   }
 }
 
-@media (max-width: 680px) {
+@media (max-width: 768px) {
   .login__aside {
-    padding: 1rem 1.1rem;
+    padding: 1.2rem;
+    gap: 1.2rem;
+  }
+
+  .login__main {
+    padding: 1.2rem;
+  }
+
+  .login-card {
+    width: 100%;
+    max-width: 480px;
+  }
+
+  .login-header h1 {
+    font-size: clamp(1.5rem, 2.4vw, 1.8rem);
+  }
+
+  .form-input {
+    font-size: 0.9rem;
+    padding: 0.75rem 2.8rem 0.75rem 2.5rem;
+  }
+}
+
+@media (max-width: 680px) {
+  .login {
+    padding: 0;
+    gap: 0;
+  }
+
+  .login__aside {
+    padding: 1rem;
+    gap: 0.8rem;
+    min-height: 140px;
+    border-bottom: 1px solid color-mix(in srgb, var(--line) 78%, transparent);
   }
 
   .login__aside-copy {
@@ -479,12 +531,120 @@
 
   .login-card {
     width: 100%;
-    border-radius: 12px;
+    max-width: 100%;
+    border-radius: 10px;
     padding: 1rem;
   }
 
+  .login-header {
+    margin-bottom: 1rem;
+  }
+
+  .login-header h1 {
+    font-size: 1.4rem;
+  }
+
+  .login-header p {
+    font-size: 0.85rem;
+  }
+
+  .form-input {
+    padding: 0.7rem 2.6rem 0.7rem 2.4rem;
+    font-size: 0.88rem;
+  }
+
+  .submit-button {
+    padding: 0.8rem 0.8rem;
+    font-size: 0.88rem;
+  }
+
   .login__theme-toggle--floating {
-    top: 10px;
-    right: 10px;
+    top: 8px;
+    right: 8px;
+    width: 40px;
+    height: 40px;
+  }
+
+  .login__theme-toggle svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .error-banner {
+    font-size: 0.8rem;
+    padding: 0.6rem 0.8rem;
+  }
+
+  .login-form {
+    padding: 0.9rem;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .login__aside {
+    padding: 0.8rem;
+    min-height: 110px;
+    gap: 0.6rem;
+  }
+
+  .login__shape--one,
+  .login__shape--two {
+    display: none;
+  }
+
+  .login__main {
+    padding: 0.8rem;
+  }
+
+  .login-card {
+    border-radius: 8px;
+    padding: 0.9rem;
+  }
+
+  .login-header h1 {
+    font-size: 1.2rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .form-input {
+    padding: 0.65rem 2.4rem 0.65rem 2.2rem;
+    font-size: 0.85rem;
+  }
+
+  .password-toggle {
+    right: 6px;
+    width: 32px;
+    height: 32px;
+  }
+
+  .password-toggle svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .submit-button {
+    padding: 0.75rem 0.7rem;
+    font-size: 0.85rem;
+  }
+
+  .error-banner {
+    font-size: 0.75rem;
+    padding: 0.5rem 0.7rem;
+  }
+
+  .login-form {
+    padding: 0.8rem;
+    gap: 0.9rem;
+  }
+
+  .field-error {
+    font-size: 0.75rem;
+  }
+
+  .field-error svg {
+    width: 12px;
+    height: 12px;
   }
 }

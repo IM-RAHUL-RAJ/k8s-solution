@@ -7,14 +7,16 @@ import { AuthService, LoginRequest, LoginResponse } from './auth.service';
 describe('AuthService', () => {
   let service: AuthService;
   let httpMock: HttpTestingController;
-  let router: { navigate: ReturnType<typeof vi.fn> };
+  let router: { navigate: ReturnType<typeof vi.fn>; navigateByUrl: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     router = {
-      navigate: vi.fn()
+      navigate: vi.fn(),
+      navigateByUrl: vi.fn()
     };
 
     localStorage.clear();
+    sessionStorage.clear();
 
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
@@ -31,6 +33,7 @@ describe('AuthService', () => {
   afterEach(() => {
     httpMock.verify();
     localStorage.clear();
+    sessionStorage.clear();
   });
 
   describe('Login', () => {
@@ -87,7 +90,7 @@ describe('AuthService', () => {
 
       service.login(credentials).subscribe({
         error: (error) => {
-          expect(error.message).toContain('Network error');
+          expect(error.message).toContain('timed out or network failed');
         }
       });
 
@@ -109,6 +112,23 @@ describe('AuthService', () => {
 
       const req = httpMock.expectOne('http://localhost:3000/auth/login');
       req.flush({ message: 'Server error' }, { status: 500, statusText: 'Internal Server Error' });
+
+    });
+
+    it('should show throttle message on 429', async () => {
+      const credentials: LoginRequest = {
+        username: 'testuser',
+        password: 'password123'
+      };
+
+      service.login(credentials).subscribe({
+        error: (error) => {
+          expect(error.message).toContain('Too many sign-in attempts');
+        }
+      });
+
+      const req = httpMock.expectOne('http://localhost:3000/auth/login');
+      req.flush({ message: 'Too many requests' }, { status: 429, statusText: 'Too Many Requests' });
     });
   });
 
@@ -198,7 +218,7 @@ describe('AuthService', () => {
 
     it('should navigate to landing page on logout', () => {
       service.logout();
-      expect(router.navigate).toHaveBeenCalledWith(['/']);
+      expect(router.navigateByUrl).toHaveBeenCalledWith('/', { replaceUrl: true });
     });
   });
 
@@ -224,7 +244,7 @@ describe('AuthService', () => {
       req.flush({ message: 'Error' }, { status: 401, statusText: 'Unauthorized' });
     });
 
-    it('should persist token to localStorage', () => {
+    it('should persist token to sessionStorage and not localStorage', () => {
       const setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
 
       const credentials: LoginRequest = {
@@ -247,8 +267,29 @@ describe('AuthService', () => {
       req.flush(response);
 
       expect(setItemSpy).toHaveBeenCalledWith('access_token', 'test-token-123');
-      expect(localStorage.getItem('access_token')).toBe('test-token-123');
+      expect(sessionStorage.getItem('access_token')).toBe('test-token-123');
+      expect(localStorage.getItem('access_token')).toBeNull();
       setItemSpy.mockRestore();
+    });
+
+    it('should store refresh token in sessionStorage only', () => {
+      const credentials: LoginRequest = {
+        username: 'testuser',
+        password: 'password123'
+      };
+
+      service.login(credentials).subscribe();
+
+      const req = httpMock.expectOne('http://localhost:3000/auth/login');
+      req.flush({
+        accessToken: 'access-token',
+        refreshToken: 'refresh-token',
+        tokenType: 'Bearer',
+        expiresIn: 900
+      });
+
+      expect(sessionStorage.getItem('refresh_token')).toBe('refresh-token');
+      expect(localStorage.getItem('refresh_token')).toBeNull();
     });
   });
 });

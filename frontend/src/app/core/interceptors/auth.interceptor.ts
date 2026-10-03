@@ -1,7 +1,6 @@
 import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
-import { Router } from '@angular/router';
-import { catchError, throwError } from 'rxjs';
+import { catchError, switchMap, throwError } from 'rxjs';
 import { platformTargets } from '../config/api-endpoints';
 import { AuthService } from '../auth/auth.service';
 
@@ -30,7 +29,6 @@ function shouldAttachToken(url: string): boolean {
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AuthService);
-  const router = inject(Router);
 
   if (!shouldAttachToken(req.url)) {
     return next(req);
@@ -43,11 +41,35 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(outgoing).pipe(
     catchError((error: unknown) => {
-      // The session ended while a signed-in call was in flight: sign out and say so.
-      if (error instanceof HttpErrorResponse && error.status === 401 && token) {
-        auth.logout();
+      const is401 = error instanceof HttpErrorResponse && error.status === 401;
+      const hasToken = !!token;
+      const isRefreshRequest = req.url.includes('/auth/refresh');
+      const alreadyRetried = req.headers.has('X-Auth-Retry');
+
+      if (!is401 || !hasToken) {
+        return throwError(() => error);
       }
-      return throwError(() => error);
+
+      if (isRefreshRequest || alreadyRetried) {
+        auth.logout();
+        return throwError(() => error);
+      }
+
+      return auth.refreshAccessToken().pipe(
+        switchMap((nextToken) => {
+          const retried = req.clone({
+            setHeaders: {
+              Authorization: `Bearer ${nextToken}`,
+              'X-Auth-Retry': '1'
+            }
+          });
+          return next(retried);
+        }),
+        catchError((refreshError: unknown) => {
+          auth.logout();
+          return throwError(() => refreshError);
+        })
+      );
     })
   );
 };
