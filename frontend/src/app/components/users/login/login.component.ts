@@ -103,6 +103,12 @@ export class LoginComponent {
 
     this.restoreLockoutState();
 
+    // Why the user was sent here: a rejected or tampered token, or a session opened elsewhere.
+    const sessionMessage = this.route.snapshot.queryParamMap.get('sessionMessage');
+    if (sessionMessage && !this.isCurrentlyLockedOut()) {
+      this.errorMessage.set(sessionMessage.slice(0, 200));
+    }
+
     this.signInForm = this.fb.group({
       username: [
         '',

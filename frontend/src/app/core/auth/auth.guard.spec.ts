@@ -15,6 +15,7 @@ describe('authGuard', () => {
     authService = {
       isAuthenticated: vi.fn().mockReturnValue(false),
       validateSession: vi.fn().mockReturnValue(of(undefined)),
+      verifyStorageIntegrity: vi.fn().mockReturnValue(true),
       logout: vi.fn(),
       shouldForceLandingAfterLogout: vi.fn().mockReturnValue(false)
     };
@@ -125,8 +126,22 @@ describe('authGuard', () => {
       )
     );
 
-    expect(result).toBeInstanceOf(UrlTree);
-    expect(router.serializeUrl(result as UrlTree)).toBe('/');
-    expect(authService.logout).toHaveBeenCalled();
+    // logout() itself sends the user to sign-in with the reason.
+    expect(result).toBe(false);
+    expect(authService.logout).toHaveBeenCalledWith(expect.stringContaining('Unauthorised'));
+  });
+
+  it('should block and not call the server when the stored token was tampered with', async () => {
+    authService.isAuthenticated.mockReturnValue(true);
+    authService.verifyStorageIntegrity.mockReturnValue(false);
+
+    const result = await firstValueFrom(
+      TestBed.runInInjectionContext(() =>
+        authGuard(route as ActivatedRouteSnapshot, routerState as RouterStateSnapshot) as any
+      )
+    );
+
+    expect(result).toBe(false);
+    expect(authService.validateSession).not.toHaveBeenCalled();
   });
 });

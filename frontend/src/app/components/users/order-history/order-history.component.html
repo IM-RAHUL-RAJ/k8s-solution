@@ -32,12 +32,6 @@
     </div>
   }
 
-  @if (pollingMessage(); as message) {
-    <div class="banner info working" role="status" data-testid="polling-message">
-      <span class="working__dot" aria-hidden="true"></span>{{ message }}
-    </div>
-  }
-
   @if (loading()) {
     <article class="card" aria-busy="true" aria-label="Loading orders">
       <span class="skeleton"></span>
@@ -63,9 +57,6 @@
     </div>
 
     <article class="card table-card">
-      @if (visibleOrders().length === 0) {
-        <p class="muted none">No orders match this filter.</p>
-      } @else {
         <table>
           <thead>
             <tr>
@@ -77,6 +68,57 @@
               <th scope="col" class="num">Executed at</th>
               <th scope="col">Status</th>
               <th scope="col" class="act"><span class="sr-only">Actions</span></th>
+            </tr>
+            <tr class="filter-row" data-testid="column-filters">
+              <th>
+                <input type="date" aria-label="Filter by placed date" [value]="dateFilter()"
+                       (input)="dateFilter.set($any($event.target).value)" data-testid="col-filter-date" />
+              </th>
+              <th>
+                <input type="search" placeholder="Symbol" aria-label="Filter by symbol" autocomplete="off"
+                       [value]="symbolFilter()" (input)="symbolFilter.set($any($event.target).value)"
+                       data-testid="col-filter-symbol" />
+              </th>
+              <th>
+                <select aria-label="Filter by side" [value]="sideFilter()"
+                        (change)="sideFilter.set($any($event.target).value)" data-testid="col-filter-side">
+                  <option value="">All</option>
+                  <option value="BUY">Buy</option>
+                  <option value="SELL">Sell</option>
+                </select>
+              </th>
+              <th class="num">
+                <input type="search" placeholder="e.g. >100" aria-label="Filter by quantity" autocomplete="off"
+                       [value]="quantityFilter()" (input)="quantityFilter.set($any($event.target).value)"
+                       data-testid="col-filter-quantity" />
+              </th>
+              <th class="num">
+                <input type="search" placeholder="e.g. <=50" aria-label="Filter by limit price" autocomplete="off"
+                       [value]="priceFilter()" (input)="priceFilter.set($any($event.target).value)"
+                       data-testid="col-filter-price" />
+              </th>
+              <th class="num">
+                <input type="search" placeholder="e.g. >=10" aria-label="Filter by executed price" autocomplete="off"
+                       [value]="executedFilter()" (input)="executedFilter.set($any($event.target).value)"
+                       data-testid="col-filter-executed" />
+              </th>
+              <th>
+                <select aria-label="Filter by status" [value]="filter()"
+                        (change)="setFilter($any($event.target).value)" data-testid="col-filter-status">
+                  <option value="ALL">All</option>
+                  <option value="NEW">Working</option>
+                  <option value="FILLED">Filled</option>
+                  <option value="REJECTED">Rejected</option>
+                  <option value="CANCELLED">Cancelled</option>
+                </select>
+              </th>
+              <th class="act">
+                @if (activeColumnFilters() > 0) {
+                  <button type="button" class="mini ghost" (click)="clearFilters()" data-testid="clear-filters">
+                    Clear
+                  </button>
+                }
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -129,10 +171,13 @@
                   }
                 </td>
               </tr>
+            } @empty {
+              <tr class="none-row">
+                <td colspan="8"><span class="muted">No orders match these filters.</span></td>
+              </tr>
             }
           </tbody>
         </table>
-      }
     </article>
   }
 </section>

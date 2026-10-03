@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, OnInit } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { AppHeaderComponent } from './components/users/shared/app-header/app-header.component';
@@ -41,12 +41,32 @@ export class App implements OnInit {
     this.themeService.getCurrentTheme();
   }
 
+  private readonly destroyRef = inject(DestroyRef);
+
   ngOnInit(): void {
+    this.watchTokenIntegrity();
+
     // Connect to session gateway if user is already authenticated
     // This covers: tab refresh, new tab, browser restart scenarios
     if (this.auth.isAuthenticated()) {
       console.log('[App] User authenticated, connecting to session gateway');
       this.sessionSocket.connect();
     }
+  }
+
+  /**
+   * sessionStorage edits made in dev tools raise no event in the same tab, so the stored
+   * token is re-checked on a short timer and whenever the tab regains focus.
+   */
+  private watchTokenIntegrity(): void {
+    const check = () => this.auth.verifyStorageIntegrity();
+    const timer = setInterval(check, 1500);
+    window.addEventListener('focus', check);
+    document.addEventListener('visibilitychange', check);
+    this.destroyRef.onDestroy(() => {
+      clearInterval(timer);
+      window.removeEventListener('focus', check);
+      document.removeEventListener('visibilitychange', check);
+    });
   }
 }

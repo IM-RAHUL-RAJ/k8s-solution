@@ -24,9 +24,11 @@ function order(orderId: string, status: string, createdOn: string) {
 describe('OrderHistoryComponent', () => {
   const getOrderHistory = vi.fn();
   const cancelOrder = vi.fn();
+  let consoleInfo: ReturnType<typeof vi.spyOn>;
 
   beforeEach(async () => {
     vi.useFakeTimers();
+    consoleInfo = vi.spyOn(console, 'info').mockImplementation(() => undefined);
     getOrderHistory.mockReset();
     cancelOrder.mockReset();
 
@@ -45,7 +47,10 @@ describe('OrderHistoryComponent', () => {
     }).compileComponents();
   });
 
-  afterEach(() => vi.useRealTimers());
+  afterEach(() => {
+    consoleInfo.mockRestore();
+    vi.useRealTimers();
+  });
 
   function create() {
     const fixture = TestBed.createComponent(OrderHistoryComponent);
@@ -71,15 +76,47 @@ describe('OrderHistoryComponent', () => {
     expect(badges).toEqual(['FILLED', 'REJECTED', 'CANCELLED']);
   });
 
+  it('column filters narrow the table by symbol, side and a number expression', () => {
+    getOrderHistory.mockReturnValue(
+      of([
+        { ...order('a', 'FILLED', '2026-01-01T10:00:00Z'), symbol: 'AAPL', side: 'BUY', quantity: 10 },
+        { ...order('b', 'FILLED', '2026-01-01T11:00:00Z'), symbol: 'MSFT', side: 'SELL', quantity: 50 },
+        { ...order('c', 'NEW', '2026-01-01T12:00:00Z'), symbol: 'AAPL', side: 'SELL', quantity: 100 }
+      ])
+    );
+    const component = create().componentInstance;
+
+    component.symbolFilter.set('aap');
+    expect(component.visibleOrders().map((o) => o.orderId)).toEqual(['c', 'a']);
+
+    component.sideFilter.set('SELL');
+    expect(component.visibleOrders().map((o) => o.orderId)).toEqual(['c']);
+
+    component.symbolFilter.set('');
+    component.sideFilter.set('');
+    component.quantityFilter.set('>=50');
+    expect(component.visibleOrders().map((o) => o.orderId)).toEqual(['c', 'b']);
+
+    component.quantityFilter.set('nonsense');
+    expect(component.visibleOrders().length).toBe(3);
+
+    component.quantityFilter.set('10');
+    component.filter.set('FILLED');
+    expect(component.activeColumnFilters()).toBe(2);
+    component.clearFilters();
+    expect(component.activeColumnFilters()).toBe(0);
+    expect(component.visibleOrders().length).toBe(3);
+  });
+
   it('an order at NEW is shown as still working', () => {
     getOrderHistory.mockReturnValue(of([order('a', 'NEW', '2026-01-01T10:00:00Z')]));
 
     const fixture = create();
 
-    const banner = (fixture.nativeElement as HTMLElement).querySelector('[data-testid="polling-message"]');
-    expect(banner?.textContent).toContain('1 order is still working');
-    expect(banner?.getAttribute('role')).toBe('status');
-    expect(banner?.textContent).toContain(`attempt 1 of ${MAX_POLL_ATTEMPTS}`);
+    // Progress goes to the console, not onto the blotter.
+    expect((fixture.nativeElement as HTMLElement).querySelector('[data-testid="polling-message"]')).toBeNull();
+    expect(fixture.componentInstance.workingCount()).toBe(1);
+    expect(consoleInfo).toHaveBeenCalledWith(expect.stringContaining(`attempt 1 of ${MAX_POLL_ATTEMPTS}`));
   });
 
   it('the re-read stops when nothing is at NEW', () => {
@@ -92,7 +129,7 @@ describe('OrderHistoryComponent', () => {
     fixture.detectChanges();
 
     expect(getOrderHistory).toHaveBeenCalledTimes(2);
-    expect(fixture.componentInstance.pollingMessage()).toBeNull();
+    expect(fixture.componentInstance.workingCount()).toBe(0);
 
     vi.advanceTimersByTime(POLL_INTERVAL_MS * 5);
     expect(getOrderHistory).toHaveBeenCalledTimes(2);
@@ -107,7 +144,8 @@ describe('OrderHistoryComponent', () => {
 
     // One initial read plus at most MAX_POLL_ATTEMPTS re-reads, then silence.
     expect(getOrderHistory).toHaveBeenCalledTimes(MAX_POLL_ATTEMPTS + 1);
-    expect(fixture.componentInstance.pollingMessage()).toContain('Automatic checking stopped');
+    expect(fixture.componentInstance.pollingStopped()).toBe(true);
+    expect(consoleInfo).toHaveBeenCalledWith(expect.stringContaining('Automatic checking stopped'));
   });
 
   it('pressing refresh after the re-read gave up opens a new window', () => {
@@ -158,7 +196,6 @@ describe('OrderHistoryComponent', () => {
     expect(cancelOrder).toHaveBeenCalledWith('a');
     expect(component.orders()[0].status).toBe('CANCELLED');
     expect(component.workingCount()).toBe(0);
-    expect(component.pollingMessage()).toBeNull();
     expect(component.notice()).toContain('Cancelled your buy order for AAPL');
 
     vi.advanceTimersByTime(POLL_INTERVAL_MS * 3);
@@ -217,7 +254,6 @@ describe('OrderHistoryComponent', () => {
     const fixture = create();
 
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('No orders yet.');
-    expect(fixture.componentInstance.pollingMessage()).toBeNull();
   });
 
   it('leaving the screen stops the re-read', () => {

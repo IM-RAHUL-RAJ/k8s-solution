@@ -93,11 +93,13 @@ export interface ExecutionRow {
   orders: number;
   /** Positive is better for the trader: a buy filled under its limit, a sell filled over it. */
   improvementPct: number;
+  /** The same gap as money: (limit - executed) per share for a buy, reversed for a sell, times quantity. */
+  saved: number;
 }
 
 /** Average price improvement per symbol over filled orders that carried a limit price. */
 export function executionQuality(orders: OrderHistoryEntry[]): ExecutionRow[] {
-  const bySymbol = new Map<string, { total: number; count: number }>();
+  const bySymbol = new Map<string, { total: number; count: number; saved: number }>();
 
   for (const order of orders) {
     if (
@@ -114,13 +116,16 @@ export function executionQuality(orders: OrderHistoryEntry[]): ExecutionRow[] {
         ? ((order.price - order.executedPrice) / order.price) * 100
         : ((order.executedPrice - order.price) / order.price) * 100;
 
-    const entry = bySymbol.get(order.symbol) ?? { total: 0, count: 0 };
+    const perShare = order.side === 'BUY' ? order.price - order.executedPrice : order.executedPrice - order.price;
+
+    const entry = bySymbol.get(order.symbol) ?? { total: 0, count: 0, saved: 0 };
     entry.total += improvement;
     entry.count += 1;
+    entry.saved += perShare * order.quantity;
     bySymbol.set(order.symbol, entry);
   }
 
   return [...bySymbol.entries()]
-    .map(([symbol, { total, count }]) => ({ symbol, orders: count, improvementPct: total / count }))
+    .map(([symbol, { total, count, saved }]) => ({ symbol, orders: count, improvementPct: total / count, saved }))
     .sort((left, right) => Math.abs(right.improvementPct) - Math.abs(left.improvementPct));
 }

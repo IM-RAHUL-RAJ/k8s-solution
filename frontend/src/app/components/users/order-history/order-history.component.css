@@ -255,3 +255,29 @@
     animation: none;
   }
 }
+
+/* Column filters sit directly under the headings they filter. */
+.filter-row th {
+  padding: 4px 6px 10px;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  background-color: transparent;
+}
+
+.filter-row input,
+.filter-row select {
+  min-width: 0;
+  padding: 6px 8px;
+  font-size: 12px;
+  border-radius: 6px;
+}
+
+.filter-row .num input {
+  text-align: right;
+}
+
+.none-row td {
+  padding: 24px 12px;
+  text-align: center;
+}

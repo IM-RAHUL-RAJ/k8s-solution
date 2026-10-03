@@ -2,25 +2,218 @@
   display: block;
 }
 
+.head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  max-width: 1180px;
+  margin: 0 auto 16px;
+}
+
+.head__account {
+  display: grid;
+  gap: 2px;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background-color: var(--surface);
+  text-align: right;
+}
+
+.head__account strong {
+  font-size: 15px;
+}
+
 .layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
-  gap: 10px;
-  max-width: 900px;
+  grid-template-columns: minmax(0, 1.6fr) minmax(300px, 1fr);
+  gap: 16px;
+  max-width: 1180px;
   margin: 0 auto;
   width: 100%;
   align-items: start;
 }
 
-@media (max-width: 820px) {
+@media (max-width: 960px) {
   .layout {
     grid-template-columns: 1fr;
   }
 }
 
+.side {
+  display: grid;
+  gap: 16px;
+}
+
 .ticket {
   display: grid;
+  gap: 20px;
+  padding: 24px;
+}
+
+.group {
+  display: grid;
   gap: 12px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  min-width: 0;
+}
+
+.group legend {
+  padding: 0;
+  margin-bottom: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Roomier controls than the app default, so the ticket is easy to hit and read. */
+.ticket input,
+.card select {
+  font-size: 15px;
+  padding: 13px 14px;
+  border-radius: 10px;
+}
+
+.ticket .row {
+  gap: 16px;
+}
+
+.ticket label,
+.ticket .label,
+.converter label {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.ccy {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 1px 7px;
+  border-radius: 99px;
+  background-color: var(--blue-bg);
+  color: var(--blue);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.card__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+button.small {
+  padding: 6px 12px;
+  font-size: 12.5px;
+}
+
+.balance {
+  display: grid;
+  gap: 8px;
+}
+
+.balance__amount {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.balance__amount .ccy {
+  font-size: 12px;
+  vertical-align: middle;
+}
+
+.spinner--dark {
+  border-color: color-mix(in srgb, var(--text) 25%, transparent);
+  border-top-color: var(--text);
+}
+
+.converter {
+  display: grid;
+  gap: 12px;
+}
+
+.live {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ok);
+}
+
+.live__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: var(--ok);
+  animation: pulse 1.8s ease-in-out infinite;
+}
+
+.fx-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: end;
+}
+
+.swap {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 46px;
+  padding: 0;
+  border-radius: 10px;
+  background-color: var(--bg);
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+
+.swap svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.fx-result {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background-color: var(--ok-bg);
+}
+
+.fx-result strong {
+  font-size: 22px;
+  color: var(--ok);
+}
+
+.link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--accent);
+  font-size: 12px;
+  text-align: left;
+  box-shadow: none;
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.3;
+  }
 }
 
 .ticket__head {

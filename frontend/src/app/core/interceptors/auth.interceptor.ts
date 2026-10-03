@@ -51,7 +51,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
       }
 
       if (isRefreshRequest || alreadyRetried) {
-        auth.logout();
+        auth.logout('Unauthorised. Your session is no longer valid. Please sign in again.');
         return throwError(() => error);
       }
 
@@ -66,7 +66,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
           return next(retried);
         }),
         catchError((refreshError: unknown) => {
-          auth.logout();
+          auth.logout('Unauthorised. Your session is no longer valid. Please sign in again.');
           return throwError(() => refreshError);
         })
       );

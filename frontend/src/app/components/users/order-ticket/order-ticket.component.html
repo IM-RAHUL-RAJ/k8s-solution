@@ -1,11 +1,17 @@
 <section class="page" data-testid="order-ticket">
+  <header class="head">
+    <div>
+      <h1>New order</h1>
+      <p class="muted">Orders are checked by the trading service when you place them.</p>
+    </div>
+    <div class="head__account" data-testid="order-account-chip">
+      <span class="muted">Account</span>
+      <strong>{{ accountReference() }}</strong>
+    </div>
+  </header>
+
   <div class="layout">
     <form class="card ticket" [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
-      <div class="ticket__head">
-        <h1>New order</h1>
-        <p class="muted">Orders are checked by the trading service when you place them.</p>
-      </div>
-
       @if (errorMessage()) {
         <div class="banner error" role="alert" data-testid="order-error">{{ errorMessage() }}</div>
       }
@@ -30,94 +36,114 @@
         </div>
       }
 
-      <div class="field">
-        <label for="account">Account</label>
-        <input
-          id="account"
-          type="text"
-          [value]="accountReference()"
-          readonly
-          aria-readonly="true"
-          data-testid="order-account"
-        />
-        <span class="field-hint">Read only. Set by your sign-in.</span>
-      </div>
-
-      <div class="row">
+      <fieldset class="group">
+        <legend>Account</legend>
         <div class="field">
-          <label for="symbol">Symbol</label>
+          <label for="account">Account reference</label>
           <input
-            id="symbol"
+            id="account"
             type="text"
-            formControlName="symbol"
-            autocomplete="off"
-            autocapitalize="characters"
-            [class.invalid]="getSymbolError()"
-            [attr.aria-invalid]="getSymbolError() ? true : null"
-            [attr.aria-describedby]="getSymbolError() ? 'symbol-error' : null"
-            data-testid="order-symbol"
+            [value]="accountReference()"
+            readonly
+            aria-readonly="true"
+            data-testid="order-account"
           />
-          @if (getSymbolError()) {
-            <span class="field-error" id="symbol-error">{{ getSymbolError() }}</span>
-          }
+          <span class="field-hint">Read only. Set by your sign-in.</span>
         </div>
+      </fieldset>
 
-        <div class="field">
-          <span class="label" id="side-label">Side</span>
-          <div class="segmented" [class.sell]="form.controls.side.value === 'SELL'" role="radiogroup"
-               aria-labelledby="side-label"
-               (keydown.arrowleft)="toggleSide()" (keydown.arrowright)="toggleSide()"
-               data-testid="order-side">
-            <span class="thumb" aria-hidden="true"></span>
-            <button type="button" role="radio" [attr.aria-checked]="form.controls.side.value === 'BUY'"
-                    [class.selected]="form.controls.side.value === 'BUY'"
-                    [attr.tabindex]="form.controls.side.value === 'BUY' ? 0 : -1"
-                    (click)="selectSide('BUY')" data-testid="side-buy">Buy</button>
-            <button type="button" role="radio" [attr.aria-checked]="form.controls.side.value === 'SELL'"
-                    [class.selected]="form.controls.side.value === 'SELL'"
-                    [attr.tabindex]="form.controls.side.value === 'SELL' ? 0 : -1"
-                    (click)="selectSide('SELL')" data-testid="side-sell">Sell</button>
+      <fieldset class="group">
+        <legend>Instrument</legend>
+        <div class="row">
+          <div class="field">
+            <label for="symbol">Symbol</label>
+            <input
+              id="symbol"
+              type="text"
+              formControlName="symbol"
+              autocomplete="off"
+              autocapitalize="characters"
+              placeholder="e.g. AAPL"
+              [class.invalid]="getSymbolError()"
+              [attr.aria-invalid]="getSymbolError() ? true : null"
+              [attr.aria-describedby]="getSymbolError() ? 'symbol-error' : null"
+              data-testid="order-symbol"
+            />
+            @if (getSymbolError()) {
+              <span class="field-error" id="symbol-error">{{ getSymbolError() }}</span>
+            }
+          </div>
+
+          <div class="field">
+            <span class="label" id="side-label">Side</span>
+            <div class="segmented" [class.sell]="form.controls.side.value === 'SELL'" role="radiogroup"
+                 aria-labelledby="side-label"
+                 (keydown.arrowleft)="toggleSide()" (keydown.arrowright)="toggleSide()"
+                 data-testid="order-side">
+              <span class="thumb" aria-hidden="true"></span>
+              <button type="button" role="radio" [attr.aria-checked]="form.controls.side.value === 'BUY'"
+                      [class.selected]="form.controls.side.value === 'BUY'"
+                      [attr.tabindex]="form.controls.side.value === 'BUY' ? 0 : -1"
+                      (click)="selectSide('BUY')" data-testid="side-buy">Buy</button>
+              <button type="button" role="radio" [attr.aria-checked]="form.controls.side.value === 'SELL'"
+                      [class.selected]="form.controls.side.value === 'SELL'"
+                      [attr.tabindex]="form.controls.side.value === 'SELL' ? 0 : -1"
+                      (click)="selectSide('SELL')" data-testid="side-sell">Sell</button>
+            </div>
           </div>
         </div>
-      </div>
+      </fieldset>
 
-      <div class="row">
-        <div class="field">
-          <label for="quantity">Quantity</label>
-          <input
-            id="quantity"
-            type="text"
-            inputmode="numeric"
-            formControlName="quantity"
-            autocomplete="off"
-            [class.invalid]="getQuantityError()"
-            [attr.aria-invalid]="getQuantityError() ? true : null"
-            [attr.aria-describedby]="getQuantityError() ? 'quantity-error' : null"
-            data-testid="order-quantity"
-          />
-          @if (getQuantityError()) {
-            <span class="field-error" id="quantity-error">{{ getQuantityError() }}</span>
-          }
-        </div>
+      <fieldset class="group">
+        <legend>Size and price</legend>
+        <div class="row">
+          <div class="field">
+            <label for="quantity">Quantity</label>
+            <input
+              id="quantity"
+              type="text"
+              inputmode="numeric"
+              formControlName="quantity"
+              autocomplete="off"
+              placeholder="Whole shares"
+              [class.invalid]="getQuantityError()"
+              [attr.aria-invalid]="getQuantityError() ? true : null"
+              [attr.aria-describedby]="getQuantityError() ? 'quantity-error' : null"
+              data-testid="order-quantity"
+            />
+            @if (getQuantityError()) {
+              <span class="field-error" id="quantity-error">{{ getQuantityError() }}</span>
+            }
+          </div>
 
-        <div class="field">
-          <label for="price">Price</label>
-          <input
-            id="price"
-            type="text"
-            inputmode="decimal"
-            formControlName="price"
-            autocomplete="off"
-            [class.invalid]="getPriceError()"
-            [attr.aria-invalid]="getPriceError() ? true : null"
-            [attr.aria-describedby]="getPriceError() ? 'price-error' : null"
-            data-testid="order-price"
-          />
-          @if (getPriceError()) {
-            <span class="field-error" id="price-error">{{ getPriceError() }}</span>
-          }
+          <div class="field">
+            <label for="price">Limit price @if (accountCurrency()) { <span class="ccy">{{ accountCurrency() }}</span> }</label>
+            <input
+              id="price"
+              type="text"
+              inputmode="decimal"
+              formControlName="price"
+              autocomplete="off"
+              placeholder="0.00"
+              [class.invalid]="getPriceError()"
+              [attr.aria-invalid]="getPriceError() ? true : null"
+              [attr.aria-describedby]="getPriceError() ? 'price-error' : 'price-hint'"
+              data-testid="order-price"
+            />
+            @if (getPriceError()) {
+              <span class="field-error" id="price-error">{{ getPriceError() }}</span>
+            } @else {
+              <span class="field-hint" id="price-hint">
+                @if (accountCurrency()) {
+                  Enter the price in {{ accountCurrency() }}, your account currency. The platform converts it to the instrument's currency.
+                } @else {
+                  Enter the price in your account currency. The platform converts it to the instrument's currency.
+                }
+              </span>
+            }
+          </div>
         </div>
-      </div>
+      </fieldset>
 
       <div class="actions">
         <button class="primary" type="submit" [disabled]="form.invalid || isSubmitting()"
@@ -132,39 +158,124 @@
       </div>
     </form>
 
-    <aside class="card summary" aria-label="Order summary" data-testid="order-summary">
-      <h2>Order summary</h2>
-      <dl>
-        <div>
-          <dt>Action</dt>
-          <dd><span class="chip" [class.chip--sell]="summary().side === 'Sell'">{{ summary().side }}</span></dd>
+    <div class="side">
+      <aside class="card balance" aria-label="Account balance" data-testid="order-balance">
+        <div class="card__head">
+          <h2>Balance</h2>
+          <button type="button" class="secondary small" (click)="getBalance()" [disabled]="balanceLoading()"
+                  data-testid="get-balance">
+            @if (balanceLoading()) { <span class="spinner spinner--dark" aria-hidden="true"></span> Getting... }
+            @else if (balance()) { Refresh }
+            @else { Get balance }
+          </button>
         </div>
-        <div>
-          <dt>Symbol</dt>
-          <dd>{{ summary().symbol || '—' }}</dd>
+        @if (balanceError(); as message) {
+          <p class="field-error" role="alert">{{ message }}</p>
+        } @else if (balance(); as current) {
+          <p class="balance__amount tabular" data-testid="balance-amount">
+            <span class="ccy">{{ current.currency }}</span> {{ current.cashBalance | number: '1.2-2' }}
+          </p>
+          <p class="muted fine">Available cash as of {{ current.asOf | date: 'd MMM y, HH:mm:ss' }}</p>
+        } @else {
+          <p class="muted fine">Press Get balance to see your available cash.</p>
+        }
+      </aside>
+
+      <aside class="card summary" aria-label="Order summary" data-testid="order-summary">
+        <h2>Order summary</h2>
+        <dl>
+          <div>
+            <dt>Action</dt>
+            <dd><span class="chip" [class.chip--sell]="summary().side === 'Sell'">{{ summary().side }}</span></dd>
+          </div>
+          <div>
+            <dt>Symbol</dt>
+            <dd>{{ summary().symbol || '—' }}</dd>
+          </div>
+          <div>
+            <dt>Quantity</dt>
+            <dd class="tabular">{{ summary().quantity ?? '—' }}</dd>
+          </div>
+          <div>
+            <dt>Limit price</dt>
+            <dd class="tabular">
+              @if (summary().price !== null) {
+                {{ summary().price | number: '1.2-2' }} {{ accountCurrency() }}
+              } @else { — }
+            </dd>
+          </div>
+        </dl>
+        <div class="estimate">
+          <span class="muted">Estimated value</span>
+          <strong class="tabular" data-testid="order-estimate">
+            @if (summary().estimate !== null) {
+              {{ summary().estimate | number: '1.2-2' }} <span class="ccy">{{ accountCurrency() }}</span>
+            } @else {
+              —
+            }
+          </strong>
         </div>
-        <div>
-          <dt>Quantity</dt>
-          <dd class="tabular">{{ summary().quantity ?? '—' }}</dd>
+        <p class="muted fine">An estimate from what you typed. Cash and holdings are checked by the trading service.</p>
+      </aside>
+
+      <aside class="card converter" [formGroup]="form" aria-label="Currency converter" data-testid="order-converter">
+        <div class="card__head">
+          <h2>Currency converter</h2>
+          <span class="live"><span class="live__dot" aria-hidden="true"></span>Live</span>
         </div>
-        <div>
-          <dt>Price</dt>
-          <dd class="tabular">
-            @if (summary().price !== null) { {{ summary().price | number: '1.2-2' }} } @else { — }
-          </dd>
+
+        <div class="fx-pair">
+          <div class="field">
+            <label for="fx-from">From</label>
+            <select id="fx-from" formControlName="currency" data-testid="fx-from"
+                    (change)="form.controls.currency.markAsDirty()">
+              @for (option of currencies; track option.code) {
+                <option [value]="option.code">{{ option.code }} · {{ option.name }}</option>
+              }
+            </select>
+          </div>
+          <button type="button" class="swap" (click)="swapCurrencies()" aria-label="Swap currencies"
+                  data-testid="fx-swap">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 7h10m-3-3 3 3-3 3M15 13H5m3-3-3 3 3 3" /></svg>
+          </button>
+          <div class="field">
+            <label for="fx-to">To</label>
+            <select id="fx-to" formControlName="convertTo" data-testid="fx-to">
+              @for (option of currencies; track option.code) {
+                <option [value]="option.code">{{ option.code }} · {{ option.name }}</option>
+              }
+            </select>
+          </div>
         </div>
-      </dl>
-      <div class="estimate">
-        <span class="muted">Estimated value</span>
-        <strong class="tabular" data-testid="order-estimate">
-          @if (summary().estimate !== null) {
-            {{ summary().estimate | number: '1.2-2' }}
+
+        <div class="field">
+          <label for="fx-amount">Amount in {{ fxFrom() }}</label>
+          <input id="fx-amount" type="text" inputmode="decimal" autocomplete="off"
+                 [value]="fxAmountText()" (input)="onFxAmountInput($any($event.target).value)"
+                 placeholder="0.00" data-testid="fx-amount" />
+          @if (fxAmountIsEstimate()) {
+            <span class="field-hint">Following your order estimate. Type to convert any other amount.</span>
           } @else {
-            —
+            <button type="button" class="link" (click)="useEstimate()">Use the order estimate</button>
           }
-        </strong>
-      </div>
-      <p class="muted fine">An estimate from what you typed. Cash and holdings are checked by the trading service.</p>
-    </aside>
+        </div>
+
+        <div class="fx-result" data-testid="fx-result">
+          <span class="muted">{{ fxTo() }}</span>
+          <strong class="tabular">
+            @if (converted() !== null) { {{ converted() | number: '1.2-2' }} } @else { — }
+          </strong>
+        </div>
+        @if (fxRate() !== null) {
+          <p class="muted fine" data-testid="fx-rate">
+            1 {{ fxFrom() }} = {{ fxRate() | number: '1.4-6' }} {{ fxTo() }}
+            @if (convertedPrice() !== null && summary().price !== null) {
+              <br />Your limit price is {{ convertedPrice() | number: '1.2-2' }} {{ fxTo() }}.
+            }
+          </p>
+        }
+        <p class="muted fine">Uses the same rates as the trading service, so what you see here is what an order is converted with.</p>
+      </aside>
+    </div>
   </div>
 </section>

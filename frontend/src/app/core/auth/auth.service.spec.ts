@@ -18,6 +18,9 @@ describe('AuthService', () => {
     localStorage.clear();
     sessionStorage.clear();
 
+    // Most tests post the plain body. The encrypted path has its own test below.
+    vi.stubGlobal('crypto', { ...globalThis.crypto, subtle: undefined });
+
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
       providers: [
@@ -31,6 +34,7 @@ describe('AuthService', () => {
   });
 
   afterEach(() => {
+    vi.unstubAllGlobals();
     httpMock.verify();
     localStorage.clear();
     sessionStorage.clear();
@@ -290,6 +294,74 @@ describe('AuthService', () => {
 
       expect(sessionStorage.getItem('refresh_token')).toBe('refresh-token');
       expect(localStorage.getItem('refresh_token')).toBeNull();
+    });
+  });
+  describe('Token tampering', () => {
+    function signIn(token: string) {
+      service.login({ username: 'testuser', password: 'password123' }).subscribe();
+      httpMock.expectOne('http://localhost:3000/auth/login').flush({ token });
+    }
+
+    it('signs out with an Unauthorised message when the stored token is edited', () => {
+      signIn('aaa.bbb.ccc');
+      expect(service.verifyStorageIntegrity()).toBe(true);
+
+      sessionStorage.setItem('access_token', 'aaa.bbb.tampered');
+
+      expect(service.verifyStorageIntegrity()).toBe(false);
+      expect(service.isAuthenticated()).toBe(false);
+      expect(router.navigate).toHaveBeenCalledWith(['/sign-in'], {
+        queryParams: { sessionMessage: expect.stringContaining('Unauthorised') },
+        replaceUrl: true
+      });
+    });
+
+    it('signs out when the stored token is removed', () => {
+      signIn('aaa.bbb.ccc');
+      sessionStorage.removeItem('access_token');
+
+      expect(service.verifyStorageIntegrity()).toBe(false);
+      expect(service.isAuthenticated()).toBe(false);
+    });
+
+    it('does nothing when nobody is signed in', () => {
+      expect(service.verifyStorageIntegrity()).toBe(true);
+      expect(router.navigate).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Encrypted login', () => {
+    it('sends an opaque payload that contains neither username nor password', async () => {
+      vi.unstubAllGlobals();
+      if (!globalThis.crypto?.subtle) {
+        return; // No WebCrypto in this environment: the plain-body fallback is covered above.
+      }
+      const pair = await crypto.subtle.generateKey(
+        { name: 'RSA-OAEP', modulusLength: 3072, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' },
+        true,
+        ['encrypt', 'decrypt']
+      );
+      const spki = new Uint8Array(await crypto.subtle.exportKey('spki', pair.publicKey));
+      const publicKey = btoa(String.fromCharCode(...spki));
+
+      service.login({ username: 'priya.menon', password: 'S3cret-pass-phrase' }).subscribe();
+
+      httpMock.expectOne('http://localhost:3000/auth/public-key').flush({ publicKey });
+      const req = await vi.waitFor(() => httpMock.expectOne('http://localhost:3000/auth/login'));
+
+      const raw = JSON.stringify(req.request.body);
+      expect(Object.keys(req.request.body)).toEqual(['payload']);
+      expect(raw).not.toContain('priya.menon');
+      expect(raw).not.toContain('S3cret-pass-phrase');
+
+      // The service side decrypts with its private key and gets the credentials back.
+      const cipher = Uint8Array.from(atob(req.request.body.payload), (char) => char.charCodeAt(0));
+      const plain = JSON.parse(
+        new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'RSA-OAEP' }, pair.privateKey, cipher))
+      );
+      expect(plain).toEqual({ u: 'priya.menon', p: 'S3cret-pass-phrase', t: expect.any(Number) });
+
+      req.flush({ token: 'a.b.c' });
     });
   });
 });

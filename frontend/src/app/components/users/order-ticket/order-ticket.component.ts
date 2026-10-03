@@ -1,7 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import {
   AbstractControl,
@@ -13,7 +13,11 @@ import {
 
 import { ApiErrorMessageService } from '../../../core/services/api-error-message.service';
 import { AccountContextService } from '../../../core/services/account-context.service';
+import { AccountService } from '../../../core/services/account.service';
 import { OrderService } from '../../../core/services/order.service';
+import { OrderDraft, OrderDraftService } from '../../../core/services/order-draft.service';
+import { CURRENCIES, convertAmount, isSupportedCurrency, rateBetween } from '../../../core/config/currency-rates';
+import { AccountResponse, BalanceResponse } from '../../../core/models/account.model';
 import { OrderResponse, OrderSide } from '../../../core/models/order.model';
 import { StatusBadgeComponent } from '../shared/status-badge/status-badge.component';
 
@@ -53,6 +57,10 @@ export class OrderTicketComponent {
   private readonly accountContextService = inject(AccountContextService);
   private readonly orderService = inject(OrderService);
   private readonly apiErrorMessageService = inject(ApiErrorMessageService);
+  private readonly accountService = inject(AccountService);
+  private readonly draftService = inject(OrderDraftService);
+
+  readonly currencies = CURRENCIES;
 
   // Reused only when the outcome of a post is unknown (the response never arrived), so a
   // retry cannot place a second order. Any definite answer clears it.
@@ -66,7 +74,10 @@ export class OrderTicketComponent {
     symbol: ['', [Validators.required, symbolValidator]],
     side: ['BUY' as OrderSide, [Validators.required]],
     quantity: ['', [Validators.required, positiveIntegerValidator]],
-    price: ['', [Validators.required, priceValidator]]
+    price: ['', [Validators.required, priceValidator]],
+    // Converter only, never sent to the API. `currency` starts as the account currency.
+    currency: ['USD'],
+    convertTo: ['EUR']
   });
 
   private readonly formValue = toSignal(this.form.valueChanges, { initialValue: this.form.getRawValue() });
@@ -89,8 +100,151 @@ export class OrderTicketComponent {
     };
   });
 
-  /** The account the session may trade, rendered read-only. Never an editable field. */
-  readonly accountReference = computed(() => this.accountContextService.getCurrentAccount().accountReference);
+
+  // Account reference: the customer sees what statements and support quote, never the
+  // internal numeric id. The id is only used inside requests.
+  readonly account = signal<AccountResponse | null>(null);
+  readonly accountFailed = signal(false);
+
+  readonly accountReference = computed(() => {
+    const account = this.account();
+    if (account) {
+      return account.accountId;
+    }
+    return this.accountFailed() ? 'Unavailable' : 'Loading...';
+  });
+
+  // The account's own currency. The trade API reads the limit price in it and converts to the
+  // instrument's currency itself. Learned quietly on load; the amount is only shown on request.
+  readonly accountCurrency = signal<string | null>(null);
+
+  // Balance, on demand.
+  readonly balance = signal<BalanceResponse | null>(null);
+  readonly balanceLoading = signal(false);
+  readonly balanceError = signal<string | null>(null);
+
+  // Currency converter, using the same rate table as the trade API.
+  /** What the user typed into the converter. Null means: follow the order estimate. */
+  private readonly fxAmountOverride = signal<string | null>(null);
+
+  readonly fxAmountText = computed(() => {
+    const override = this.fxAmountOverride();
+    if (override !== null) {
+      return override;
+    }
+    const estimate = this.summary().estimate;
+    return estimate !== null ? estimate.toFixed(2) : '';
+  });
+
+  readonly fxAmountIsEstimate = computed(() => this.fxAmountOverride() === null);
+  readonly fxFrom = computed(() => this.formValue().currency ?? 'USD');
+  readonly fxTo = computed(() => this.formValue().convertTo ?? 'EUR');
+  readonly fxRate = computed(() => rateBetween(this.fxFrom(), this.fxTo()));
+
+  readonly converted = computed(() => {
+    const amount = Number(this.fxAmountText().trim());
+    return Number.isFinite(amount) && amount > 0 ? convertAmount(this.fxFrom(), this.fxTo(), amount) : null;
+  });
+
+  /** The limit price as the instrument sees it, when the user has picked its currency. */
+  readonly convertedPrice = computed(() => {
+    const price = this.summary().price;
+    return price !== null ? convertAmount(this.fxFrom(), this.fxTo(), price) : null;
+  });
+
+  constructor() {
+    this.restoreDraft();
+
+    // Remember the ticket while the user visits other tabs.
+    this.form.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => {
+      this.draftService.save(this.form.getRawValue() as OrderDraft);
+    });
+
+    this.loadAccount();
+  }
+
+  private restoreDraft(): void {
+    const draft = this.draftService.load();
+    if (!draft) {
+      return;
+    }
+    this.form.patchValue(
+      {
+        symbol: typeof draft.symbol === 'string' ? draft.symbol.slice(0, 20) : '',
+        side: draft.side === 'SELL' ? 'SELL' : 'BUY',
+        quantity: typeof draft.quantity === 'string' ? draft.quantity.slice(0, 12) : '',
+        price: typeof draft.price === 'string' ? draft.price.slice(0, 16) : '',
+        currency: isSupportedCurrency(draft.currency) ? draft.currency : 'USD',
+        convertTo: isSupportedCurrency(draft.convertTo) ? draft.convertTo : 'EUR'
+      }
+    );
+    if (draft.currency) {
+      this.form.controls.currency.markAsDirty();
+    }
+  }
+
+  private loadAccount(): void {
+    const accountId = this.accountContextService.getCurrentAccount().accountNumericId;
+
+    this.accountService.getAccount(accountId).subscribe({
+      next: (account) => this.account.set(account),
+      error: () => this.accountFailed.set(true)
+    });
+
+    this.accountService.getBalance(accountId).subscribe({
+      next: (balance) => this.adoptAccountCurrency(balance.currency),
+      error: () => undefined
+    });
+  }
+
+  private adoptAccountCurrency(code: string): void {
+    const currency = code?.trim().toUpperCase();
+    if (!isSupportedCurrency(currency)) {
+      return;
+    }
+    this.accountCurrency.set(currency);
+    // Start the converter from the account currency unless the user already chose one.
+    if (!this.form.controls.currency.dirty) {
+      this.form.controls.currency.setValue(currency);
+      if (this.form.controls.convertTo.value === currency) {
+        this.form.controls.convertTo.setValue(currency === 'USD' ? 'EUR' : 'USD');
+      }
+    }
+  }
+
+  getBalance(): void {
+    if (this.balanceLoading()) {
+      return;
+    }
+    this.balanceLoading.set(true);
+    this.balanceError.set(null);
+
+    this.accountService.getBalance(this.accountContextService.getCurrentAccount().accountNumericId).subscribe({
+      next: (balance) => {
+        this.balance.set(balance);
+        this.balanceLoading.set(false);
+        this.adoptAccountCurrency(balance.currency);
+      },
+      error: (error: unknown) => {
+        this.balanceError.set(this.apiErrorMessageService.getMessage(error));
+        this.balanceLoading.set(false);
+      }
+    });
+  }
+
+  onFxAmountInput(value: string): void {
+    this.fxAmountOverride.set(value);
+  }
+
+  useEstimate(): void {
+    this.fxAmountOverride.set(null);
+  }
+
+  swapCurrencies(): void {
+    const { currency, convertTo } = this.form.getRawValue();
+    this.form.patchValue({ currency: convertTo, convertTo: currency });
+    this.form.controls.currency.markAsDirty();
+  }
 
   onSubmit(): void {
     this.form.markAllAsTouched();
@@ -121,6 +275,10 @@ export class OrderTicketComponent {
           this.pendingIdempotencyKey = null;
           this.success.set(response);
           this.isSubmitting.set(false);
+          this.draftService.clear();
+          if (this.balance() !== null) {
+            this.getBalance();
+          }
         },
         error: (error: unknown) => {
           const outcomeUnknown = error instanceof HttpErrorResponse && error.status === 0;
@@ -134,7 +292,18 @@ export class OrderTicketComponent {
   }
 
   onReset(): void {
-    this.form.reset({ symbol: '', side: 'BUY', quantity: '', price: '' });
+    const home = this.accountCurrency() ?? 'USD';
+    this.form.reset({
+      symbol: '',
+      side: 'BUY',
+      quantity: '',
+      price: '',
+      currency: home,
+      convertTo: home === 'USD' ? 'EUR' : 'USD'
+    });
+    this.form.controls.currency.markAsPristine();
+    this.draftService.clear();
+    this.fxAmountOverride.set(null);
     this.pendingIdempotencyKey = null;
     this.errorMessage.set(null);
     this.success.set(null);

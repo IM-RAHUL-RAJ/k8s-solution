@@ -7,6 +7,46 @@ import { OrderService } from '../../../core/services/order.service';
 import { OrderHistoryEntry, OrderStatus } from '../../../core/models/order.model';
 
 export type OrderFilter = 'ALL' | OrderStatus;
+
+interface NumberFilter {
+  op: '=' | '>' | '>=' | '<' | '<=';
+  value: number;
+}
+
+/** "100", "=100", ">100", ">=100", "<100", "<=100". Anything else means no filter. */
+function parseNumberFilter(raw: string): NumberFilter | null {
+  const match = /^\s*(>=|<=|>|<|=)?\s*(\d+(?:\.\d+)?)\s*$/.exec(raw);
+  return match ? { op: (match[1] as NumberFilter['op'] | undefined) ?? '=', value: Number(match[2]) } : null;
+}
+
+function matchesNumber(actual: number | null, filter: NumberFilter | null): boolean {
+  if (filter === null) {
+    return true;
+  }
+  if (actual === null) {
+    return false;
+  }
+  switch (filter.op) {
+    case '>':
+      return actual > filter.value;
+    case '>=':
+      return actual >= filter.value;
+    case '<':
+      return actual < filter.value;
+    case '<=':
+      return actual <= filter.value;
+    default:
+      return actual === filter.value;
+  }
+}
+
+/** yyyy-mm-dd in the browser's own day, to compare with a date input. */
+function localDay(iso: string): string {
+  const date = new Date(iso);
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
+}
 import { StatusBadgeComponent } from '../shared/status-badge/status-badge.component';
 
 // An order at NEW is the working state: the executor has not resolved it yet. The blotter
@@ -60,27 +100,52 @@ export class OrderHistoryComponent implements OnDestroy {
     ];
   });
 
-  /** The table shows what the filter allows; polling and the banner always look at every order. */
-  readonly visibleOrders = computed(() =>
-    this.filter() === 'ALL' ? this.orders() : this.orders().filter((order) => order.status === this.filter())
+  // Column filters. Text filters match anywhere in the value; number filters take a plain
+  // number or an operator, such as 100, >100, <=50 or =10.
+  readonly dateFilter = signal('');
+  readonly symbolFilter = signal('');
+  readonly sideFilter = signal<'' | 'BUY' | 'SELL'>('');
+  readonly quantityFilter = signal('');
+  readonly priceFilter = signal('');
+  readonly executedFilter = signal('');
+
+  readonly activeColumnFilters = computed(
+    () =>
+      [
+        this.dateFilter(),
+        this.symbolFilter(),
+        this.sideFilter(),
+        this.quantityFilter(),
+        this.priceFilter(),
+        this.executedFilter()
+      ].filter((value) => value.trim() !== '').length + (this.filter() === 'ALL' ? 0 : 1)
   );
+
+  /** The table shows what every filter allows; polling always looks at every order. */
+  readonly visibleOrders = computed(() => {
+    const status = this.filter();
+    const date = this.dateFilter().trim();
+    const symbol = this.symbolFilter().trim().toLowerCase();
+    const side = this.sideFilter();
+    const quantity = parseNumberFilter(this.quantityFilter());
+    const price = parseNumberFilter(this.priceFilter());
+    const executed = parseNumberFilter(this.executedFilter());
+
+    return this.orders().filter(
+      (order) =>
+        (status === 'ALL' || order.status === status) &&
+        (date === '' || localDay(order.createdOn) === date) &&
+        (symbol === '' || order.symbol.toLowerCase().includes(symbol)) &&
+        (side === '' || order.side === side) &&
+        matchesNumber(order.quantity, quantity) &&
+        matchesNumber(order.price, price) &&
+        matchesNumber(order.executedPrice, executed)
+    );
+  });
 
   readonly workingCount = computed(
     () => this.orders().filter((order) => order.status === 'NEW').length
   );
-
-  readonly pollingMessage = computed(() => {
-    const working = this.workingCount();
-    if (working === 0) {
-      return null;
-    }
-
-    const subject = working === 1 ? '1 order is' : `${working} orders are`;
-    if (this.pollingStopped()) {
-      return `${subject} still working. Automatic checking stopped after ${MAX_POLL_ATTEMPTS} attempts. Press Refresh to check again.`;
-    }
-    return `${subject} still working. Checking again shortly, attempt ${this.pollAttempt() + 1} of ${MAX_POLL_ATTEMPTS}.`;
-  });
 
   constructor() {
     this.load();
@@ -96,6 +161,16 @@ export class OrderHistoryComponent implements OnDestroy {
 
   setFilter(filter: OrderFilter): void {
     this.filter.set(filter);
+  }
+
+  clearFilters(): void {
+    this.filter.set('ALL');
+    this.dateFilter.set('');
+    this.symbolFilter.set('');
+    this.sideFilter.set('');
+    this.quantityFilter.set('');
+    this.priceFilter.set('');
+    this.executedFilter.set('');
   }
 
   askCancel(orderId: string): void {
@@ -197,8 +272,16 @@ export class OrderHistoryComponent implements OnDestroy {
 
     if (this.pollAttempt() >= MAX_POLL_ATTEMPTS) {
       this.pollingStopped.set(true);
+      // Progress belongs in the console, not on the blotter.
+      console.info(
+        `[Blotter] ${this.workingCount()} order(s) still working. Automatic checking stopped after ${MAX_POLL_ATTEMPTS} attempts. Press Refresh to check again.`
+      );
       return;
     }
+
+    console.info(
+      `[Blotter] ${this.workingCount()} order(s) still working. Checking again in ${POLL_INTERVAL_MS / 1000}s, attempt ${this.pollAttempt() + 1} of ${MAX_POLL_ATTEMPTS}.`
+    );
 
     this.pollTimer = setTimeout(() => {
       this.pollTimer = null;

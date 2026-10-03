@@ -2,6 +2,25 @@
   @if (view().length === 0) {
     <p class="muted empty">Appears once orders with a limit price have filled.</p>
   } @else {
+    @if (headline(); as head) {
+      <p class="headline" [class.headline--good]="head.good && !head.neutral" [class.headline--bad]="!head.good"
+         data-testid="quality-headline">
+        @if (head.neutral) {
+          Your {{ head.fills }} {{ head.fills === 1 ? 'fill was' : 'fills were' }} right at your limit prices.
+        } @else if (head.good) {
+          Across {{ head.fills }} {{ head.fills === 1 ? 'fill' : 'fills' }}, you got prices
+          <strong>{{ head.percent | number: '1.1-1' }}% better</strong> than your limit on average.
+        } @else {
+          Across {{ head.fills }} {{ head.fills === 1 ? 'fill' : 'fills' }}, prices came in
+          <strong>{{ head.percent | number: '1.1-1' }}% worse</strong> than your limit on average.
+        }
+        @if (!head.neutral) {
+          <span class="muted"> That is {{ head.saved >= 0 ? 'worth' : 'a cost of' }}
+            {{ (head.saved >= 0 ? head.saved : -head.saved) | number: '1.2-2' }} in total.</span>
+        }
+      </p>
+    }
+
     <ul>
       @for (row of view(); track row.symbol; let i = $index) {
         <li [style.animation-delay.ms]="i * 70" data-testid="quality-row">
@@ -16,10 +35,33 @@
           </span>
           <span class="val tabular" [class.val--good]="row.good" [class.val--bad]="!row.good">
             {{ row.improvementPct >= 0 ? '+' : '' }}{{ row.improvementPct | number: '1.1-1' }}%
+            <span class="verdict">{{ row.verdict }}</span>
           </span>
         </li>
       }
     </ul>
-    <p class="muted note">Executed price against your limit. A buy filled below its limit, or a sell above it, counts in your favour.</p>
+
+    <div class="legend muted" aria-hidden="true">
+      <span>&larr; Worse than your limit</span>
+      <span>At limit</span>
+      <span>Better than your limit &rarr;</span>
+    </div>
+
+    <details class="explain">
+      <summary>What is execution quality?</summary>
+      <p>
+        When you place a limit order you set the <strong>worst price you will accept</strong>: the most you
+        will pay on a buy, or the least you will take on a sell. The market often fills you at a better price.
+      </p>
+      <p>
+        Execution quality compares the price you were <strong>actually filled at</strong> with the limit you set.
+        <strong>Green, to the right</strong> means you did better than your limit. <strong>Red, to the left</strong>
+        means worse. A bar on the centre line means filled exactly at your limit.
+      </p>
+      <p class="muted">
+        Only filled orders with a limit price count. Prices are compared as the platform records them, so the
+        comparison is most meaningful when the account and the instrument share a currency.
+      </p>
+    </details>
   }
 </div>

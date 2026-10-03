@@ -43,14 +43,19 @@ export const authGuard: CanActivateFn = (
     return of(router.createUrlTree(['/sign-in']));
   }
 
+  // The stored token must still be the one this app issued.
+  if (!authService.verifyStorageIntegrity()) {
+    return of(false);
+  }
+
   // User is authenticated, validate session with server
   // This detects when session was invalidated from another device
   return authService.validateSession().pipe(
     map(() => true),
     catchError(() => {
       // Session is invalid (logged out from another device)
-      authService.logout();
-      return of(router.createUrlTree(['/']));
+      authService.logout('Unauthorised. Your session is no longer valid. Please sign in again.');
+      return of(false);
     })
   );
 };

@@ -1,8 +1,8 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, TimeoutError, throwError } from 'rxjs';
-import { catchError, map, tap, timeout } from 'rxjs/operators';
+import { Observable, TimeoutError, from, of, throwError } from 'rxjs';
+import { catchError, map, switchMap, tap, timeout } from 'rxjs/operators';
 import { API_ENDPOINTS } from '../config/api-endpoints';
 
 export interface LoginRequest {
@@ -49,6 +49,8 @@ export class AuthService {
   private readonly authLoginUrl = `${API_ENDPOINTS.authApiBase}/auth/login`;
   private readonly authSessionValidateUrl = `${API_ENDPOINTS.authApiBase}/auth/session/validate`;
   private readonly authRefreshUrl = `${API_ENDPOINTS.authApiBase}/auth/refresh`;
+  private readonly authPublicKeyUrl = `${API_ENDPOINTS.authApiBase}/auth/public-key`;
+  private publicKeyPromise: Promise<CryptoKey | null> | null = null;
   private readonly requestTimeoutMs = 12000;
 
   /**
@@ -144,10 +146,10 @@ export class AuthService {
   }
 
   /**
-   * Restore token from sessionStorage first, then legacy localStorage.
+   * Restore token from sessionStorage. It must match the stored copy at all times, see verifyStorageIntegrity.
    */
   private readTokenFromStorage(): string | null {
-    const token = sessionStorage.getItem(this.storageKey) ?? localStorage.getItem(this.storageKey);
+    const token = sessionStorage.getItem(this.storageKey);
     return token && token.trim().length > 0 ? token : null;
   }
 
@@ -195,13 +197,65 @@ export class AuthService {
   }
 
   /**
+   * The login body. Credentials are RSA-OAEP encrypted with the auth service's public key, so
+   * the Network tab shows an opaque `payload` instead of the username and password.
+   * Falls back to the plain body only where the browser cannot encrypt (non-secure origin)
+   * or the service has no key endpoint, so sign-in never breaks because of this.
+   */
+  private async buildLoginBody(credentials: LoginRequest): Promise<LoginRequest | { payload: string }> {
+    try {
+      const key = await this.loadPublicKey();
+      if (!key) {
+        return credentials;
+      }
+      const plain = new TextEncoder().encode(
+        JSON.stringify({ u: credentials.username, p: credentials.password, t: Date.now() })
+      );
+      const cipher = await crypto.subtle.encrypt({ name: 'RSA-OAEP' }, key, plain);
+      return { payload: this.toBase64(new Uint8Array(cipher)) };
+    } catch {
+      return credentials;
+    }
+  }
+
+  private canEncryptLogin(): boolean {
+    return typeof crypto !== 'undefined' && !!crypto.subtle;
+  }
+
+  private loadPublicKey(): Promise<CryptoKey | null> {
+    // Fetched fresh per page load: the service regenerates its key pair on every start.
+    this.publicKeyPromise ??= (async () => {
+      const response = await new Promise<{ publicKey: string }>((resolve, reject) =>
+        this.http.get<{ publicKey: string }>(this.authPublicKeyUrl).pipe(timeout(5000)).subscribe({
+          next: resolve,
+          error: reject
+        })
+      );
+      const der = Uint8Array.from(atob(response.publicKey), (char) => char.charCodeAt(0));
+      return crypto.subtle.importKey('spki', der, { name: 'RSA-OAEP', hash: 'SHA-256' }, false, ['encrypt']);
+    })().catch(() => {
+      this.publicKeyPromise = null;
+      return null;
+    });
+    return this.publicKeyPromise;
+  }
+
+  private toBase64(bytes: Uint8Array): string {
+    let binary = '';
+    bytes.forEach((byte) => (binary += String.fromCharCode(byte)));
+    return btoa(binary);
+  }
+
+  /**
    * Sign in with username and password against the Auth service
    * @param credentials - Username and password
    * @returns Observable<LoginResponse>
    */
   login(credentials: LoginRequest): Observable<LoginResponse> {
-    return this.http.post<LoginResponse>(this.authLoginUrl, credentials)
+    const body$ = this.canEncryptLogin() ? from(this.buildLoginBody(credentials)) : of(credentials);
+    return body$
       .pipe(
+        switchMap(body => this.http.post<LoginResponse>(this.authLoginUrl, body)),
         timeout(this.requestTimeoutMs),
         tap(response => {
           this.clearForceLandingMarker();
@@ -311,7 +365,7 @@ export class AuthService {
    * Sign out and clear session
    * Clears token immediately and navigates to landing page
    */
-  logout(): void {
+  logout(reason?: string): void {
     // Immediately clear token, user, and session ID from memory and local storage
     this.tokenSignal.set(null);
     this.refreshTokenSignal.set(null);
@@ -326,8 +380,35 @@ export class AuthService {
     localStorage.removeItem(this.refreshStorageKey);
     localStorage.removeItem(this.userStorageKey);
     localStorage.removeItem(this.sessionIdKey);
+    // A half-filled order belongs to the signed-in user, not to whoever signs in next.
+    sessionStorage.removeItem('order_ticket_draft');
+
+    if (reason) {
+      // Forced sign-out (tampered or rejected token): say why, on the sign-in page.
+      sessionStorage.removeItem(this.forceLandingKey);
+      this.router.navigate(['/sign-in'], { queryParams: { sessionMessage: reason }, replaceUrl: true });
+      return;
+    }
     // Navigate to landing page
     this.router.navigateByUrl('/', { replaceUrl: true });
+  }
+
+  /**
+   * The access token lives in memory and sessionStorage. If the stored copy was edited or
+   * removed (dev tools, another script) it no longer matches what this app issued: treat the
+   * session as unauthorised and send the user to sign in. Returns false when it signed out.
+   */
+  verifyStorageIntegrity(): boolean {
+    const inMemory = this.tokenSignal();
+    if (inMemory === null) {
+      return true;
+    }
+    if (sessionStorage.getItem(this.storageKey) !== inMemory) {
+      console.warn('[Auth] Stored access token changed outside the app; signing out.');
+      this.logout('Unauthorised. Your session could not be verified, so you were signed out. Please sign in again.');
+      return false;
+    }
+    return true;
   }
 
   shouldForceLandingAfterLogout(): boolean {

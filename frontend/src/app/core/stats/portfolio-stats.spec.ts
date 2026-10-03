@@ -90,7 +90,7 @@ describe('portfolio stats', () => {
     it('rates a buy filled under its limit as an improvement', () => {
       const rows = executionQuality([order({ side: 'BUY', price: 100, executedPrice: 95 })]);
 
-      expect(rows).toEqual([{ symbol: 'AAPL', orders: 1, improvementPct: 5 }]);
+      expect(rows).toEqual([{ symbol: 'AAPL', orders: 1, improvementPct: 5, saved: 5 }]);
     });
 
     it('rates a sell filled under its limit as worse', () => {
@@ -108,7 +108,7 @@ describe('portfolio stats', () => {
         order({ status: 'REJECTED', executedPrice: null })
       ]);
 
-      expect(rows).toEqual([{ symbol: 'AAPL', orders: 2, improvementPct: 2 }]);
+      expect(rows).toEqual([{ symbol: 'AAPL', orders: 2, improvementPct: 2, saved: 4 }]);
     });
   });
 });

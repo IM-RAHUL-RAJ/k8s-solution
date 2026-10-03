@@ -22,6 +22,7 @@ import {
 } from './auth.service';
 
 import { RedactedLogger } from '../common/redacted-logger';
+import { LoginCryptoService } from './services/login-crypto.service';
 
 
 import {
@@ -48,7 +49,8 @@ export class AuthController {
 
 
     constructor(
-        private service: AuthService
+        private service: AuthService,
+        private loginCrypto: LoginCryptoService
     ) { }
 
     @Post("register")
@@ -148,15 +150,35 @@ export class AuthController {
         @Body() dto: LoginRequestDto
     ) {
 
+        const { username, password } = dto.payload
+            ? this.loginCrypto.decrypt(dto.payload)
+            : { username: dto.username, password: dto.password };
+
         this.logger.log(
-            `[AUTH_EVENT] login_request_received username=${dto.username}`
+            `[AUTH_EVENT] login_request_received username=${username}`
         );
 
         return this.service.login(
-            dto.username,
-            dto.password
+            username,
+            password
         );
 
+    }
+
+    @Get('public-key')
+    @ApiOperation({
+        operationId: 'getLoginPublicKey',
+        summary: 'Public key for encrypting login credentials',
+        description:
+            'Returns the base64 SPKI RSA public key the browser uses to encrypt the login payload. Regenerated whenever the service starts.',
+    })
+    @ApiResponse({
+        status: 200,
+        description: 'Public key.',
+        schema: { example: { publicKey: 'MIIBIjANBgkq...' } },
+    })
+    publicKey() {
+        return { publicKey: this.loginCrypto.getPublicKey() };
     }
 
     @Post('refresh')
