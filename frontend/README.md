@@ -1,4 +1,4 @@
-# Fauxtrade: trading UI
+# Quorum: trading UI
 
 Angular 21 workspace: standalone components and signals only, no `NgModule`. Node 20.19, 22.12 or 24+.
 

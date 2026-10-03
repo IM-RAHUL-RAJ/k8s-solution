@@ -8,6 +8,7 @@ import { AuthService } from '../../../core/auth/auth.service';
 import { AccountContextService } from '../../../core/services/account-context.service';
 import { AccountService } from '../../../core/services/account.service';
 import { ApiErrorMessageService } from '../../../core/services/api-error-message.service';
+import { HomeCurrencyService } from '../../../core/services/home-currency.service';
 import { OrderService } from '../../../core/services/order.service';
 import { activityByDay, allocation, executionQuality } from '../../../core/stats/portfolio-stats';
 import { ActivityChartComponent } from '../shared/activity-chart/activity-chart.component';
@@ -38,6 +39,7 @@ export class DashboardComponent {
   private readonly accountContext = inject(AccountContextService);
   private readonly apiErrorMessageService = inject(ApiErrorMessageService);
   private readonly auth = inject(AuthService);
+  protected readonly home = inject(HomeCurrencyService);
 
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
@@ -63,15 +65,34 @@ export class DashboardComponent {
 
   /** What the current holdings cost. The API returns average cost, not a live price, so this is cost, not market value. */
   protected readonly invested = computed(() =>
-    this.positions().reduce((sum, position) => sum + position.quantity * position.averageCost, 0)
+    this.positions().reduce(
+      (sum, position) => sum + this.home.toHome(position.quantity * position.averageCost, position.symbol),
+      0
+    )
   );
+
+  /**
+   * Cash plus holdings, in the home currency. Holdings are at cost: the platform has no live
+   * prices to mark them to market, so this is what the account put in, not what it would sell for.
+   */
+  protected readonly netWorth = computed(() => (this.balance()?.cashBalance ?? 0) + this.invested());
+
+  protected readonly cashShare = computed(() => {
+    const total = this.netWorth();
+    return total > 0 ? ((this.balance()?.cashBalance ?? 0) / total) * 100 : 0;
+  });
 
   /** Each holding's share of cost, for the bar beside it. */
   protected readonly holdingRows = computed(() => {
     const total = this.invested();
     return this.holdings().map((position) => {
-      const cost = position.quantity * position.averageCost;
-      return { ...position, cost, share: total > 0 ? (cost / total) * 100 : 0 };
+      const cost = this.home.toHome(position.quantity * position.averageCost, position.symbol);
+      return {
+        ...position,
+        averageCostHome: this.home.toHome(position.averageCost, position.symbol),
+        cost,
+        share: total > 0 ? (cost / total) * 100 : 0
+      };
     });
   });
 
@@ -85,15 +106,16 @@ export class DashboardComponent {
     [...this.positions()].sort((left, right) => left.symbol.localeCompare(right.symbol)).slice(0, 6)
   );
 
-  protected readonly slices = computed(() => allocation(this.positions()));
+  protected readonly slices = computed(() => allocation(this.positions(), (amount, symbol) => this.home.toHome(amount, symbol)));
   protected readonly activity = computed(() => activityByDay(this.orders(), 14));
-  protected readonly quality = computed(() => executionQuality(this.orders()));
+  protected readonly quality = computed(() => executionQuality(this.orders(), (amount, symbol) => this.home.toHome(amount, symbol)));
 
   protected readonly workingOrders = computed(
     () => this.orders().filter((order) => order.status === 'NEW').length
   );
 
   constructor() {
+    this.home.ensureLoaded();
     this.loadDashboard();
   }
 

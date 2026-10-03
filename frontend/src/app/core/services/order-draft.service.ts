@@ -5,8 +5,6 @@ export interface OrderDraft {
   side: 'BUY' | 'SELL';
   quantity: string;
   price: string;
-  currency: string;
-  convertTo: string;
 }
 
 /**

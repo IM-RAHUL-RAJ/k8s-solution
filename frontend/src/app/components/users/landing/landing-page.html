@@ -1,18 +1,11 @@
 <div class="landing">
-  <div class="landing__shape landing__shape--one" aria-hidden="true"></div>
-  <div class="landing__shape landing__shape--two" aria-hidden="true"></div>
-  <div class="landing__shape landing__shape--three" aria-hidden="true"></div>
+  <div class="orb orb--one" aria-hidden="true"></div>
+  <div class="orb orb--two" aria-hidden="true"></div>
+  <div class="orb orb--three" aria-hidden="true"></div>
 
-  <header class="landing__bar rise" style="--d:0s">
-    <span class="landing__brand">
-      <svg viewBox="0 0 64 64" width="30" height="30" aria-hidden="true">
-        <rect width="64" height="64" rx="15" fill="#2f6b4f"/>
-        <path d="M23 48V17M23 19h14M23 33h11" stroke="#fff" stroke-width="5.5" stroke-linecap="round" fill="none"/>
-        <circle cx="46.5" cy="19" r="3.6" fill="#d8dfcf"/>
-      </svg>
-      Fauxtrade
-    </span>
-    <div class="landing__bar-actions">
+  <header class="bar rise" style="--d:0s">
+    <app-brand-logo [size]="34" />
+    <div class="bar__actions">
       <button
         type="button"
         class="landing__theme-toggle"
@@ -30,23 +23,30 @@
           </svg>
         </ng-template>
       </button>
-      <a routerLink="/sign-in" class="landing__bar-link">Sign in</a>
+      <a routerLink="/sign-in" class="bar__link">Sign in</a>
     </div>
   </header>
 
-  <section class="landing__main">
-    <div class="landing__copy">
-      <h1 class="rise" style="--d:.14s">Trade confidently with a clean, live operational view.</h1>
-      <p class="landing__lead rise" style="--d:.26s">
-        From order placement to fulfilment, keep your entire execution trail visible in one elegant workflow.
+  <main class="hero">
+    <div class="copy">
+      <span class="eyebrow rise" style="--d:.08s"><i aria-hidden="true"></i>Order management for trading desks</span>
+      <h1 class="rise" style="--d:.16s">Every order, <span class="grad">in agreement</span> from ticket to fill.</h1>
+      <p class="lead rise" style="--d:.28s">
+        Quorum keeps placement, execution and your portfolio in one live, colourful workspace, so the whole desk sees the same truth.
       </p>
 
-      <div class="landing__actions rise" style="--d:.36s">
-        <a routerLink="/sign-in" class="landing__button" data-testid="sign-in-button">
+      <div class="actions rise" style="--d:.38s">
+        <a routerLink="/sign-in" class="cta" data-testid="sign-in-button">
           Login to Trading Desk
           <span aria-hidden="true">→</span>
         </a>
       </div>
+
+      <ul class="features rise" style="--d:.5s">
+        <li class="f f--green"><b>Live blotter</b><span>Status that updates itself</span></li>
+        <li class="f f--blue"><b>Watchlist</b><span>Trade straight from it</span></li>
+        <li class="f f--violet"><b>Net worth</b><span>Cash and holdings together</span></li>
+      </ul>
     </div>
 
     <div class="stage" aria-hidden="true">
@@ -90,6 +90,14 @@
         </svg>
       </div>
 
+      <div class="card panel rise" style="--d:.54s">
+        <div class="panel__head"><b>Orders</b><span>Newest first</span></div>
+        <div class="row"><span>AAPL</span><span>Buy 50</span><span class="swap"><span class="badge badge--new">NEW</span></span></div>
+        <div class="row"><span>MSFT</span><span>Sell 20</span><span class="badge badge--filled">FILLED</span></div>
+        <div class="row"><span>NVDA</span><span>Buy 900</span><span class="badge badge--rejected">REJECTED</span></div>
+        <div class="row"><span>TSLA</span><span>Buy 10</span><span class="badge badge--cancelled">CANCELLED</span></div>
+      </div>
+
       <div class="card depth rise" style="--d:.46s">
         <div class="depth__head"><small>Market depth</small><b>AAPL</b></div>
         <svg viewBox="0 0 176 64" class="depth__svg">
@@ -100,16 +108,8 @@
         </svg>
         <div class="depth__foot"><span class="up">10.24 bid</span><em>spread 0.02</em><span class="dn">10.26 ask</span></div>
       </div>
-
-      <div class="card panel rise" style="--d:.54s">
-        <div class="panel__head"><b>Orders</b><span>Newest first</span></div>
-        <div class="row"><span>AAPL</span><span>Buy 50</span><span class="swap"><span class="badge badge--new">NEW</span></span></div>
-        <div class="row"><span>MSFT</span><span>Sell 20</span><span class="badge badge--filled">FILLED</span></div>
-        <div class="row"><span>NVDA</span><span>Buy 900</span><span class="badge badge--rejected">REJECTED</span></div>
-        <div class="row"><span>TSLA</span><span>Buy 10</span><span class="badge badge--cancelled">CANCELLED</span></div>
-      </div>
     </div>
-  </section>
+  </main>
 
   <div class="ticker" aria-hidden="true">
     <div class="ticker__track">

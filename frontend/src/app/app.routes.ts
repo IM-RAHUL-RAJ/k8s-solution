@@ -29,6 +29,15 @@ export const routes: Routes = [
       )
   },
   {
+    path: 'watchlist',
+    title: 'Watchlist',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./components/users/watchlist/watchlist.component').then(
+        (m) => m.WatchlistComponent
+      )
+  },
+  {
     path: 'blotter',
     title: 'Blotter',
     canActivate: [authGuard],

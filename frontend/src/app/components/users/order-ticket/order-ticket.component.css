@@ -2,40 +2,56 @@
   display: block;
 }
 
+.head,
+.layout,
+.page > .banner {
+  width: 100%;
+  max-width: 1120px;
+  margin-inline: auto;
+}
+
 .head {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
   gap: 16px;
-  max-width: 1180px;
-  margin: 0 auto 16px;
+  margin-bottom: 18px;
+}
+
+.head h1 {
+  background: var(--grad-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .head__account {
   display: grid;
   gap: 2px;
-  padding: 8px 14px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background-color: var(--surface);
+  padding: 8px 16px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line));
+  background: linear-gradient(135deg, var(--ok-bg), var(--blue-bg));
   text-align: right;
 }
 
 .head__account strong {
   font-size: 15px;
+  letter-spacing: 0.02em;
+}
+
+.page > .banner {
+  margin-bottom: 14px;
 }
 
 .layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(300px, 1fr);
-  gap: 16px;
-  max-width: 1180px;
-  margin: 0 auto;
-  width: 100%;
+  grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1fr);
+  gap: 20px;
   align-items: start;
 }
 
-@media (max-width: 960px) {
+@media (max-width: 920px) {
   .layout {
     grid-template-columns: 1fr;
   }
@@ -46,185 +62,187 @@
   gap: 16px;
 }
 
+/* ---- The ticket ---- */
 .ticket {
   display: grid;
-  gap: 20px;
-  padding: 24px;
+  gap: 22px;
+  padding: 26px;
+  position: relative;
+  overflow: hidden;
 }
 
-.group {
+.ticket::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 4px;
+  background: var(--grad);
+}
+
+.sidebar-pick {
   display: grid;
-  gap: 12px;
-  margin: 0;
-  padding: 0;
-  border: none;
+  gap: 8px;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
   min-width: 0;
 }
 
-.group legend {
-  padding: 0;
-  margin-bottom: 10px;
+.row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  align-items: start;
+}
+
+@media (max-width: 520px) {
+  .row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ticket label,
+.label,
+.converter label {
+  display: block;
+  margin: 0;
   font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--muted);
 }
 
-/* Roomier controls than the app default, so the ticket is easy to hit and read. */
 .ticket input,
-.card select {
+.converter select,
+.converter input {
   font-size: 15px;
   padding: 13px 14px;
-  border-radius: 10px;
+  border-radius: 12px;
 }
 
-.ticket .row {
-  gap: 16px;
+.field-hint,
+.field-error {
+  margin: 0;
+  line-height: 1.4;
 }
 
-.ticket label,
-.ticket .label,
-.converter label {
+/* Price with its currency tucked inside the field. */
+.addon {
+  position: relative;
+}
+
+.addon input {
+  padding-right: 64px;
+}
+
+.addon__tag {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  padding: 3px 9px;
+  border-radius: 99px;
+  background: var(--blue-bg);
+  color: var(--blue);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  pointer-events: none;
+}
+
+.instrument {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
   font-size: 13px;
-  font-weight: 500;
+}
+
+.tag {
+  padding: 2px 9px;
+  border-radius: 99px;
+  background: var(--ok-bg);
+  color: var(--ok);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.tag--violet {
+  background: var(--violet-bg);
+  color: var(--violet);
+}
+
+.tag--blue {
+  background: var(--blue-bg);
+  color: var(--blue);
+}
+
+.tag--red {
+  background: var(--reject-bg);
+  color: var(--reject);
 }
 
 .ccy {
   display: inline-block;
-  margin-left: 4px;
-  padding: 1px 7px;
+  margin-left: 2px;
+  padding: 1px 8px;
   border-radius: 99px;
-  background-color: var(--blue-bg);
+  background: var(--blue-bg);
   color: var(--blue);
   font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-}
-
-.card__head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-}
-
-button.small {
-  padding: 6px 12px;
-  font-size: 12.5px;
-}
-
-.balance {
-  display: grid;
-  gap: 8px;
-}
-
-.balance__amount {
-  margin: 0;
-  font-size: 26px;
   font-weight: 700;
+  letter-spacing: 0.05em;
 }
 
-.balance__amount .ccy {
-  font-size: 12px;
-  vertical-align: middle;
-}
-
-.spinner--dark {
-  border-color: color-mix(in srgb, var(--text) 25%, transparent);
-  border-top-color: var(--text);
-}
-
-.converter {
-  display: grid;
-  gap: 12px;
-}
-
-.live {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11.5px;
-  font-weight: 600;
-  color: var(--ok);
-}
-
-.live__dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background-color: var(--ok);
-  animation: pulse 1.8s ease-in-out infinite;
-}
-
-.fx-pair {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  gap: 8px;
-  align-items: end;
-}
-
-.swap {
-  display: grid;
-  place-items: center;
-  width: 38px;
-  height: 46px;
-  padding: 0;
-  border-radius: 10px;
-  background-color: var(--bg);
-  border: 1px solid var(--line);
-  color: var(--muted);
-}
-
-.swap svg {
-  width: 16px;
-  height: 16px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.6;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.fx-result {
+/* The running total. */
+.total {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
-  padding: 12px 14px;
-  border-radius: 10px;
-  background-color: var(--ok-bg);
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--ok-bg), var(--teal-bg));
 }
 
-.fx-result strong {
-  font-size: 22px;
-  color: var(--ok);
-}
-
-.link {
-  padding: 0;
-  border: none;
-  background: none;
-  color: var(--accent);
-  font-size: 12px;
-  text-align: left;
-  box-shadow: none;
-}
-
-@keyframes pulse {
-  50% {
-    opacity: 0.3;
-  }
-}
-
-.ticket__head {
+.total > div {
   display: grid;
   gap: 2px;
 }
 
-.ticket .banner {
-  margin: 0;
+.total strong {
+  font-size: 24px;
 }
 
+.total__alt {
+  color: var(--teal);
+  font-weight: 600;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+}
+
+.actions .primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding-block: 14px;
+  font-size: 15px;
+}
+
+.primary.sell {
+  background: linear-gradient(135deg, var(--reject), color-mix(in srgb, var(--reject) 60%, var(--amber)));
+  color: #fff;
+}
+
+/* ---- Banners that belong to this page ---- */
 .placed {
   display: flex;
   gap: 12px;
@@ -241,7 +259,6 @@ button.small {
   gap: 8px;
 }
 
-/* The tick draws itself. */
 .tick {
   flex: none;
   width: 24px;
@@ -265,31 +282,13 @@ button.small {
   animation: draw 350ms 300ms var(--ease) forwards;
 }
 
-.row {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-@media (max-width: 480px) {
-  .row {
-    grid-template-columns: 1fr;
-  }
-}
-
-.label {
-  display: block;
-  margin-bottom: 4px;
-  color: var(--muted);
-}
-
-/* Segmented Buy / Sell control: one thumb slides between the two options. */
+/* ---- Buy / Sell ---- */
 .segmented {
   position: relative;
   display: grid;
   grid-template-columns: 1fr 1fr;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 14px;
   overflow: hidden;
   background-color: var(--bg);
 }
@@ -297,25 +296,27 @@ button.small {
 .thumb {
   position: absolute;
   inset: 0 50% 0 0;
-  background-color: var(--accent);
+  background: linear-gradient(135deg, var(--accent), var(--teal));
   transition:
     transform 280ms var(--ease),
-    background-color 280ms ease;
+    background 280ms ease;
 }
 
 .segmented.sell .thumb {
   transform: translateX(100%);
-  background-color: var(--reject);
+  background: linear-gradient(135deg, var(--reject), var(--amber));
 }
 
 .segmented button {
   position: relative;
   border: none;
   border-radius: 0;
-  background-color: transparent;
+  background: transparent;
   color: var(--muted);
-  font-weight: 400;
-  padding: 10px 12px;
+  font-weight: 500;
+  font-size: 15px;
+  padding: 13px 12px;
+  box-shadow: none;
   transition: color 240ms ease;
 }
 
@@ -325,46 +326,63 @@ button.small {
 }
 
 .segmented button.selected {
-  color: var(--on-accent);
-  font-weight: 600;
-}
-
-.segmented.sell button.selected {
-  color: var(--surface);
+  color: #fff;
+  font-weight: 700;
 }
 
 .segmented button:focus-visible {
   outline-offset: -4px;
 }
 
-.actions {
-  display: grid;
-  grid-template-columns: 1fr auto;
+/* ---- Side cards ---- */
+.card__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   gap: 10px;
-  margin-top: 4px;
 }
 
-.actions .primary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+button.small {
+  padding: 6px 12px;
+  font-size: 12.5px;
+}
+
+.balance {
+  display: grid;
   gap: 8px;
+  border-top: 4px solid var(--teal);
+}
+
+.balance__amount {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--teal);
+}
+
+.balance__amount .ccy {
+  font-size: 12px;
+  vertical-align: middle;
 }
 
 .spinner {
   width: 14px;
   height: 14px;
-  border: 2px solid color-mix(in srgb, var(--on-accent) 35%, transparent);
-  border-top-color: var(--on-accent);
+  border: 2px solid color-mix(in srgb, #fff 40%, transparent);
+  border-top-color: #fff;
   border-radius: 50%;
   animation: spin 700ms linear infinite;
 }
 
-/* Summary panel */
+.spinner--dark {
+  border-color: color-mix(in srgb, var(--text) 25%, transparent);
+  border-top-color: var(--text);
+}
+
 .summary {
   display: grid;
   gap: 10px;
-  animation-delay: 80ms;
+  border-top: 4px solid var(--violet);
 }
 
 .summary dl {
@@ -396,6 +414,7 @@ button.small {
   background-color: var(--ok-bg);
   color: var(--ok);
   font-size: 11.5px;
+  font-weight: 700;
   transition:
     background-color 240ms ease,
     color 240ms ease;
@@ -418,6 +437,205 @@ button.small {
 
 .fine {
   font-size: 12px;
+  margin: 0;
+}
+
+/* ---- Converter, folded away until wanted ---- */
+.converter {
+  display: grid;
+  gap: 12px;
+  border-top: 4px solid var(--amber);
+}
+
+.converter > summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  font-weight: 700;
+  list-style: none;
+}
+
+.converter > summary::-webkit-details-marker {
+  display: none;
+}
+
+.converter > summary::after {
+  content: '+';
+  margin-left: 8px;
+  color: var(--muted);
+}
+
+.converter[open] > summary::after {
+  content: '−';
+}
+
+.live {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ok);
+}
+
+.live__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: var(--ok);
+  animation: pulse 1.8s ease-in-out infinite;
+}
+
+.fx-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: end;
+  margin-top: 12px;
+}
+
+.swap {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 46px;
+  padding: 0;
+  border-radius: 12px;
+  background-color: var(--bg);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  box-shadow: none;
+}
+
+.swap svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.fx-result {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background-color: var(--amber-bg);
+}
+
+.fx-result strong {
+  font-size: 22px;
+  color: var(--amber);
+}
+
+.link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--accent);
+  font-size: 12px;
+  text-align: left;
+  box-shadow: none;
+}
+
+/* ---- Review dialog ---- */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: color-mix(in srgb, #0b1a12 55%, transparent);
+  backdrop-filter: blur(4px);
+  animation: fade 180ms ease both;
+}
+
+.dialog {
+  position: relative;
+  width: min(460px, 100%);
+  display: grid;
+  gap: 14px;
+  padding: 26px;
+  border-radius: 20px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+  animation: pop 260ms var(--ease) both;
+}
+
+.dialog__bar {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 5px;
+  background: linear-gradient(90deg, var(--accent), var(--teal));
+}
+
+.dialog__bar.sell {
+  background: linear-gradient(90deg, var(--reject), var(--amber));
+}
+
+.dialog h2 {
+  margin: 4px 0 0;
+}
+
+.dialog__lead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 16px;
+}
+
+.dialog__list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--bg);
+}
+
+.dialog__list div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dialog__list dt {
+  color: var(--muted);
+}
+
+.dialog__list dd {
+  margin: 0;
+  font-weight: 600;
+  text-align: right;
+}
+
+.dialog__actions {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.96);
+  }
 }
 
 @keyframes draw {
@@ -429,6 +647,12 @@ button.small {
 @keyframes spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.3;
   }
 }
 

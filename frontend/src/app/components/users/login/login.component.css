@@ -648,3 +648,70 @@
     height: 12px;
   }
 }
+/* The browser draws its own reveal / clear icon in password fields (Edge, IE). Ours is the only one. */
+.form-input::-ms-reveal,
+.form-input::-ms-clear {
+  display: none;
+}
+
+/* Quorum sign-in: a colour-rich brand panel with drifting light, and a brighter card. */
+.login__brand {
+  --logo-name-bg: linear-gradient(#fff, #fff);
+  font-size: 1.15rem;
+}
+
+.login__aside {
+  background:
+    radial-gradient(circle at 12% 14%, rgba(79, 214, 214, 0.42), transparent 42%),
+    radial-gradient(circle at 88% 80%, rgba(114, 73, 209, 0.5), transparent 48%),
+    linear-gradient(150deg, #064a3e 0%, #0a6a63 38%, #27409b 100%);
+  color: #fff;
+}
+
+.login__aside::after {
+  content: '';
+  position: absolute;
+  width: 320px;
+  height: 320px;
+  right: -90px;
+  top: 38%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.22), transparent 68%);
+  animation: loginDrift 10s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+@keyframes loginDrift {
+  to {
+    transform: translate(-60px, -50px) scale(1.2);
+  }
+}
+
+.login__aside-title {
+  background: linear-gradient(110deg, #fff, #aef2dc 55%, #cbd8ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.login-card {
+  box-shadow:
+    0 20px 40px -20px color-mix(in srgb, var(--accent) 45%, transparent),
+    0 40px 70px -40px color-mix(in srgb, var(--blue) 40%, transparent);
+  animation: loginCardIn 600ms var(--ease) both;
+}
+
+@keyframes loginCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.98);
+  }
+}
+
+.login-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--accent), var(--teal), var(--blue));
+}

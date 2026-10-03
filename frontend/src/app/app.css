@@ -4,7 +4,7 @@
 }
 
 :host {
-	background-color: var(--bg);
+	background-color: transparent;
 }
 
 .shell {
@@ -62,4 +62,13 @@
   .app-frame {
     min-height: calc(100dvh - 24px);
   }
+}
+
+/* A wide child (the landing ticker) must never stretch the whole page: the column may shrink to the viewport. */
+.app-shell {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.app-frame {
+  min-width: 0;
 }

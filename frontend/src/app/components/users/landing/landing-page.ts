@@ -1,6 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { BrandLogoComponent } from '../shared/brand-logo/brand-logo.component';
 import { ThemeService } from '../../../core/theme/theme.service';
 
 type FeatureCard = {
@@ -11,7 +12,7 @@ type FeatureCard = {
 @Component({
   selector: 'app-landing-page',
   standalone: true,
-  imports: [RouterLink, CommonModule],
+  imports: [RouterLink, CommonModule, BrandLogoComponent],
   templateUrl: './landing-page.html',
   styleUrl: './landing-page.css',
   host: { 'data-theme': 'auto' }

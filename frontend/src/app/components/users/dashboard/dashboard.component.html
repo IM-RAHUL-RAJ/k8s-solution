@@ -41,6 +41,28 @@
     <div class="banner error" role="alert">{{ error() }}</div>
     <div><button type="button" class="secondary" (click)="loadDashboard()">Try again</button></div>
   } @else {
+    <article class="card networth" data-testid="net-worth" style="--i: 0">
+      <div class="networth__main">
+        <p class="networth__label">Net worth</p>
+        <p class="networth__value" data-testid="stat-networth">
+          <app-animated-number [value]="netWorth()" [decimals]="2" />
+          <span class="networth__unit">{{ balance()?.currency }}</span>
+        </p>
+        <p class="networth__note">Cash plus holdings at cost. There are no live prices, so holdings are not marked to market.</p>
+      </div>
+      <div class="networth__split">
+        <div class="networth__bar" role="img"
+             [attr.aria-label]="'Cash ' + (cashShare() | number: '1.0-0') + ' percent, holdings ' + (100 - cashShare() | number: '1.0-0') + ' percent'">
+          <span class="networth__cash" [style.width.%]="cashShare()"></span>
+          <span class="networth__held" [style.width.%]="100 - cashShare()"></span>
+        </div>
+        <div class="networth__legend">
+          <span><i class="dot dot--cash"></i>Cash <b class="tabular">{{ balance()?.cashBalance ?? 0 | number: '1.2-2' }}</b></span>
+          <span><i class="dot dot--held"></i>Holdings <b class="tabular">{{ invested() | number: '1.2-2' }}</b></span>
+        </div>
+      </div>
+    </article>
+
     <div class="stats">
       <article class="card lift stat stat--teal" style="--i: 0">
         <span class="stat__icon" aria-hidden="true">
@@ -127,7 +149,7 @@
               <tr>
                 <th scope="col">Symbol</th>
                 <th scope="col" class="num">Qty</th>
-                <th scope="col" class="num">Avg cost</th>
+                <th scope="col" class="num">Avg cost ({{ balance()?.currency }})</th>
                 <th scope="col" class="num">Cost value</th>
               </tr>
             </thead>
@@ -139,7 +161,7 @@
                     <span class="share" [style.--w]="row.share"></span>
                   </td>
                   <td class="tabular num">{{ row.quantity }}</td>
-                  <td class="tabular num">{{ row.averageCost | number: '1.2-2' }}</td>
+                  <td class="tabular num">{{ row.averageCostHome | number: '1.2-2' }}</td>
                   <td class="tabular num">{{ row.cost | number: '1.2-2' }}</td>
                 </tr>
               }

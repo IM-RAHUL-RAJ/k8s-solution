@@ -2,9 +2,13 @@ package com.capstone.etp.mapper;
 
 import com.capstone.etp.dto.AccountResponse;
 import com.capstone.etp.dto.BalanceResponse;
+import com.capstone.etp.dto.InstrumentResponse;
+import com.capstone.etp.dto.WatchlistEntry;
 import com.capstone.etp.dto.OrderHistoryEntry;
 import com.capstone.etp.dto.PositionResponse;
 import com.capstone.etp.enums.OrderStatus;
+import org.apache.ibatis.annotations.Delete;
+import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Result;
@@ -143,4 +147,68 @@ public interface AccountMapper {
                 @Param("from") Instant from,
                 @Param("to") Instant to
         );
+
+    // Every instrument the platform knows, so the UI can show each one's currency and offer a picker.
+    @Select("""
+        SELECT
+           symbol,
+           name,
+           exchange,
+           asset_class::text AS asset_class,
+           TRIM(currency) AS currency,
+           is_tradable AS tradable
+        FROM instruments
+        ORDER BY symbol""")
+    @Results({
+        @Result(property = "symbol", column = "symbol"),
+        @Result(property = "name", column = "name"),
+        @Result(property = "exchange", column = "exchange"),
+        @Result(property = "assetClass", column = "asset_class"),
+        @Result(property = "currency", column = "currency"),
+        @Result(property = "tradable", column = "tradable")
+    })
+    List<InstrumentResponse> getInstruments();
+
+    // The account's watchlist, newest addition first.
+    @Select("""
+        SELECT
+           i.symbol AS symbol,
+           i.name AS name,
+           i.exchange AS exchange,
+           i.asset_class::text AS asset_class,
+           TRIM(i.currency) AS currency,
+           i.is_tradable AS tradable,
+           w.added_at AS added_at
+        FROM watchlist w
+        JOIN instruments i ON i.id = w.instrument_id
+        WHERE w.account_id = #{accountId}
+        ORDER BY w.added_at DESC, i.symbol""")
+    @Results({
+        @Result(property = "symbol", column = "symbol"),
+        @Result(property = "name", column = "name"),
+        @Result(property = "exchange", column = "exchange"),
+        @Result(property = "assetClass", column = "asset_class"),
+        @Result(property = "currency", column = "currency"),
+        @Result(property = "tradable", column = "tradable"),
+        @Result(property = "addedAt", column = "added_at")
+    })
+    List<WatchlistEntry> getWatchlist(@Param("accountId") Long accountId);
+
+    // Adds by symbol. Adding one that is already there changes nothing. Returns rows inserted.
+    @Insert("""
+        INSERT INTO watchlist (account_id, instrument_id)
+        SELECT #{accountId}, i.id
+        FROM instruments i
+        WHERE i.symbol = #{symbol}
+        ON CONFLICT (account_id, instrument_id) DO NOTHING""")
+    int addToWatchlist(@Param("accountId") Long accountId, @Param("symbol") String symbol);
+
+    @Delete("""
+        DELETE FROM watchlist
+        WHERE account_id = #{accountId}
+          AND instrument_id = (SELECT id FROM instruments WHERE symbol = #{symbol})""")
+    int removeFromWatchlist(@Param("accountId") Long accountId, @Param("symbol") String symbol);
+
+    @Select("SELECT COUNT(*) FROM instruments WHERE symbol = #{symbol}")
+    int countInstrumentsBySymbol(@Param("symbol") String symbol);
 }

@@ -1,0 +1,98 @@
+<section class="page" data-testid="watchlist">
+  <header class="head">
+    <div>
+      <h1>Watchlist</h1>
+      <p class="muted">Instruments you are keeping an eye on. Trade straight from here.</p>
+    </div>
+
+    <div class="adder">
+      <label for="watch-pick" class="sr-only">Add an instrument</label>
+      <select id="watch-pick" [value]="pick()" (change)="pick.set($any($event.target).value)"
+              [disabled]="adding() || addable().length === 0" data-testid="watch-pick">
+        <option value="">{{ addable().length === 0 ? 'Everything is on your watchlist' : 'Add an instrument…' }}</option>
+        @for (item of addable(); track item.symbol) {
+          <option [value]="item.symbol">{{ item.symbol }} · {{ item.name }} ({{ item.currency }})</option>
+        }
+      </select>
+      <button type="button" class="primary" (click)="add()" [disabled]="!pick() || adding()" data-testid="watch-add">
+        @if (adding()) { Adding... } @else { + Add }
+      </button>
+    </div>
+  </header>
+
+  @if (error()) {
+    <div class="banner error" role="alert" data-testid="watchlist-error">{{ error() }}</div>
+    <div><button type="button" class="secondary" (click)="load()">Try again</button></div>
+  }
+
+  @if (actionError()) {
+    <div class="banner error" role="alert">{{ actionError() }}</div>
+  }
+
+  @if (loading()) {
+    <div class="grid" aria-busy="true" aria-label="Loading watchlist">
+      @for (placeholder of [1, 2, 3]; track placeholder) {
+        <article class="card"><span class="skeleton"></span><span class="skeleton"></span><span class="skeleton"></span></article>
+      }
+    </div>
+  } @else if (!error()) {
+    @if (cards().length === 0) {
+      <article class="card empty" data-testid="watchlist-empty">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3l2.2 4.6 5 .7-3.6 3.5.9 5-4.5-2.4-4.5 2.4.9-5L2.8 8.3l5-.7z" /></svg>
+        <p>Your watchlist is empty.</p>
+        <p class="muted">Pick an instrument above to start following it.</p>
+      </article>
+    } @else {
+      <div class="grid">
+        @for (card of cards(); track card.symbol; let i = $index) {
+          <article class="card lift item" [attr.data-accent]="card.accent" [style.animation-delay.ms]="i * 70"
+                   data-testid="watch-card">
+            <div class="item__top">
+              <div class="badge" aria-hidden="true">{{ card.symbol.slice(0, 2) }}</div>
+              <div class="item__id">
+                <h2>{{ card.symbol }}</h2>
+                <p class="muted">{{ card.name }}</p>
+              </div>
+              <button type="button" class="star" (click)="remove(card.symbol)" [disabled]="busySymbol() !== null"
+                      [attr.aria-label]="'Remove ' + card.symbol + ' from watchlist'" title="Remove from watchlist"
+                      data-testid="watch-remove">
+                <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3l2.2 4.6 5 .7-3.6 3.5.9 5-4.5-2.4-4.5 2.4.9-5L2.8 8.3l5-.7z" /></svg>
+              </button>
+            </div>
+
+            <div class="tags">
+              <span class="tag tag--accent">{{ label(card.assetClass) }}</span>
+              <span class="tag">{{ card.exchange }}</span>
+              <span class="tag tag--ccy">{{ card.currency }}</span>
+              @if (!card.tradable) { <span class="tag tag--red">Not tradable</span> }
+            </div>
+
+            <dl class="facts">
+              <div>
+                <dt>You hold</dt>
+                <dd class="tabular">{{ card.held }}</dd>
+              </div>
+              <div>
+                <dt>Last fill</dt>
+                <dd class="tabular">
+                  @if (card.lastFillHome !== null) {
+                    {{ card.lastFillHome | number: '1.2-2' }} <span class="ccy">{{ home.homeCurrency() }}</span>
+                  } @else {
+                    <span class="muted">No fills yet</span>
+                  }
+                </dd>
+              </div>
+            </dl>
+
+            <div class="item__actions">
+              <a class="trade trade--buy" [routerLink]="['/order-ticket']"
+                 [queryParams]="{ symbol: card.symbol, side: 'BUY' }" data-testid="watch-buy">Buy</a>
+              <a class="trade trade--sell" [routerLink]="['/order-ticket']"
+                 [queryParams]="{ symbol: card.symbol, side: 'SELL' }" data-testid="watch-sell">Sell</a>
+            </div>
+          </article>
+        }
+      </div>
+    }
+  }
+</section>

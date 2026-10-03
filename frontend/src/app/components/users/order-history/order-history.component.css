@@ -281,3 +281,80 @@
   padding: 24px 12px;
   text-align: center;
 }
+
+.ccy {
+  margin-left: 4px;
+  padding: 1px 7px;
+  border-radius: 99px;
+  background: var(--blue-bg);
+  color: var(--blue);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  vertical-align: middle;
+}
+
+/* Cancel: red at rest so it reads as the "stop" action, solid when you reach for it. */
+.cancel-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px 5px 9px;
+  border: 1px solid color-mix(in srgb, var(--reject) 45%, transparent);
+  border-radius: 99px;
+  background: var(--reject-bg);
+  color: var(--reject);
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: none;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease,
+    transform 180ms var(--ease),
+    box-shadow 200ms ease;
+}
+
+.cancel-btn svg {
+  width: 13px;
+  height: 13px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  transition: transform 260ms var(--ease);
+}
+
+.cancel-btn:hover {
+  background: var(--reject);
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 16px -8px var(--reject);
+}
+
+.cancel-btn:hover svg {
+  transform: rotate(90deg);
+}
+
+.mini.yes-cancel {
+  background: var(--reject);
+  border-color: var(--reject);
+  color: #fff;
+  border-radius: 99px;
+}
+
+.mini.keep {
+  background: var(--ok-bg);
+  border-color: color-mix(in srgb, var(--ok) 40%, transparent);
+  color: var(--ok);
+  border-radius: 99px;
+}
+
+.mini.keep:hover:not(:disabled) {
+  background: var(--ok);
+  color: #fff;
+}
+
+.confirm__ask {
+  font-weight: 600;
+  color: var(--reject);
+}

@@ -12,3 +12,16 @@ export interface CurrencyConversionResponse {
   rate: number;
 }
 
+
+export interface InstrumentInfo {
+  symbol: string;
+  name: string;
+  exchange: string;
+  assetClass: string;
+  currency: string;
+  tradable: boolean;
+}
+
+export interface WatchlistEntry extends InstrumentInfo {
+  addedAt: string;
+}

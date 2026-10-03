@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ApiErrorMessageService } from '../../../core/services/api-error-message.service';
 import { AccountContextService } from '../../../core/services/account-context.service';
+import { HomeCurrencyService } from '../../../core/services/home-currency.service';
 import { OrderService } from '../../../core/services/order.service';
 import { OrderHistoryEntry, OrderStatus } from '../../../core/models/order.model';
 
@@ -69,6 +70,7 @@ export class OrderHistoryComponent implements OnDestroy {
   private readonly orderService = inject(OrderService);
   private readonly accountContext = inject(AccountContextService);
   private readonly errorMessageService = inject(ApiErrorMessageService);
+  protected readonly home = inject(HomeCurrencyService);
 
   private pollTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -139,7 +141,7 @@ export class OrderHistoryComponent implements OnDestroy {
         (side === '' || order.side === side) &&
         matchesNumber(order.quantity, quantity) &&
         matchesNumber(order.price, price) &&
-        matchesNumber(order.executedPrice, executed)
+        matchesNumber(order.executedPrice === null ? null : this.home.toHome(order.executedPrice, order.symbol), executed)
     );
   });
 
@@ -148,6 +150,7 @@ export class OrderHistoryComponent implements OnDestroy {
   );
 
   constructor() {
+    this.home.ensureLoaded();
     this.load();
   }
 

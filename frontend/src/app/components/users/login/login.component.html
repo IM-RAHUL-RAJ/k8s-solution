@@ -21,16 +21,12 @@
   </button>
 
   <aside class="login__aside">
-    <a routerLink="/" class="login__brand">
-      <svg viewBox="0 0 64 64" width="28" height="28" aria-hidden="true">
-        <rect width="64" height="64" rx="15" fill="var(--accent)"/>
-        <path d="M23 48V17M23 19h14M23 33h11" stroke="var(--on-accent)" stroke-width="5.5" stroke-linecap="round" fill="none"/>
-      </svg>
-      <span>Fauxtrade</span>
+    <a routerLink="/" class="login__brand" aria-label="Quorum home">
+      <app-brand-logo [size]="34" />
     </a>
 
     <div class="login__aside-copy">
-      <p class="login__aside-title">Welcome<br />back</p>
+      <p class="login__aside-title">Welcome<br />back to Quorum</p>
       <p class="login__aside-text">Sign in to continue managing live orders, execution states, and portfolio movements in one place.</p>
     </div>
 

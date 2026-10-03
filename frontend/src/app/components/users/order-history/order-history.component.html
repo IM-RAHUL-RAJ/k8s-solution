@@ -64,8 +64,8 @@
               <th scope="col">Symbol</th>
               <th scope="col">Side</th>
               <th scope="col" class="num">Qty</th>
-              <th scope="col" class="num">Limit price</th>
-              <th scope="col" class="num">Executed at</th>
+              <th scope="col" class="num">Limit price @if (home.homeCurrency()) { <span class="ccy">{{ home.homeCurrency() }}</span> }</th>
+              <th scope="col" class="num">Executed at @if (home.homeCurrency()) { <span class="ccy">{{ home.homeCurrency() }}</span> }</th>
               <th scope="col">Status</th>
               <th scope="col" class="act"><span class="sr-only">Actions</span></th>
             </tr>
@@ -144,7 +144,9 @@
                 </td>
                 <td class="tabular num">
                   @if (order.executedPrice !== null) {
-                    {{ order.executedPrice | number: '1.2-2' }}
+                    <span [attr.title]="home.currencyOf(order.symbol) && home.currencyOf(order.symbol) !== home.homeCurrency()
+                      ? 'Filled at ' + (order.executedPrice | number: '1.2-2') + ' ' + home.currencyOf(order.symbol)
+                      : null">{{ home.toHome(order.executedPrice, order.symbol) | number: '1.2-2' }}</span>
                   } @else {
                     <span class="muted">&mdash;</span>
                   }
@@ -155,16 +157,17 @@
                     @if (confirmingId() === order.orderId) {
                       <span class="confirm">
                         <span class="confirm__ask">Cancel this order?</span>
-                        <button type="button" class="mini danger" (click)="confirmCancel(order)"
+                        <button type="button" class="mini yes-cancel" (click)="confirmCancel(order)"
                                 [disabled]="cancellingId() !== null" data-testid="confirm-cancel">
                           @if (cancellingId() === order.orderId) { Cancelling... } @else { Yes, cancel }
                         </button>
-                        <button type="button" class="mini" (click)="keepOrder()"
-                                [disabled]="cancellingId() !== null" data-testid="keep-order">Keep</button>
+                        <button type="button" class="mini keep" (click)="keepOrder()"
+                                [disabled]="cancellingId() !== null" data-testid="keep-order">Keep it</button>
                       </span>
                     } @else {
-                      <button type="button" class="mini ghost" (click)="askCancel(order.orderId)"
+                      <button type="button" class="cancel-btn" (click)="askCancel(order.orderId)"
                               [attr.aria-label]="'Cancel ' + order.symbol + ' order'" data-testid="cancel-order">
+                        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5.5 5.5l9 9M14.5 5.5l-9 9" /></svg>
                         Cancel
                       </button>
                     }

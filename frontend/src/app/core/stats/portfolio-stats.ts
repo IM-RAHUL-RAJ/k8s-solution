@@ -13,10 +13,19 @@ export interface AllocationSlice {
 
 const MAX_SLICES = 5;
 
+/** Converts an amount in an instrument's currency into the account's home currency. */
+export type HomeConverter = (amount: number, symbol: string) => number;
+
 /** Holdings by cost, biggest first. Anything beyond the top few is folded into "Other". */
-export function allocation(positions: PositionResponse[]): AllocationSlice[] {
+export function allocation(
+  positions: PositionResponse[],
+  toHome: HomeConverter = (amount) => amount
+): AllocationSlice[] {
   const costed = positions
-    .map((position) => ({ label: position.symbol, cost: position.quantity * position.averageCost }))
+    .map((position) => ({
+      label: position.symbol,
+      cost: toHome(position.quantity * position.averageCost, position.symbol)
+    }))
     .filter((slice) => slice.cost > 0)
     .sort((left, right) => right.cost - left.cost);
 
@@ -98,7 +107,10 @@ export interface ExecutionRow {
 }
 
 /** Average price improvement per symbol over filled orders that carried a limit price. */
-export function executionQuality(orders: OrderHistoryEntry[]): ExecutionRow[] {
+export function executionQuality(
+  orders: OrderHistoryEntry[],
+  toHome: HomeConverter = (amount) => amount
+): ExecutionRow[] {
   const bySymbol = new Map<string, { total: number; count: number; saved: number }>();
 
   for (const order of orders) {
@@ -111,12 +123,15 @@ export function executionQuality(orders: OrderHistoryEntry[]): ExecutionRow[] {
       continue;
     }
 
+    // The limit is in the home currency; the executed price is in the instrument's. Compare like with like.
+    const executed = toHome(order.executedPrice, order.symbol);
+
     const improvement =
       order.side === 'BUY'
-        ? ((order.price - order.executedPrice) / order.price) * 100
-        : ((order.executedPrice - order.price) / order.price) * 100;
+        ? ((order.price - executed) / order.price) * 100
+        : ((executed - order.price) / order.price) * 100;
 
-    const perShare = order.side === 'BUY' ? order.price - order.executedPrice : order.executedPrice - order.price;
+    const perShare = order.side === 'BUY' ? order.price - executed : executed - order.price;
 
     const entry = bySymbol.get(order.symbol) ?? { total: 0, count: 0, saved: 0 };
     entry.total += improvement;

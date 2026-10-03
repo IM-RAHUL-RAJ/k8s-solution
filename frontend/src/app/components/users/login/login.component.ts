@@ -3,13 +3,14 @@ import { CommonModule } from '@angular/common';
 import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService, LoginRequest } from '../../../core/auth/auth.service';
+import { BrandLogoComponent } from '../shared/brand-logo/brand-logo.component';
 import { ThemeService } from '../../../core/theme/theme.service';
 import { SessionSocketService } from '../../../core/auth/session-socket.service';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, BrandLogoComponent],
   templateUrl: './login.component.html',
   styleUrl: './login.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush

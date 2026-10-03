@@ -1,8 +1,8 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import {
   AbstractControl,
   FormBuilder,
@@ -14,10 +14,11 @@ import {
 import { ApiErrorMessageService } from '../../../core/services/api-error-message.service';
 import { AccountContextService } from '../../../core/services/account-context.service';
 import { AccountService } from '../../../core/services/account.service';
+import { HomeCurrencyService } from '../../../core/services/home-currency.service';
 import { OrderService } from '../../../core/services/order.service';
 import { OrderDraft, OrderDraftService } from '../../../core/services/order-draft.service';
 import { CURRENCIES, convertAmount, isSupportedCurrency, rateBetween } from '../../../core/config/currency-rates';
-import { AccountResponse, BalanceResponse } from '../../../core/models/account.model';
+import { AccountResponse, BalanceResponse, PositionResponse } from '../../../core/models/account.model';
 import { OrderResponse, OrderSide } from '../../../core/models/order.model';
 import { StatusBadgeComponent } from '../shared/status-badge/status-badge.component';
 
@@ -59,6 +60,8 @@ export class OrderTicketComponent {
   private readonly apiErrorMessageService = inject(ApiErrorMessageService);
   private readonly accountService = inject(AccountService);
   private readonly draftService = inject(OrderDraftService);
+  private readonly route = inject(ActivatedRoute);
+  protected readonly home = inject(HomeCurrencyService);
 
   readonly currencies = CURRENCIES;
 
@@ -69,13 +72,15 @@ export class OrderTicketComponent {
   readonly isSubmitting = signal(false);
   readonly errorMessage = signal<string | null>(null);
   readonly success = signal<OrderResponse | null>(null);
+  /** The review step: the order is only sent once the customer confirms it. */
+  readonly confirming = signal(false);
 
   readonly form = this.formBuilder.nonNullable.group({
     symbol: ['', [Validators.required, symbolValidator]],
     side: ['BUY' as OrderSide, [Validators.required]],
     quantity: ['', [Validators.required, positiveIntegerValidator]],
     price: ['', [Validators.required, priceValidator]],
-    // Converter only, never sent to the API. `currency` starts as the account currency.
+    // Converter only, never sent to the API. They default to the home and instrument currencies.
     currency: ['USD'],
     convertTo: ['EUR']
   });
@@ -100,7 +105,6 @@ export class OrderTicketComponent {
     };
   });
 
-
   // Account reference: the customer sees what statements and support quote, never the
   // internal numeric id. The id is only used inside requests.
   readonly account = signal<AccountResponse | null>(null);
@@ -114,18 +118,75 @@ export class OrderTicketComponent {
     return this.accountFailed() ? 'Unavailable' : 'Loading...';
   });
 
-  // The account's own currency. The trade API reads the limit price in it and converts to the
-  // instrument's currency itself. Learned quietly on load; the amount is only shown on request.
-  readonly accountCurrency = signal<string | null>(null);
+  /**
+   * The home currency: the account's own. The limit price is entered in it (the trade API
+   * converts it to the instrument's currency), and cash and the estimate are in it too.
+   */
+  readonly accountCurrency = computed(() => this.home.homeCurrency());
 
-  // Balance, on demand.
+  // Balance. It is read quietly so the ticket can warn, but only shown once asked for.
   readonly balance = signal<BalanceResponse | null>(null);
+  readonly balanceRevealed = signal(false);
   readonly balanceLoading = signal(false);
   readonly balanceError = signal<string | null>(null);
+  private readonly positions = signal<PositionResponse[] | null>(null);
+
+  /** The instrument the symbol field names, if the platform knows it. */
+  readonly instrument = computed(() => {
+    this.home.ready();
+    return this.home.instrument(this.summary().symbol) ?? null;
+  });
+
+  readonly instrumentCurrency = computed(() => this.home.currencyOf(this.summary().symbol));
+
+  /** Symbol typed, platform loaded, and no such instrument. A hint only: the API has the final say. */
+  readonly unknownSymbol = computed(
+    () => this.home.ready() && this.summary().symbol !== '' && this.instrument() === null
+  );
+
+  /** The limit price as the instrument's own currency sees it. */
+  readonly priceInInstrumentCurrency = computed(() => {
+    const home = this.accountCurrency();
+    const target = this.instrumentCurrency();
+    const price = this.summary().price;
+    return home && target && price !== null ? convertAmount(home, target, price) : null;
+  });
+
+  readonly estimateInInstrumentCurrency = computed(() => {
+    const home = this.accountCurrency();
+    const target = this.instrumentCurrency();
+    const estimate = this.summary().estimate;
+    return home && target && estimate !== null ? convertAmount(home, target, estimate) : null;
+  });
+
+  /** A buy whose estimate is above the cash on hand. Both sides are in the home currency. */
+  readonly affordability = computed(() => {
+    const summary = this.summary();
+    const balance = this.balance();
+    if (summary.side !== 'Buy' || summary.estimate === null || balance === null) {
+      return null;
+    }
+    return summary.estimate > balance.cashBalance
+      ? { cash: balance.cashBalance, short: summary.estimate - balance.cashBalance, currency: balance.currency }
+      : null;
+  });
+
+  /** A sell of more than is held. */
+  readonly holdingsWarning = computed(() => {
+    const summary = this.summary();
+    const positions = this.positions();
+    if (summary.side !== 'Sell' || summary.quantity === null || summary.symbol === '' || positions === null) {
+      return null;
+    }
+    const held = positions.find((position) => position.symbol === summary.symbol)?.quantity ?? 0;
+    return summary.quantity > held ? { held } : null;
+  });
 
   // Currency converter, using the same rate table as the trade API.
   /** What the user typed into the converter. Null means: follow the order estimate. */
   private readonly fxAmountOverride = signal<string | null>(null);
+  private readonly fromChosen = signal(false);
+  private readonly toChosen = signal(false);
 
   readonly fxAmountText = computed(() => {
     const override = this.fxAmountOverride();
@@ -146,21 +207,34 @@ export class OrderTicketComponent {
     return Number.isFinite(amount) && amount > 0 ? convertAmount(this.fxFrom(), this.fxTo(), amount) : null;
   });
 
-  /** The limit price as the instrument sees it, when the user has picked its currency. */
-  readonly convertedPrice = computed(() => {
-    const price = this.summary().price;
-    return price !== null ? convertAmount(this.fxFrom(), this.fxTo(), price) : null;
-  });
-
   constructor() {
     this.restoreDraft();
+    this.applyDeepLink();
 
     // Remember the ticket while the user visits other tabs.
     this.form.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => {
-      this.draftService.save(this.form.getRawValue() as OrderDraft);
+      const { symbol, side, quantity, price } = this.form.getRawValue();
+      this.draftService.save({ symbol, side, quantity, price });
     });
 
     this.loadAccount();
+    this.home.ensureLoaded();
+
+    // The converter starts from the home currency and the instrument's currency, until the user picks others.
+    effect(() => {
+      const home = this.accountCurrency();
+      if (home && !this.fromChosen() && this.form.controls.currency.value !== home) {
+        this.form.controls.currency.setValue(home);
+      }
+    });
+    effect(() => {
+      const target = this.instrumentCurrency();
+      const home = this.accountCurrency();
+      const next = target ?? (home === 'USD' ? 'EUR' : 'USD');
+      if (!this.toChosen() && this.form.controls.convertTo.value !== next) {
+        this.form.controls.convertTo.setValue(next);
+      }
+    });
   }
 
   private restoreDraft(): void {
@@ -168,18 +242,20 @@ export class OrderTicketComponent {
     if (!draft) {
       return;
     }
-    this.form.patchValue(
-      {
-        symbol: typeof draft.symbol === 'string' ? draft.symbol.slice(0, 20) : '',
-        side: draft.side === 'SELL' ? 'SELL' : 'BUY',
-        quantity: typeof draft.quantity === 'string' ? draft.quantity.slice(0, 12) : '',
-        price: typeof draft.price === 'string' ? draft.price.slice(0, 16) : '',
-        currency: isSupportedCurrency(draft.currency) ? draft.currency : 'USD',
-        convertTo: isSupportedCurrency(draft.convertTo) ? draft.convertTo : 'EUR'
-      }
-    );
-    if (draft.currency) {
-      this.form.controls.currency.markAsDirty();
+    this.form.patchValue({
+      symbol: typeof draft.symbol === 'string' ? draft.symbol.slice(0, 20) : '',
+      side: draft.side === 'SELL' ? 'SELL' : 'BUY',
+      quantity: typeof draft.quantity === 'string' ? draft.quantity.slice(0, 12) : '',
+      price: typeof draft.price === 'string' ? draft.price.slice(0, 16) : ''
+    });
+  }
+
+  /** The watchlist's Trade button opens the ticket with the symbol (and side) already filled in. */
+  private applyDeepLink(): void {
+    const params = this.route.snapshot.queryParamMap;
+    const symbol = params.get('symbol')?.trim().toUpperCase();
+    if (symbol && SYMBOL_PATTERN.test(symbol)) {
+      this.form.patchValue({ symbol, side: params.get('side') === 'SELL' ? 'SELL' : 'BUY' });
     }
   }
 
@@ -192,26 +268,17 @@ export class OrderTicketComponent {
     });
 
     this.accountService.getBalance(accountId).subscribe({
-      next: (balance) => this.adoptAccountCurrency(balance.currency),
+      next: (balance) => this.balance.set(balance),
+      error: () => undefined
+    });
+
+    this.accountService.getPositions(accountId).subscribe({
+      next: (positions) => this.positions.set(positions),
       error: () => undefined
     });
   }
 
-  private adoptAccountCurrency(code: string): void {
-    const currency = code?.trim().toUpperCase();
-    if (!isSupportedCurrency(currency)) {
-      return;
-    }
-    this.accountCurrency.set(currency);
-    // Start the converter from the account currency unless the user already chose one.
-    if (!this.form.controls.currency.dirty) {
-      this.form.controls.currency.setValue(currency);
-      if (this.form.controls.convertTo.value === currency) {
-        this.form.controls.convertTo.setValue(currency === 'USD' ? 'EUR' : 'USD');
-      }
-    }
-  }
-
+  /** Get balance: always a fresh read, and the first press reveals the figure. */
   getBalance(): void {
     if (this.balanceLoading()) {
       return;
@@ -222,14 +289,24 @@ export class OrderTicketComponent {
     this.accountService.getBalance(this.accountContextService.getCurrentAccount().accountNumericId).subscribe({
       next: (balance) => {
         this.balance.set(balance);
+        this.balanceRevealed.set(true);
         this.balanceLoading.set(false);
-        this.adoptAccountCurrency(balance.currency);
       },
       error: (error: unknown) => {
         this.balanceError.set(this.apiErrorMessageService.getMessage(error));
         this.balanceLoading.set(false);
       }
     });
+  }
+
+  chooseFrom(code: string): void {
+    this.fromChosen.set(true);
+    this.form.controls.currency.setValue(code);
+  }
+
+  chooseTo(code: string): void {
+    this.toChosen.set(true);
+    this.form.controls.convertTo.setValue(code);
   }
 
   onFxAmountInput(value: string): void {
@@ -242,10 +319,11 @@ export class OrderTicketComponent {
 
   swapCurrencies(): void {
     const { currency, convertTo } = this.form.getRawValue();
-    this.form.patchValue({ currency: convertTo, convertTo: currency });
-    this.form.controls.currency.markAsDirty();
+    this.chooseFrom(convertTo);
+    this.chooseTo(currency);
   }
 
+  /** The place order button: check the form, then show the review. Nothing is sent yet. */
   onSubmit(): void {
     this.form.markAllAsTouched();
 
@@ -253,6 +331,23 @@ export class OrderTicketComponent {
       return;
     }
 
+    this.errorMessage.set(null);
+    this.success.set(null);
+    this.confirming.set(true);
+  }
+
+  /** Back from the review to the form, keeping everything typed. */
+  cancelReview(): void {
+    this.confirming.set(false);
+  }
+
+  /** The review's confirm button: this is the only place an order is sent. */
+  confirmOrder(): void {
+    if (this.form.invalid || this.isSubmitting()) {
+      return;
+    }
+
+    this.confirming.set(false);
     this.isSubmitting.set(true);
     this.errorMessage.set(null);
     this.success.set(null);
@@ -276,9 +371,8 @@ export class OrderTicketComponent {
           this.success.set(response);
           this.isSubmitting.set(false);
           this.draftService.clear();
-          if (this.balance() !== null) {
-            this.getBalance();
-          }
+          // Cash and holdings have just been committed against: read them again.
+          this.refreshFigures();
         },
         error: (error: unknown) => {
           const outcomeUnknown = error instanceof HttpErrorResponse && error.status === 0;
@@ -291,22 +385,29 @@ export class OrderTicketComponent {
       });
   }
 
+  private refreshFigures(): void {
+    const accountId = this.accountContextService.getCurrentAccount().accountNumericId;
+    this.accountService.getBalance(accountId).subscribe({ next: (b) => this.balance.set(b), error: () => undefined });
+    this.accountService.getPositions(accountId).subscribe({ next: (p) => this.positions.set(p), error: () => undefined });
+  }
+
   onReset(): void {
-    const home = this.accountCurrency() ?? 'USD';
     this.form.reset({
       symbol: '',
       side: 'BUY',
       quantity: '',
       price: '',
-      currency: home,
-      convertTo: home === 'USD' ? 'EUR' : 'USD'
+      currency: this.accountCurrency() ?? 'USD',
+      convertTo: 'USD'
     });
-    this.form.controls.currency.markAsPristine();
+    this.fromChosen.set(false);
+    this.toChosen.set(false);
     this.draftService.clear();
     this.fxAmountOverride.set(null);
     this.pendingIdempotencyKey = null;
     this.errorMessage.set(null);
     this.success.set(null);
+    this.confirming.set(false);
   }
 
   selectSide(side: OrderSide): void {

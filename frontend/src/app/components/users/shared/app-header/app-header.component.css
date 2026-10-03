@@ -161,3 +161,33 @@
     bottom: -7px;
   }
 }
+
+/* Quorum header: the active page is a gradient pill, the bar a touch glassier. */
+.header {
+  border-bottom-color: color-mix(in srgb, var(--accent) 22%, var(--line));
+  box-shadow: 0 8px 24px -18px color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+.header__nav a::after {
+  display: none;
+}
+
+.header__nav a {
+  font-weight: 500;
+}
+
+.header__nav a.active {
+  color: var(--on-grad);
+  background-image: var(--grad);
+  box-shadow: var(--glow);
+}
+
+.header__nav a:not(.active):hover {
+  background-color: var(--ok-bg);
+  color: var(--accent);
+}
+
+.header__signout:hover {
+  color: var(--reject);
+  background-color: var(--reject-bg);
+}
