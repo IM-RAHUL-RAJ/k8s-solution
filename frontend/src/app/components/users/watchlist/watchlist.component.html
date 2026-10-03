@@ -7,44 +7,88 @@
 
     <div class="adder">
       <label for="watch-pick" class="sr-only">Add an instrument</label>
-      <select id="watch-pick" [value]="pick()" (change)="pick.set($any($event.target).value)"
-              [disabled]="adding() || addable().length === 0" data-testid="watch-pick">
-        <option value="">{{ addable().length === 0 ? 'Everything is on your watchlist' : 'Add an instrument…' }}</option>
+      <select
+        id="watch-pick"
+        [value]="pick()"
+        (change)="pick.set($any($event.target).value)"
+        [disabled]="adding() || addable().length === 0"
+        data-testid="watch-pick"
+      >
+        <option value="">
+          {{ addable().length === 0 ? 'Everything is on your watchlist' : 'Add an instrument…' }}
+        </option>
+
         @for (item of addable(); track item.symbol) {
-          <option [value]="item.symbol">{{ item.symbol }} · {{ item.name }} ({{ item.currency }})</option>
+          <option [value]="item.symbol">
+            {{ item.symbol }} · {{ item.name }} ({{ item.currency }})
+          </option>
         }
       </select>
-      <button type="button" class="primary" (click)="add()" [disabled]="!pick() || adding()" data-testid="watch-add">
-        @if (adding()) { Adding... } @else { + Add }
+
+      <button
+        type="button"
+        class="primary"
+        (click)="add()"
+        [disabled]="!pick() || adding()"
+        data-testid="watch-add"
+      >
+        @if (adding()) {
+          Adding...
+        } @else {
+          + Add
+        }
       </button>
     </div>
   </header>
 
   @if (error()) {
-    <div class="banner error" role="alert" data-testid="watchlist-error">{{ error() }}</div>
-    <div><button type="button" class="secondary" (click)="load()">Try again</button></div>
+    <div class="banner error" role="alert" data-testid="watchlist-error">
+      {{ error() }}
+    </div>
+
+    <div>
+      <button type="button" class="secondary" (click)="load()">
+        Try again
+      </button>
+    </div>
   }
 
   @if (actionError()) {
-    <div class="banner error" role="alert">{{ actionError() }}</div>
+    <div class="banner error" role="alert">
+      {{ actionError() }}
+    </div>
   }
 
   @if (loading()) {
     <div class="grid" aria-busy="true" aria-label="Loading watchlist">
       @for (placeholder of [1, 2, 3]; track placeholder) {
-        <article class="card"><span class="skeleton"></span><span class="skeleton"></span><span class="skeleton"></span></article>
+        <article class="card">
+          <span class="skeleton"></span>
+          <span class="skeleton"></span>
+          <span class="skeleton"></span>
+        </article>
       }
     </div>
   } @else if (!error()) {
+
     @if (cards().length === 0) {
       <article class="card empty" data-testid="watchlist-empty">
-        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3l2.2 4.6 5 .7-3.6 3.5.9 5-4.5-2.4-4.5 2.4.9-5L2.8 8.3l5-.7z" /></svg>
+        <svg viewBox="0 0 20 20" aria-hidden="true">
+          <path d="M10 3l2.2 4.6 5 .7-3.6 3.5.9 5-4.5-2.4-4.5 2.4.9-5L2.8 8.3l5-.7z" />
+        </svg>
+
         <p>Your watchlist is empty.</p>
         <p class="muted">Pick an instrument above to start following it.</p>
       </article>
     } @else {
-      <!-- Contained panel -->
-      <div class="wl-panel" role="table" aria-label="Watchlist" data-testid="watch-table">
+
+      <!-- Watchlist table -->
+      <div
+        class="wl-panel"
+        role="table"
+        aria-label="Watchlist"
+        data-testid="watch-table"
+      >
 
         <div class="wl-head wl-cols" role="row">
           <span role="columnheader">Instrument</span>
@@ -57,18 +101,28 @@
         </div>
 
         <div class="wl-body">
+
           @for (card of cards(); track card.symbol; let i = $index) {
-            <div class="wl-row wl-cols" role="row" tabindex="0"
-                 [attr.data-dir]="dir(card)"
-                 [attr.data-accent]="card.accent"
-                 [style.animation-delay.ms]="i * 50"
-                 [attr.aria-label]="'Show details for ' + card.symbol"
-                 (click)="open(card.symbol)" (keydown.enter)="open(card.symbol)"
-                 data-testid="watch-row">
+
+            <div
+              class="wl-row wl-cols"
+              role="row"
+              tabindex="0"
+              [attr.data-dir]="dir(card)"
+              [attr.data-accent]="card.accent"
+              [style.animation-delay.ms]="i * 50"
+              [attr.aria-label]="'Show details for ' + card.symbol"
+              (click)="open(card.symbol)"
+              (keydown.enter)="open(card.symbol)"
+              data-testid="watch-row"
+            >
 
               <!-- Instrument -->
               <div role="cell" class="wl-inst">
-                <div class="wl-badge" aria-hidden="true">{{ card.symbol.slice(0, 2) }}</div>
+                <div class="wl-badge" aria-hidden="true">
+                  {{ card.symbol.slice(0, 2) }}
+                </div>
+
                 <div class="wl-id">
                   <strong>{{ card.symbol }}</strong>
                   <span class="muted">{{ card.name }}</span>
@@ -77,158 +131,372 @@
 
               <!-- Type -->
               <div role="cell" class="hide-sm wl-cell--type">
-                <span class="tag tag--asset">{{ label(card.assetClass) }}</span>
+                <span class="tag tag--asset">
+                  {{ label(card.assetClass) }}
+                </span>
               </div>
 
               <!-- Exchange -->
               <div role="cell" class="hide-sm wl-cell--exchange">
-                <span class="tag tag--exchange">{{ card.exchange }}</span>
-                @if (!card.tradable) { <span class="tag tag--red">Not tradable</span> }
+                <span class="tag tag--exchange">
+                  {{ card.exchange }}
+                </span>
+
+                @if (!card.tradable) {
+                  <span class="tag tag--red">Not tradable</span>
+                }
               </div>
 
               <!-- Last -->
               <div role="cell" class="num">
                 @if (card.quote; as q) {
-                  <div class="wl-price tabular"><strong>{{ q.price | number: '1.2-4' }}</strong> <span class="ccy">{{ q.currency }}</span></div>
+
+                  <div class="wl-price tabular">
+                    <strong>
+                      {{ q.price | number: '1.2-4' }}
+                    </strong>
+
+                    <span class="ccy">
+                      {{ q.currency }}
+                    </span>
+                  </div>
+
                   @if (q.priceHome !== null) {
-                    <div class="muted fine tabular">≈ {{ q.priceHome | number: '1.2-2' }} {{ home.homeCurrency() }}</div>
+                    <div class="muted fine tabular">
+                      ≈ {{ q.priceHome | number: '1.2-2' }}
+                      {{ home.homeCurrency() }}
+                    </div>
                   }
-                } @else { <span class="muted">—</span> }
+
+                } @else {
+                  <span class="muted">—</span>
+                }
               </div>
 
               <!-- Change -->
               <div role="cell" class="num">
                 @if (card.quote; as q) {
+
                   @if (q.change !== null) {
-                    <span class="wl-pill tabular"
-                          [class.wl-pill--up]="dir(card) === 'up'"
-                          [class.wl-pill--down]="dir(card) === 'down'"
-                          [class.wl-pill--flat]="dir(card) === 'flat'">
+
+                    <span
+                      class="wl-pill tabular"
+                      [class.wl-pill--up]="dir(card) === 'up'"
+                      [class.wl-pill--down]="dir(card) === 'down'"
+                      [class.wl-pill--flat]="dir(card) === 'flat'"
+                    >
                       {{ dir(card) === 'up' ? '▲' : dir(card) === 'down' ? '▼' : '–' }}
-                      @if (q.changePercent !== null) { {{ q.changePercent | number: '1.2-2' }}% }
-                      @else { {{ q.change | number: '1.2-2' }} }
+
+                      @if (q.changePercent !== null) {
+                        {{ q.changePercent | number: '1.2-2' }}%
+                      } @else {
+                        {{ q.change | number: '1.2-2' }}
+                      }
                     </span>
-                  } @else { <span class="muted">—</span> }
-                } @else { <span class="muted">—</span> }
+
+                  } @else {
+                    <span class="muted">—</span>
+                  }
+
+                } @else {
+                  <span class="muted">—</span>
+                }
               </div>
 
               <!-- Bid / Ask -->
-              <div role="cell" class="num hide-sm tabular">
+              <div
+                role="cell"
+                class="num hide-sm tabular"
+              >
                 @if (card.quote; as q) {
-                  <span class="wl-bid">{{ q.bid !== null ? (q.bid | number: '1.2-4') : '—' }}</span>
+
+                  <span class="wl-bid">
+                    {{ q.bid !== null ? (q.bid | number: '1.2-4') : '—' }}
+                  </span>
+
                   <span class="muted"> / </span>
-                  <span class="wl-ask">{{ q.ask !== null ? (q.ask | number: '1.2-4') : '—' }}</span>
-                } @else { <span class="muted">—</span> }
+
+                  <span class="wl-ask">
+                    {{ q.ask !== null ? (q.ask | number: '1.2-4') : '—' }}
+                  </span>
+
+                } @else {
+                  <span class="muted">—</span>
+                }
               </div>
 
               <!-- Remove -->
               <div role="cell" class="wl-act">
-                <button type="button" class="minus"
-                        (click)="$event.stopPropagation(); remove(card.symbol)"
-                        (keydown.enter)="$event.stopPropagation()"
-                        [disabled]="busySymbol() !== null"
-                        [attr.aria-label]="'Remove ' + card.symbol + ' from watchlist'"
-                        title="Remove from watchlist" data-testid="watch-row-remove">
-                  <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 10h10" /></svg>
+                <button
+                  type="button"
+                  class="minus"
+                  (click)="$event.stopPropagation(); remove(card.symbol)"
+                  (keydown.enter)="$event.stopPropagation()"
+                  [disabled]="busySymbol() !== null"
+                  [attr.aria-label]="'Remove ' + card.symbol + ' from watchlist'"
+                  title="Remove from watchlist"
+                  data-testid="watch-row-remove"
+                >
+                  <svg viewBox="0 0 20 20" aria-hidden="true">
+                    <path d="M5 10h10" />
+                  </svg>
                 </button>
               </div>
+
             </div>
           }
+
         </div>
       </div>
     }
   }
 
-  <!-- Details overlay (the card) -->
+  <!-- Details overlay -->
   @if (selectedCard(); as card) {
-    <div class="overlay" (click)="close()" data-testid="watch-overlay">
-      <div class="overlay__panel" role="dialog" aria-modal="true"
-           [attr.aria-label]="card.symbol + ' details'" (click)="$event.stopPropagation()">
 
-        <article class="card lift item" [attr.data-accent]="card.accent" data-testid="watch-card">
+    <div
+      class="overlay"
+      (click)="close()"
+      data-testid="watch-overlay"
+    >
+
+      <div
+        class="overlay__panel"
+        role="dialog"
+        aria-modal="true"
+        [attr.aria-label]="card.symbol + ' details'"
+        (click)="$event.stopPropagation()"
+      >
+
+        <article
+          class="card lift item"
+          [attr.data-accent]="card.accent"
+          data-testid="watch-card"
+        >
+
           <div class="item__top">
-            <div class="badge" aria-hidden="true">{{ card.symbol.slice(0, 2) }}</div>
+
+            <div class="badge" aria-hidden="true">
+              {{ card.symbol.slice(0, 2) }}
+            </div>
+
             <div class="item__id">
               <h2>{{ card.symbol }}</h2>
               <p class="muted">{{ card.name }}</p>
             </div>
-            <button type="button" class="minus" (click)="remove(card.symbol)" [disabled]="busySymbol() !== null"
-                    [attr.aria-label]="'Remove ' + card.symbol + ' from watchlist'" title="Remove from watchlist"
-                    data-testid="watch-remove">
-              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 10h10" /></svg>
+
+            <!-- Only Close button here -->
+            <button
+              type="button"
+              class="close"
+              (click)="close()"
+              aria-label="Close details"
+              title="Close"
+              data-testid="watch-close"
+            >
+              <svg viewBox="0 0 20 20" aria-hidden="true">
+                <path d="M5 5l10 10M15 5L5 15" />
+              </svg>
             </button>
-            <button type="button" class="close" (click)="close()" aria-label="Close details" title="Close"
-                    data-testid="watch-close">
-              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15" /></svg>
-            </button>
+
           </div>
 
           <div class="tags">
-            <span class="tag tag--asset">{{ label(card.assetClass) }}</span>
-            <span class="tag">{{ card.exchange }}</span>
-            <span class="tag tag--ccy">{{ card.currency }}</span>
-            @if (!card.tradable) { <span class="tag tag--red">Not tradable</span> }
+            <span class="tag tag--asset">
+              {{ label(card.assetClass) }}
+            </span>
+
+            <span class="tag">
+              {{ card.exchange }}
+            </span>
+
+            <span class="tag tag--ccy">
+              {{ card.currency }}
+            </span>
+
+            @if (!card.tradable) {
+              <span class="tag tag--red">
+                Not tradable
+              </span>
+            }
           </div>
 
           @if (card.quote; as q) {
+
             <div class="quote" data-testid="watch-quote">
+
               <div class="quote__last">
-                <span class="quote__label">Last</span>
-                <strong class="tabular">{{ q.price | number: '1.2-4' }}</strong>
-                @if (q.currency) { <span class="ccy">{{ q.currency }}</span> }
-                @if (q.change !== null) {
-                  <span class="move" [class.move--up]="q.up" [class.move--down]="!q.up">
-                    {{ q.up ? '▲' : '▼' }} {{ q.change | number: '1.2-2' }}
-                    @if (q.changePercent !== null) { ({{ q.changePercent | number: '1.2-2' }}%) }
+
+                <span class="quote__label">
+                  Last
+                </span>
+
+                <strong class="tabular">
+                  {{ q.price | number: '1.2-4' }}
+                </strong>
+
+                @if (q.currency) {
+                  <span class="ccy">
+                    {{ q.currency }}
                   </span>
                 }
-              </div>
-              @if (q.priceHome !== null) {
-                <p class="muted fine">≈ {{ q.priceHome | number: '1.2-2' }} {{ home.homeCurrency() }}</p>
-              }
-              <dl class="book">
-                <div class="book__bid"><dt>Bid</dt><dd class="tabular">{{ q.bid !== null ? (q.bid | number: '1.2-4') : '—' }}</dd></div>
-                <div class="book__ask"><dt>Ask</dt><dd class="tabular">{{ q.ask !== null ? (q.ask | number: '1.2-4') : '—' }}</dd></div>
-                <div><dt>Spread</dt><dd class="tabular">{{ q.spread !== null ? (q.spread | number: '1.2-4') : '—' }}</dd></div>
-                <div><dt>Prev close</dt><dd class="tabular">{{ q.previousClose !== null ? (q.previousClose | number: '1.2-4') : '—' }}</dd></div>
-              </dl>
-              <p class="quote__meta">
-                @if (q.marketState) {
-                  <span class="state" [class.state--open]="q.open">{{ q.marketState }}</span>
+
+                @if (q.change !== null) {
+
+                  <span
+                    class="move"
+                    [class.move--up]="q.up"
+                    [class.move--down]="!q.up"
+                  >
+                    {{ q.up ? '▲' : '▼' }}
+                    {{ q.change | number: '1.2-2' }}
+
+                    @if (q.changePercent !== null) {
+                      ({{ q.changePercent | number: '1.2-2' }}%)
+                    }
+                  </span>
+
                 }
-                @if (q.stale) { <span class="state state--stale">Stale</span> }
-                @if (q.quoteAsOf) { <span class="muted">as of {{ q.quoteAsOf | date: 'HH:mm:ss' }}</span> }
+
+              </div>
+
+              @if (q.priceHome !== null) {
+                <p class="muted fine">
+                  ≈ {{ q.priceHome | number: '1.2-2' }}
+                  {{ home.homeCurrency() }}
+                </p>
+              }
+
+              <dl class="book">
+
+                <div class="book__bid">
+                  <dt>Bid</dt>
+                  <dd class="tabular">
+                    {{ q.bid !== null ? (q.bid | number: '1.2-4') : '—' }}
+                  </dd>
+                </div>
+
+                <div class="book__ask">
+                  <dt>Ask</dt>
+                  <dd class="tabular">
+                    {{ q.ask !== null ? (q.ask | number: '1.2-4') : '—' }}
+                  </dd>
+                </div>
+
+                <div>
+                  <dt>Spread</dt>
+                  <dd class="tabular">
+                    {{ q.spread !== null ? (q.spread | number: '1.2-4') : '—' }}
+                  </dd>
+                </div>
+
+                <div>
+                  <dt>Prev close</dt>
+                  <dd class="tabular">
+                    {{ q.previousClose !== null ? (q.previousClose | number: '1.2-4') : '—' }}
+                  </dd>
+                </div>
+
+              </dl>
+
+              <p class="quote__meta">
+
+                @if (q.marketState) {
+                  <span
+                    class="state"
+                    [class.state--open]="q.open"
+                  >
+                    {{ q.marketState }}
+                  </span>
+                }
+
+                @if (q.stale) {
+                  <span class="state state--stale">
+                    Stale
+                  </span>
+                }
+
+                @if (q.quoteAsOf) {
+                  <span class="muted">
+                    as of {{ q.quoteAsOf | date: 'HH:mm:ss' }}
+                  </span>
+                }
+
               </p>
+
             </div>
+
           } @else {
-            <p class="muted fine quote--waiting" data-testid="watch-quote-waiting">Waiting for the first quote…</p>
+
+            <p
+              class="muted fine quote--waiting"
+              data-testid="watch-quote-waiting"
+            >
+              Waiting for the first quote…
+            </p>
+
           }
 
           <dl class="facts">
+
             <div>
               <dt>You hold</dt>
-              <dd class="tabular">{{ card.held }}</dd>
+              <dd class="tabular">
+                {{ card.held }}
+              </dd>
             </div>
+
             <div>
               <dt>Last fill</dt>
               <dd class="tabular">
+
                 @if (card.lastFillHome !== null) {
-                  {{ card.lastFillHome | number: '1.2-2' }} <span class="ccy">{{ home.homeCurrency() }}</span>
+
+                  {{ card.lastFillHome | number: '1.2-2' }}
+                  <span class="ccy">
+                    {{ home.homeCurrency() }}
+                  </span>
+
                 } @else {
-                  <span class="muted">No fills yet</span>
+
+                  <span class="muted">
+                    No fills yet
+                  </span>
+
                 }
+
               </dd>
             </div>
+
           </dl>
 
           <div class="item__actions">
-            <a class="trade trade--buy" [routerLink]="['/order-ticket']"
-               [queryParams]="{ symbol: card.symbol, side: 'BUY' }" data-testid="watch-buy">Buy</a>
-            <a class="trade trade--sell" [routerLink]="['/order-ticket']"
-               [queryParams]="{ symbol: card.symbol, side: 'SELL' }" data-testid="watch-sell">Sell</a>
+
+            <a
+              class="trade trade--buy"
+              [routerLink]="['/order-ticket']"
+              [queryParams]="{ symbol: card.symbol, side: 'BUY' }"
+              data-testid="watch-buy"
+            >
+              Buy
+            </a>
+
+            <a
+              class="trade trade--sell"
+              [routerLink]="['/order-ticket']"
+              [queryParams]="{ symbol: card.symbol, side: 'SELL' }"
+              data-testid="watch-sell"
+            >
+              Sell
+            </a>
+
           </div>
+
         </article>
+
       </div>
+
     </div>
   }
+
 </section>
