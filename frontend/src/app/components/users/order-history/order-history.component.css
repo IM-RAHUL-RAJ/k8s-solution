@@ -3,36 +3,50 @@
 }
 
 .page {
-  gap: 12px;
+  gap: 18px;
 }
 
 .header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 10px;
+  gap: 14px;
 }
 
 .header h1 {
-  font-size: 20px;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.header .muted {
+  font-size: 14px;
 }
 
 .page > .banner {
   margin: 0;
+  padding: 14px 18px;
+  border-radius: 16px;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .refresh {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  padding: 11px 20px;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 700;
 }
 
 .glyph {
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
   fill: none;
   stroke: currentColor;
-  stroke-width: 1.8;
+  stroke-width: 2.2;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -45,13 +59,13 @@
 .working {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .working__dot {
   flex: none;
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   background-color: var(--new);
   animation: pulse 1.5s ease-in-out infinite;
@@ -61,7 +75,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 12px;
 }
 
 .notice__close {
@@ -69,7 +83,8 @@
   border: none;
   background: none;
   color: inherit;
-  font-size: 18px;
+  font-size: 22px;
+  font-weight: 700;
   line-height: 1;
 }
 
@@ -87,11 +102,13 @@
 }
 
 .mini {
-  padding: 4px 10px;
+  padding: 8px 14px;
   border: 1px solid var(--line);
+  border-radius: 12px;
   background-color: var(--surface);
   color: var(--text);
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .mini:hover:not(:disabled) {
@@ -128,13 +145,14 @@
 .confirm {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   animation: confirmIn 220ms var(--ease);
 }
 
 .confirm__ask {
-  color: var(--muted);
-  font-size: 12px;
+  color: var(--reject);
+  font-size: 13px;
+  font-weight: 700;
 }
 
 @keyframes confirmIn {
@@ -151,19 +169,52 @@
 .filters {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
+}
+
+.date-panel {
+  display: grid;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+}
+
+.date-panel__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.date-panel__head strong {
+  font-size: 13px;
+  letter-spacing: 0.01em;
+}
+
+.date-panel__inputs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.date-panel__inputs label {
+  display: grid;
+  gap: 6px;
 }
 
 .chip {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
+  gap: 10px;
+  padding: 10px 18px;
   border: 1px solid var(--line);
   border-radius: 99px;
   background-color: var(--surface);
   color: var(--muted);
-  font-weight: 400;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .chip:hover {
@@ -175,21 +226,68 @@
   border-color: var(--accent);
   background-color: var(--ok-bg);
   color: var(--ok);
-  font-weight: 600;
+  font-weight: 800;
 }
 
 .chip__count {
-  min-width: 20px;
-  padding: 0 6px;
+  min-width: 26px;
+  padding: 2px 9px;
   border-radius: 99px;
   background-color: var(--bg);
-  font-size: 11.5px;
+  font-size: 12px;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
   text-align: center;
 }
 
+/* Cards and table container */
+.card {
+  border-radius: 24px;
+}
+
 .table-card {
   overflow-x: auto;
+  padding: 6px 8px 10px;
+}
+
+/* Table */
+table {
+  border-collapse: separate;
+  border-spacing: 0 4px;
+}
+
+thead tr:first-child th {
+  padding: 14px 16px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+tbody td {
+  padding: 16px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+tbody td strong {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+/* Rounded rows: curve the outer ends of each row.
+   Rows need a background to show the curve. */
+tbody tr:not(.none-row) td {
+  background: var(--surface);
+}
+
+tbody tr:not(.none-row) td:first-child {
+  border-top-left-radius: 14px;
+  border-bottom-left-radius: 14px;
+}
+
+tbody tr:not(.none-row) td:last-child {
+  border-top-right-radius: 14px;
+  border-bottom-right-radius: 14px;
 }
 
 .num {
@@ -198,7 +296,8 @@
 
 .side {
   color: var(--ok);
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 800;
 }
 
 .side--sell {
@@ -213,14 +312,20 @@
 .empty {
   display: grid;
   justify-items: center;
-  gap: 4px;
-  padding: 32px 14px;
+  gap: 6px;
+  padding: 48px 20px;
+  font-size: 14px;
   text-align: center;
 }
 
+.empty p:first-of-type {
+  font-size: 18px;
+  font-weight: 800;
+}
+
 .empty svg {
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   margin-bottom: 8px;
   fill: none;
   stroke: var(--muted);
@@ -229,7 +334,8 @@
 }
 
 .skeleton {
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+  border-radius: 12px;
 }
 
 @keyframes spin {
@@ -258,7 +364,7 @@
 
 /* Column filters sit directly under the headings they filter. */
 .filter-row th {
-  padding: 4px 6px 10px;
+  padding: 4px 8px 14px;
   font-weight: 400;
   text-transform: none;
   letter-spacing: 0;
@@ -268,9 +374,10 @@
 .filter-row input,
 .filter-row select {
   min-width: 0;
-  padding: 6px 8px;
-  font-size: 12px;
-  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 12px;
 }
 
 .filter-row .num input {
@@ -278,18 +385,19 @@
 }
 
 .none-row td {
-  padding: 24px 12px;
+  padding: 32px 16px;
+  font-size: 14px;
   text-align: center;
 }
 
 .ccy {
   margin-left: 4px;
-  padding: 1px 7px;
+  padding: 2px 9px;
   border-radius: 99px;
   background: var(--blue-bg);
   color: var(--blue);
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: 0.04em;
   vertical-align: middle;
 }
@@ -298,14 +406,14 @@
 .cancel-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px 12px 5px 9px;
+  gap: 8px;
+  padding: 8px 16px 8px 12px;
   border: 1px solid color-mix(in srgb, var(--reject) 45%, transparent);
   border-radius: 99px;
   background: var(--reject-bg);
   color: var(--reject);
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 800;
   box-shadow: none;
   transition:
     background-color 160ms ease,
@@ -315,8 +423,8 @@
 }
 
 .cancel-btn svg {
-  width: 13px;
-  height: 13px;
+  width: 16px;
+  height: 16px;
   fill: none;
   stroke: currentColor;
   stroke-width: 2.2;
@@ -352,9 +460,4 @@
 .mini.keep:hover:not(:disabled) {
   background: var(--ok);
   color: #fff;
-}
-
-.confirm__ask {
-  font-weight: 600;
-  color: var(--reject);
 }

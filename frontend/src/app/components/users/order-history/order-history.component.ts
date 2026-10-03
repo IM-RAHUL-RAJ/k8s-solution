@@ -104,7 +104,8 @@ export class OrderHistoryComponent implements OnDestroy {
 
   // Column filters. Text filters match anywhere in the value; number filters take a plain
   // number or an operator, such as 100, >100, <=50 or =10.
-  readonly dateFilter = signal('');
+  readonly fromDateFilter = signal('');
+  readonly toDateFilter = signal('');
   readonly symbolFilter = signal('');
   readonly sideFilter = signal<'' | 'BUY' | 'SELL'>('');
   readonly quantityFilter = signal('');
@@ -114,7 +115,8 @@ export class OrderHistoryComponent implements OnDestroy {
   readonly activeColumnFilters = computed(
     () =>
       [
-        this.dateFilter(),
+        this.fromDateFilter(),
+        this.toDateFilter(),
         this.symbolFilter(),
         this.sideFilter(),
         this.quantityFilter(),
@@ -123,10 +125,27 @@ export class OrderHistoryComponent implements OnDestroy {
       ].filter((value) => value.trim() !== '').length + (this.filter() === 'ALL' ? 0 : 1)
   );
 
+  readonly dateRangeLabel = computed(() => {
+    const fromDate = this.fromDateFilter().trim();
+    const toDate = this.toDateFilter().trim();
+    if (fromDate === '' && toDate === '') {
+      return 'All dates';
+    }
+    if (fromDate !== '' && toDate !== '') {
+      const start = fromDate > toDate ? toDate : fromDate;
+      const end = fromDate > toDate ? fromDate : toDate;
+      return `${start} to ${end}`;
+    }
+    return fromDate !== '' ? `From ${fromDate}` : `Up to ${toDate}`;
+  });
+
   /** The table shows what every filter allows; polling always looks at every order. */
   readonly visibleOrders = computed(() => {
     const status = this.filter();
-    const date = this.dateFilter().trim();
+    const fromDate = this.fromDateFilter().trim();
+    const toDate = this.toDateFilter().trim();
+    const rangeStart = fromDate !== '' && toDate !== '' && fromDate > toDate ? toDate : fromDate;
+    const rangeEnd = fromDate !== '' && toDate !== '' && fromDate > toDate ? fromDate : toDate;
     const symbol = this.symbolFilter().trim().toLowerCase();
     const side = this.sideFilter();
     const quantity = parseNumberFilter(this.quantityFilter());
@@ -134,14 +153,19 @@ export class OrderHistoryComponent implements OnDestroy {
     const executed = parseNumberFilter(this.executedFilter());
 
     return this.orders().filter(
-      (order) =>
-        (status === 'ALL' || order.status === status) &&
-        (date === '' || localDay(order.createdOn) === date) &&
-        (symbol === '' || order.symbol.toLowerCase().includes(symbol)) &&
-        (side === '' || order.side === side) &&
-        matchesNumber(order.quantity, quantity) &&
-        matchesNumber(order.price, price) &&
-        matchesNumber(order.executedPrice === null ? null : this.home.toHome(order.executedPrice, order.symbol), executed)
+      (order) => {
+        const placedDay = localDay(order.createdOn);
+        return (
+          (status === 'ALL' || order.status === status) &&
+          (rangeStart === '' || placedDay >= rangeStart) &&
+          (rangeEnd === '' || placedDay <= rangeEnd) &&
+          (symbol === '' || order.symbol.toLowerCase().includes(symbol)) &&
+          (side === '' || order.side === side) &&
+          matchesNumber(order.quantity, quantity) &&
+          matchesNumber(order.price, price) &&
+          matchesNumber(order.executedPrice === null ? null : this.home.toHome(order.executedPrice, order.symbol), executed)
+        );
+      }
     );
   });
 
@@ -168,7 +192,8 @@ export class OrderHistoryComponent implements OnDestroy {
 
   clearFilters(): void {
     this.filter.set('ALL');
-    this.dateFilter.set('');
+    this.fromDateFilter.set('');
+    this.toDateFilter.set('');
     this.symbolFilter.set('');
     this.sideFilter.set('');
     this.quantityFilter.set('');

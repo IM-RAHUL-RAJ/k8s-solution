@@ -56,6 +56,27 @@
       }
     </div>
 
+    <div class="date-panel" role="group" aria-label="Filter orders by date range">
+      <div class="date-panel__head">
+        <strong>Placed range</strong>
+        <span class="muted">{{ dateRangeLabel() }}</span>
+      </div>
+      <div class="date-panel__inputs">
+        <label>
+          <span class="sr-only">From date</span>
+          <span class="muted">From</span>
+          <input type="date" aria-label="Filter from placed date" [value]="fromDateFilter()"
+                 (input)="fromDateFilter.set($any($event.target).value)" data-testid="date-range-from" />
+        </label>
+        <label>
+          <span class="sr-only">To date</span>
+          <span class="muted">To</span>
+          <input type="date" aria-label="Filter to placed date" [value]="toDateFilter()"
+                 (input)="toDateFilter.set($any($event.target).value)" data-testid="date-range-to" />
+        </label>
+      </div>
+    </div>
+
     <article class="card table-card">
         <table>
           <thead>
@@ -71,8 +92,7 @@
             </tr>
             <tr class="filter-row" data-testid="column-filters">
               <th>
-                <input type="date" aria-label="Filter by placed date" [value]="dateFilter()"
-                       (input)="dateFilter.set($any($event.target).value)" data-testid="col-filter-date" />
+                <span class="muted">Date range above</span>
               </th>
               <th>
                 <input type="search" placeholder="Symbol" aria-label="Filter by symbol" autocomplete="off"
