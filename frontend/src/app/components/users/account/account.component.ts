@@ -6,9 +6,21 @@ import { AccountResponse, BalanceResponse, PositionResponse } from '../../../cor
 import { AccountContextService } from '../../../core/services/account-context.service';
 import { AccountService } from '../../../core/services/account.service';
 import { ApiErrorMessageService } from '../../../core/services/api-error-message.service';
-import { allocation } from '../../../core/stats/portfolio-stats';
+import { HomeCurrencyService } from '../../../core/services/home-currency.service';
+import { AllocationSlice } from '../../../core/stats/portfolio-stats';
 import { AnimatedNumberComponent } from '../shared/animated-number/animated-number.component';
 import { DonutChartComponent } from '../shared/donut-chart/donut-chart.component';
+
+function assetClassLabel(assetClass: string): string {
+  const labels: Record<string, string> = {
+    US_EQUITY: 'US equity',
+    INDIAN_EQUITY: 'Indian equity',
+    FX: 'FX',
+    CRYPTO: 'Crypto',
+    UNKNOWN: 'Other'
+  };
+  return labels[assetClass] ?? assetClass.replaceAll('_', ' ').toLowerCase();
+}
 
 @Component({
   selector: 'app-account',
@@ -22,6 +34,7 @@ export class AccountComponent {
   private readonly accountService = inject(AccountService);
   private readonly accountContext = inject(AccountContextService);
   private readonly apiErrorMessageService = inject(ApiErrorMessageService);
+  protected readonly home = inject(HomeCurrencyService);
 
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
@@ -39,22 +52,64 @@ export class AccountComponent {
 
   /** Cost of what is held. The API gives average cost, so this is cost, not market value. */
   protected readonly invested = computed(() =>
-    this.positions().reduce((sum, position) => sum + position.quantity * position.averageCost, 0)
+    this.positions().reduce(
+      (sum, position) => sum + this.home.toHome(position.quantity * position.averageCost, position.symbol),
+      0
+    )
   );
-
-  protected readonly slices = computed(() => allocation(this.positions()));
 
   protected readonly rows = computed(() => {
     const total = this.invested();
     return [...this.positions()]
       .sort((left, right) => left.symbol.localeCompare(right.symbol))
       .map((position) => {
-        const cost = position.quantity * position.averageCost;
-        return { ...position, cost, share: total > 0 ? (cost / total) * 100 : 0 };
+        const averageCostHome = this.home.toHome(position.averageCost, position.symbol);
+        const cost = this.home.toHome(position.quantity * position.averageCost, position.symbol);
+        return { ...position, averageCostHome, cost, share: total > 0 ? (cost / total) * 100 : 0 };
       });
   });
 
+  protected readonly assetClassSlices = computed<AllocationSlice[]>(() => {
+    const totals = new Map<string, number>();
+    for (const position of this.positions()) {
+      const cost = this.home.toHome(position.quantity * position.averageCost, position.symbol);
+      if (cost <= 0) {
+        continue;
+      }
+      const assetClass = this.home.instrument(position.symbol)?.assetClass ?? 'UNKNOWN';
+      totals.set(assetClass, (totals.get(assetClass) ?? 0) + cost);
+    }
+
+    const costed = [...totals.entries()]
+      .map(([assetClass, cost]) => ({ label: assetClassLabel(assetClass), cost }))
+      .sort((left, right) => right.cost - left.cost);
+
+    const total = costed.reduce((sum, slice) => sum + slice.cost, 0);
+    if (total === 0) {
+      return [];
+    }
+
+    return costed.map((slice) => ({ ...slice, share: (slice.cost / total) * 100 }));
+  });
+
+  /** Herfindahl-Hirschman Index over holdings by cost share (0..10000): lower means more diversified. */
+  protected readonly concentrationHhi = computed(() =>
+    this.rows().reduce((sum, row) => sum + row.share * row.share, 0)
+  );
+
+  protected readonly concentrationBand = computed(() => {
+    const hhi = this.concentrationHhi();
+    if (hhi < 1500) {
+      return 'Diversified';
+    }
+    if (hhi < 2500) {
+      return 'Moderately concentrated';
+    }
+    return 'Highly concentrated';
+  });
+
   constructor() {
+    this.home.ensureLoaded();
     this.loadAccount();
   }
 
