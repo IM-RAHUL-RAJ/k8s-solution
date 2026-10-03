@@ -21,10 +21,7 @@
 }
 
 .head h1 {
-  background: var(--grad-text);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: var(--text);
 }
 
 .adder {
@@ -54,6 +51,7 @@
   --c-bg: var(--ok-bg);
   position: relative;
   display: grid;
+  align-content: start;
   gap: 14px;
   padding: 18px;
   overflow: hidden;
@@ -123,35 +121,36 @@
   white-space: nowrap;
 }
 
-.star {
+.minus {
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   padding: 0;
   border-radius: 50%;
-  background: transparent;
-  color: var(--amber);
+  border: 1px solid color-mix(in srgb, var(--reject) 40%, transparent);
+  background: var(--reject-bg);
+  color: var(--reject);
   box-shadow: none;
   transition:
-    transform 220ms var(--ease),
+    transform 200ms var(--ease),
     background-color 160ms ease,
     color 160ms ease;
 }
 
-.star svg {
-  width: 20px;
-  height: 20px;
-  fill: currentColor;
+.minus svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
   stroke: currentColor;
-  stroke-width: 1.2;
-  stroke-linejoin: round;
+  stroke-width: 2.4;
+  stroke-linecap: round;
 }
 
-.star:hover:not(:disabled) {
-  background: var(--reject-bg);
-  color: var(--reject);
-  transform: rotate(-18deg) scale(1.1);
+.minus:hover:not(:disabled) {
+  background: var(--reject);
+  color: #fff;
+  transform: scale(1.1);
 }
 
 .tags {
@@ -305,4 +304,118 @@
     opacity: 0;
     transform: translateY(16px) scale(0.98);
   }
+}
+
+/* Market data from the Kafka topic. */
+.quote,
+.quote--waiting {
+  position: relative;
+  z-index: 1;
+}
+
+.quote {
+  display: grid;
+  gap: 8px;
+}
+
+.quote__last {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.quote__last strong {
+  font-size: 22px;
+}
+
+.quote__label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.move {
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.move--up {
+  color: var(--ok);
+}
+
+.move--down {
+  color: var(--reject);
+}
+
+.book {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0;
+}
+
+.book div {
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: var(--bg);
+}
+
+.book dt {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.book dd {
+  margin: 1px 0 0;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.book__bid {
+  background: var(--ok-bg);
+}
+
+.book__bid dd {
+  color: var(--ok);
+}
+
+.book__ask {
+  background: var(--reject-bg);
+}
+
+.book__ask dd {
+  color: var(--reject);
+}
+
+.quote__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 11.5px;
+}
+
+.state {
+  padding: 1px 8px;
+  border-radius: 99px;
+  background: var(--bg);
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+}
+
+.state--open {
+  background: var(--ok-bg);
+  color: var(--ok);
+}
+
+.state--stale {
+  background: var(--amber-bg);
+  color: var(--amber);
 }

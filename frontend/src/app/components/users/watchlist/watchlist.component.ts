@@ -1,10 +1,12 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { forkJoin, of } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { forkJoin, of, timer } from 'rxjs';
+import { catchError, switchMap } from 'rxjs/operators';
+import { convertAmount, isSupportedCurrency } from '../../../core/config/currency-rates';
 import { PositionResponse } from '../../../core/models/account.model';
-import { WatchlistEntry } from '../../../core/models/instrument.model';
+import { MarketQuote, WatchlistEntry } from '../../../core/models/instrument.model';
 import { OrderHistoryEntry } from '../../../core/models/order.model';
 import { AccountContextService } from '../../../core/services/account-context.service';
 import { AccountService } from '../../../core/services/account.service';
@@ -12,6 +14,9 @@ import { ApiErrorMessageService } from '../../../core/services/api-error-message
 import { HomeCurrencyService } from '../../../core/services/home-currency.service';
 import { InstrumentService } from '../../../core/services/instrument.service';
 import { OrderService } from '../../../core/services/order.service';
+
+/** How often the quotes are re-read. The executor publishes about once a minute, so this only shortens the wait. */
+export const QUOTE_REFRESH_MS = 10_000;
 
 /** The instruments the account follows, from the platform's watchlist table. */
 @Component({
@@ -36,6 +41,7 @@ export class WatchlistComponent {
   protected readonly entries = signal<WatchlistEntry[]>([]);
   protected readonly positions = signal<PositionResponse[]>([]);
   protected readonly orders = signal<OrderHistoryEntry[]>([]);
+  protected readonly quotes = signal<ReadonlyMap<string, MarketQuote>>(new Map());
   protected readonly busySymbol = signal<string | null>(null);
   protected readonly pick = signal('');
   protected readonly adding = signal(false);
@@ -53,8 +59,10 @@ export class WatchlistComponent {
       const lastFill = this.orders()
         .filter((order) => order.symbol === entry.symbol && order.status === 'FILLED' && order.executedPrice !== null)
         .sort((left, right) => Date.parse(right.createdOn) - Date.parse(left.createdOn))[0];
+      const quote = this.quotes().get(entry.symbol) ?? null;
       return {
         ...entry,
+        quote: quote ? this.describe(quote) : null,
         held,
         lastFillHome: lastFill ? this.home.toHome(lastFill.executedPrice as number, entry.symbol) : null,
         lastFillOn: lastFill?.createdOn ?? null,
@@ -66,6 +74,40 @@ export class WatchlistComponent {
   constructor() {
     this.home.ensureLoaded();
     this.load();
+
+    // Quotes arrive on their own schedule, so they are read separately and repeatedly.
+    timer(0, QUOTE_REFRESH_MS)
+      .pipe(
+        switchMap(() =>
+          this.instrumentService
+            .getWatchlistQuotes(this.accountContext.getCurrentAccount().accountNumericId)
+            .pipe(catchError(() => of(null)))
+        ),
+        takeUntilDestroyed()
+      )
+      .subscribe((quotes) => {
+        if (quotes) {
+          this.quotes.set(new Map(quotes.map((quote) => [quote.symbol, quote])));
+        }
+      });
+  }
+
+  /** What a card shows for a quote: the figures, the spread, direction, and the last price in home currency. */
+  private describe(quote: MarketQuote) {
+    const home = this.home.homeCurrency();
+    const currency = quote.currency?.trim().toUpperCase() ?? null;
+    const spread = quote.bid !== null && quote.ask !== null ? quote.ask - quote.bid : null;
+    return {
+      ...quote,
+      currency,
+      spread,
+      up: (quote.change ?? 0) >= 0,
+      priceHome:
+        quote.price !== null && home && isSupportedCurrency(currency) && currency !== home
+          ? convertAmount(currency, home, quote.price)
+          : null,
+      open: quote.marketState?.toUpperCase() === 'REGULAR'
+    };
   }
 
   protected load(): void {

@@ -19,10 +19,7 @@
 }
 
 .head h1 {
-  background: var(--grad-text);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: var(--text);
 }
 
 .head__account {
@@ -31,7 +28,7 @@
   padding: 8px 16px;
   border-radius: 12px;
   border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line));
-  background: linear-gradient(135deg, var(--ok-bg), var(--blue-bg));
+  background: var(--ok-bg);
   text-align: right;
 }
 
@@ -76,7 +73,7 @@
   position: absolute;
   inset: 0 0 auto 0;
   height: 4px;
-  background: var(--grad);
+  background: var(--accent);
 }
 
 .sidebar-pick {
@@ -205,7 +202,7 @@
   gap: 12px;
   padding: 14px 16px;
   border-radius: 14px;
-  background: linear-gradient(135deg, var(--ok-bg), var(--teal-bg));
+  background: var(--ok-bg);
 }
 
 .total > div {
@@ -238,7 +235,7 @@
 }
 
 .primary.sell {
-  background: linear-gradient(135deg, var(--reject), color-mix(in srgb, var(--reject) 60%, var(--amber)));
+  background: var(--reject);
   color: #fff;
 }
 
@@ -296,15 +293,15 @@
 .thumb {
   position: absolute;
   inset: 0 50% 0 0;
-  background: linear-gradient(135deg, var(--accent), var(--teal));
+  background: var(--accent);
   transition:
     transform 280ms var(--ease),
-    background 280ms ease;
+    background-color 280ms ease;
 }
 
 .segmented.sell .thumb {
   transform: translateX(100%);
-  background: linear-gradient(135deg, var(--reject), var(--amber));
+  background: var(--reject);
 }
 
 .segmented button {
@@ -574,11 +571,11 @@ button.small {
   position: absolute;
   inset: 0 0 auto 0;
   height: 5px;
-  background: linear-gradient(90deg, var(--accent), var(--teal));
+  background: var(--accent);
 }
 
 .dialog__bar.sell {
-  background: linear-gradient(90deg, var(--reject), var(--amber));
+  background: var(--reject);
 }
 
 .dialog h2 {

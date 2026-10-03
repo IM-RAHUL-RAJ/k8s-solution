@@ -162,7 +162,7 @@
   }
 }
 
-/* Quorum header: the active page is a gradient pill, the bar a touch glassier. */
+/* Quorum header: the active page is a solid pill. */
 .header {
   border-bottom-color: color-mix(in srgb, var(--accent) 22%, var(--line));
   box-shadow: 0 8px 24px -18px color-mix(in srgb, var(--accent) 60%, transparent);
@@ -177,9 +177,8 @@
 }
 
 .header__nav a.active {
-  color: var(--on-grad);
-  background-image: var(--grad);
-  box-shadow: var(--glow);
+  color: var(--on-accent);
+  background-color: var(--accent);
 }
 
 .header__nav a:not(.active):hover {

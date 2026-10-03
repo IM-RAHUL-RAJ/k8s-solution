@@ -53,10 +53,10 @@
                 <h2>{{ card.symbol }}</h2>
                 <p class="muted">{{ card.name }}</p>
               </div>
-              <button type="button" class="star" (click)="remove(card.symbol)" [disabled]="busySymbol() !== null"
+              <button type="button" class="minus" (click)="remove(card.symbol)" [disabled]="busySymbol() !== null"
                       [attr.aria-label]="'Remove ' + card.symbol + ' from watchlist'" title="Remove from watchlist"
                       data-testid="watch-remove">
-                <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3l2.2 4.6 5 .7-3.6 3.5.9 5-4.5-2.4-4.5 2.4.9-5L2.8 8.3l5-.7z" /></svg>
+                <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 10h10" /></svg>
               </button>
             </div>
 
@@ -66,6 +66,40 @@
               <span class="tag tag--ccy">{{ card.currency }}</span>
               @if (!card.tradable) { <span class="tag tag--red">Not tradable</span> }
             </div>
+
+            @if (card.quote; as q) {
+              <div class="quote" data-testid="watch-quote">
+                <div class="quote__last">
+                  <span class="quote__label">Last</span>
+                  <strong class="tabular">{{ q.price | number: '1.2-4' }}</strong>
+                  @if (q.currency) { <span class="ccy">{{ q.currency }}</span> }
+                  @if (q.change !== null) {
+                    <span class="move" [class.move--up]="q.up" [class.move--down]="!q.up">
+                      {{ q.up ? '▲' : '▼' }} {{ q.change | number: '1.2-2' }}
+                      @if (q.changePercent !== null) { ({{ q.changePercent | number: '1.2-2' }}%) }
+                    </span>
+                  }
+                </div>
+                @if (q.priceHome !== null) {
+                  <p class="muted fine">≈ {{ q.priceHome | number: '1.2-2' }} {{ home.homeCurrency() }}</p>
+                }
+                <dl class="book">
+                  <div class="book__bid"><dt>Bid</dt><dd class="tabular">{{ q.bid !== null ? (q.bid | number: '1.2-4') : '—' }}</dd></div>
+                  <div class="book__ask"><dt>Ask</dt><dd class="tabular">{{ q.ask !== null ? (q.ask | number: '1.2-4') : '—' }}</dd></div>
+                  <div><dt>Spread</dt><dd class="tabular">{{ q.spread !== null ? (q.spread | number: '1.2-4') : '—' }}</dd></div>
+                  <div><dt>Prev close</dt><dd class="tabular">{{ q.previousClose !== null ? (q.previousClose | number: '1.2-4') : '—' }}</dd></div>
+                </dl>
+                <p class="quote__meta">
+                  @if (q.marketState) {
+                    <span class="state" [class.state--open]="q.open">{{ q.marketState }}</span>
+                  }
+                  @if (q.stale) { <span class="state state--stale">Stale</span> }
+                  @if (q.quoteAsOf) { <span class="muted">as of {{ q.quoteAsOf | date: 'HH:mm:ss' }}</span> }
+                </p>
+              </div>
+            } @else {
+              <p class="muted fine quote--waiting" data-testid="watch-quote-waiting">Waiting for the first quote…</p>
+            }
 
             <dl class="facts">
               <div>

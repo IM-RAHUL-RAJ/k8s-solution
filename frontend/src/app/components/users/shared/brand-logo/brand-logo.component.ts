@@ -45,10 +45,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
         font-weight: 800;
         font-size: 1.1em;
         letter-spacing: -0.02em;
-        background: var(--logo-name-bg, var(--grad-text));
-        -webkit-background-clip: text;
-        background-clip: text;
-        color: transparent;
+        color: var(--logo-name-color, var(--text));
       }
     `
   ]

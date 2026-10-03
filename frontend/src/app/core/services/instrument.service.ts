@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { API_ENDPOINTS } from '../config/api-endpoints';
-import { InstrumentInfo, WatchlistEntry } from '../models/instrument.model';
+import { InstrumentInfo, MarketQuote, WatchlistEntry } from '../models/instrument.model';
 
 @Injectable({ providedIn: 'root' })
 export class InstrumentService {
@@ -27,6 +27,13 @@ export class InstrumentService {
   removeFromWatchlist(accountId: number, symbol: string): Observable<WatchlistEntry[]> {
     return this.http.delete<WatchlistEntry[]>(
       `${API_ENDPOINTS.tradeApiBase}/api/v1/accounts/${accountId}/watchlist/${encodeURIComponent(symbol)}`
+    );
+  }
+
+  /** Latest bid, ask and last for the watchlist, from the market-data topic. Symbols not yet quoted are absent. */
+  getWatchlistQuotes(accountId: number): Observable<MarketQuote[]> {
+    return this.http.get<MarketQuote[]>(
+      `${API_ENDPOINTS.tradeApiBase}/api/v1/accounts/${accountId}/watchlist/quotes`
     );
   }
 }

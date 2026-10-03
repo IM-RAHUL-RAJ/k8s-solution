@@ -25,3 +25,19 @@ export interface InstrumentInfo {
 export interface WatchlistEntry extends InstrumentInfo {
   addedAt: string;
 }
+
+/** The latest quote the executor published to the market-data Kafka topic, relayed by the trade API. */
+export interface MarketQuote {
+  symbol: string;
+  price: number | null;
+  bid: number | null;
+  ask: number | null;
+  currency: string | null;
+  change: number | null;
+  changePercent: number | null;
+  previousClose: number | null;
+  marketState: string | null;
+  stale: boolean | null;
+  quoteAsOf: string | null;
+  receivedAt: string | null;
+}
