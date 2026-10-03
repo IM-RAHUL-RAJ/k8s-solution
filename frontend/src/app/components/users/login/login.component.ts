@@ -1,7 +1,7 @@
 import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService, LoginRequest } from '../../../core/auth/auth.service';
 import { ThemeService } from '../../../core/theme/theme.service';
 import { SessionSocketService } from '../../../core/auth/session-socket.service';
@@ -18,6 +18,7 @@ export class LoginComponent {
   private fb = inject(FormBuilder);
   private authService = inject(AuthService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
   private themeService = inject(ThemeService);
   private sessionSocket = inject(SessionSocketService);
 
@@ -113,8 +114,13 @@ export class LoginComponent {
         console.log('[Login] Connecting to session gateway...');
         this.sessionSocket.connect();
         
-        // Navigate to dashboard
-        this.router.navigate(['/dashboard'], { replaceUrl: true });
+        // Navigate to validated returnUrl if present, else dashboard.
+        const requested = this.route.snapshot.queryParamMap.get('returnUrl');
+        const target = requested && requested.startsWith('/') && !requested.startsWith('//')
+          ? requested
+          : '/dashboard';
+
+        this.router.navigateByUrl(target, { replaceUrl: true });
       },
       error: (error: any) => {
         this.isSubmitting.set(false);

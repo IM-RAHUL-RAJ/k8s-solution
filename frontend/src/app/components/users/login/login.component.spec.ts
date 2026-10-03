@@ -1,33 +1,54 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule } from '@angular/forms';
-import { provideRouter, Router } from '@angular/router';
+import { provideRouter, Router, Routes } from '@angular/router';
 import { Observable, of, Subject, throwError } from 'rxjs';
 import { vi } from 'vitest';
 import { LoginComponent } from './login.component';
 import { AuthService } from '../../../core/auth/auth.service';
+import { SessionSocketService } from '../../../core/auth/session-socket.service';
+import { ThemeService } from '../../../core/theme/theme.service';
 
 describe('LoginComponent', () => {
   let component: LoginComponent;
   let fixture: ComponentFixture<LoginComponent>;
-  let authService: { login: ReturnType<typeof vi.fn> };
+  let authService: any;
   let router: Router;
-  let navigateSpy: ReturnType<typeof vi.spyOn>;
+  let navigateByUrlSpy: ReturnType<typeof vi.spyOn>;
+
+  const testRoutes: Routes = [
+    { path: 'sign-in', component: LoginComponent },
+    { path: 'dashboard', component: LoginComponent }, // Dummy route for testing
+    { path: '', component: LoginComponent }
+  ];
 
   beforeEach(async () => {
     authService = {
-      login: vi.fn()
+      login: vi.fn(),
+      getToken: vi.fn().mockReturnValue('test-token'),
+      isAuthenticated: vi.fn().mockReturnValue(true)
+    };
+
+    const sessionSocketMock = {
+      connect: vi.fn()
+    };
+
+    const themeMock = {
+      isDarkMode: vi.fn().mockReturnValue(false),
+      toggleTheme: vi.fn()
     };
 
     await TestBed.configureTestingModule({
       imports: [LoginComponent, ReactiveFormsModule],
       providers: [
-        provideRouter([]),
+        provideRouter(testRoutes),
         { provide: AuthService, useValue: authService },
+        { provide: SessionSocketService, useValue: sessionSocketMock },
+        { provide: ThemeService, useValue: themeMock }
       ]
     }).compileComponents();
 
     router = TestBed.inject(Router);
-    navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+    navigateByUrlSpy = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
 
     fixture = TestBed.createComponent(LoginComponent);
     component = fixture.componentInstance;
@@ -112,7 +133,7 @@ describe('LoginComponent', () => {
 
       await fixture.whenStable();
 
-      expect(navigateSpy).toHaveBeenCalledWith(['/dashboard'], { replaceUrl: true });
+      expect(navigateByUrlSpy).toHaveBeenCalledWith('/dashboard', { replaceUrl: true });
       expect(component.signInForm.value).toEqual({ username: null, password: null });
     });
 

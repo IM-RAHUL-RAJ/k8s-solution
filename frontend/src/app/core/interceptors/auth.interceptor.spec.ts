@@ -74,7 +74,10 @@ describe('authInterceptor', () => {
   });
 
   it('a look-alike host does not carry the bearer token', () => {
-    const url = `https://${new URL(trade).hostname}.evil.example/api/v1/orders`;
+    // Handle relative URLs (empty string means current origin)
+    const tradeUrl = trade ? new URL(trade) : new URL('http://localhost');
+    const hostname = tradeUrl.hostname || 'localhost';
+    const url = `https://${hostname}.evil.example/api/v1/orders`;
 
     http.get(url).subscribe();
 

@@ -32,6 +32,7 @@ test.describe('place an order', () => {
     await page.getByTestId('order-symbol').fill(env.symbol);
     await page.getByTestId('order-quantity').fill('12.5');
     await page.getByTestId('order-price').fill('10.123');
+    await page.getByTestId('order-price').blur();
 
     await expect(page.getByText('Enter a whole number above zero.')).toBeVisible();
     await expect(page.getByText('Use at most two decimal places.')).toBeVisible();

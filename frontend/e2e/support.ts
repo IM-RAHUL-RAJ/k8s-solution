@@ -12,7 +12,7 @@ export async function assertStackIsUp(request: APIRequestContext): Promise<void>
 
 /** Signs in through the form using stable test identifiers, never label text. */
 export async function signIn(page: Page, username = env.username, password = env.password): Promise<void> {
-  await page.getByTestId('username').fill(username);
-  await page.getByTestId('password').fill(password);
-  await page.getByTestId('submit').click();
+  await page.getByTestId('username-input').fill(username);
+  await page.getByTestId('password-input').fill(password);
+  await page.getByTestId('submit-button').click();
 }

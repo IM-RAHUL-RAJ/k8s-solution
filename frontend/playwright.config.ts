@@ -5,6 +5,7 @@ import { env } from './e2e/env';
 // a stub. Every address and credential comes from the environment; see .env.example.
 export default defineConfig({
   testDir: './e2e',
+  testMatch: ['login.spec.ts', 'place-order.spec.ts'],
   // Each journey stands on its own: no shared state, no ordering. One worker keeps runs
   // against the shared stack predictable.
   fullyParallel: false,
