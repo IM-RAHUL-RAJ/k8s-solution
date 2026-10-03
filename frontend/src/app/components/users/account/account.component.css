@@ -191,6 +191,92 @@ dd {
   margin-bottom: 8px;
 }
 
+.mix-meta {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface) 80%, var(--bg));
+}
+
+.mix-meta__label {
+  margin: 0 0 2px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.mix-meta strong {
+  font-size: 18px;
+}
+
+.mix-meta__band {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.mix-help {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bg) 76%, transparent);
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.mix-help p {
+  margin: 0;
+}
+
+.mix-help a {
+  justify-self: start;
+  color: var(--accent);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.mix-help a:hover {
+  text-decoration: underline;
+}
+
+.mix-list {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.mix-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px dashed var(--line);
+}
+
+.mix-list li:last-child {
+  border-bottom: none;
+}
+
+.mix-list__label {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border: 1px solid color-mix(in srgb, var(--accent) 32%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ok-bg) 75%, transparent);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
 .num {
   text-align: right;
 }

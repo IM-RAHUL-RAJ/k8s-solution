@@ -2,7 +2,7 @@
   <header class="head">
     <div>
       <h1>New order</h1>
-      <p class="muted">Review it, confirm it, and the trading service takes it from there.</p>
+      <!--<p class="muted">Review it, confirm it, and the trading service takes it from there.</p>-->
     </div>
     <div class="head__account" data-testid="order-account-chip">
       <span class="muted">Account</span>
@@ -27,9 +27,11 @@
           Status <span data-testid="order-status"><app-status-badge [status]="placed.status" /></span>
         </p>
         @if (placed.status === 'NEW') {
-          <p>The order is working. The executor has not resolved it yet, so it may change.
-            <a routerLink="/blotter">Follow it on the blotter</a>.</p>
-        }
+         <p>
+          This order is being processed. The status will update once execution is complete.
+          <a routerLink="/blotter">View it in the blotter</a>.
+        </p>
+      }
       </div>
     </div>
   }
@@ -46,7 +48,7 @@
           aria-readonly="true"
           data-testid="order-account"
         />
-        <span class="field-hint">Read only. Set by your sign-in.</span>
+        <span class="field-hint">Read only.</span>
       </div>
 
       <div class="sidebar-pick" [class.sell]="form.controls.side.value === 'SELL'">
@@ -163,9 +165,8 @@
       @if (affordability(); as short) {
         <div class="banner warn" role="alert" data-testid="affordability-warning">
           <strong>This buy may be more than your cash.</strong>
-          Estimated cost {{ summary().estimate | number: '1.2-2' }} {{ short.currency }} against
+         <br> Estimated cost {{ summary().estimate | number: '1.2-2' }} {{ short.currency }} against
           {{ short.cash | number: '1.2-2' }} available, short by {{ short.short | number: '1.2-2' }}.
-          You can still place it, but the trading service will likely reject it.
         </div>
       }
 
@@ -186,7 +187,9 @@
           </strong>
         </div>
         @if (estimateInInstrumentCurrency() !== null && instrumentCurrency() !== accountCurrency()) {
-          <span class="total__alt tabular">≈ {{ estimateInInstrumentCurrency() | number: '1.2-2' }} {{ instrumentCurrency() }}</span>
+          <strong class="tabular">
+            <span class="total__alt tabular">≈ {{ estimateInInstrumentCurrency() | number: '1.2-2' }} {{ instrumentCurrency() }}</span>
+          </strong>
         }
       </div>
 
@@ -345,7 +348,7 @@
           @if (estimateInInstrumentCurrency() !== null && instrumentCurrency() !== accountCurrency()) {
             <div>
               <dt>In the instrument's currency</dt>
-              <dd class="tabular">≈ {{ estimateInInstrumentCurrency() | number: '1.2-2' }} {{ instrumentCurrency() }}</dd>
+              <dd class="tabular">{{ estimateInInstrumentCurrency() | number: '1.2-2' }} {{ instrumentCurrency() }}</dd>
             </div>
           }
         </dl>
@@ -360,7 +363,7 @@
           <div class="banner warn">This symbol is not in the instrument list.</div>
         }
 
-        <p class="muted fine">A limit order fills at your price or better. Once placed, it can be cancelled while it is still working.</p>
+        <p class="muted fine">A limit order fills at your price or better. Once placed, it can be cancelled while it's status is NEW.</p>
 
         <div class="dialog__actions">
           <button type="button" class="secondary" (click)="cancelReview()" data-testid="review-edit">Edit order</button>

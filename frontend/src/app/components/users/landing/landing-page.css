@@ -305,9 +305,28 @@
   color: var(--accent);
 }
 
-@keyframes tickerMove {
+@keyframes tickerLoop {
   to {
     transform: translateX(-50%);
+  }
+}
+
+@keyframes tickerBob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-1px);
+  }
+}
+
+@keyframes tickerSheen {
+  from {
+    transform: translateX(-120%);
+  }
+  to {
+    transform: translateX(120%);
   }
 }
 
@@ -316,6 +335,24 @@
   padding: 0 clamp(16px, 4vw, 56px);
   background: color-mix(in srgb, var(--surface) 70%, transparent);
   backdrop-filter: blur(8px);
+  position: relative;
+}
+
+.ticker::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 24%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--surface) 10%, transparent) 30%,
+    color-mix(in srgb, var(--surface) 48%, transparent) 50%,
+    color-mix(in srgb, var(--surface) 10%, transparent) 70%,
+    transparent 100%
+  );
+  pointer-events: none;
+  animation: tickerSheen 6s linear infinite;
 }
 
 @media (max-width: 960px) {
@@ -349,7 +386,9 @@
 
 @media (prefers-reduced-motion: reduce) {
   .orb,
-  .eyebrow i {
+  .eyebrow i,
+  .ticker__group,
+  .ticker::after {
     animation: none;
   }
 }
@@ -363,12 +402,6 @@
   to {
     opacity: 1;
     transform: none;
-  }
-}
-
-@keyframes tickerMove {
-  to {
-    transform: translateX(-50%);
   }
 }
 
@@ -611,12 +644,26 @@
 
 .ticker__track {
   display: flex;
-  gap: 34px;
   width: max-content;
   color: var(--muted);
   font-family: "Avenir Next", "Segoe UI", sans-serif;
   font-size: 0.78rem;
-  animation: tickerMove 40s linear infinite;
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+  animation: tickerLoop 100s linear infinite !important;
+  -webkit-animation: tickerLoop 100s linear infinite !important;
+}
+
+.ticker__group {
+  display: flex;
+  gap: 34px;
+  flex: none;
+  padding-right: 34px;
+  animation: tickerBob 5.2s ease-in-out infinite;
+}
+
+.ticker__group:last-child {
+  animation-delay: -2.6s;
 }
 
 .ticker__track span {

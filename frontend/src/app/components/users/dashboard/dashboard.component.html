@@ -43,12 +43,12 @@
   } @else {
     <article class="card networth" data-testid="net-worth" style="--i: 0">
       <div class="networth__main">
-        <p class="networth__label">Net worth</p>
+        <p class="networth__label">Net worth (Cash plus holdings at cost)</p>
         <p class="networth__value" data-testid="stat-networth">
           <app-animated-number [value]="netWorth()" [decimals]="2" />
           <span class="networth__unit">{{ balance()?.currency }}</span>
         </p>
-        <p class="networth__note">Cash plus holdings at cost. There are no live prices, so holdings are not marked to market.</p>
+        <!-- <p class="networth__note">Cash plus holdings at cost. There are no live prices, so holdings are not marked to market.</p> -->
       </div>
       <div class="networth__split">
         <div class="networth__bar" role="img"

@@ -21,7 +21,7 @@
          [attr.aria-label]="'Orders per day for the last ' + days().length + ' days, ' + totalOrders() + ' in total'">
       <line class="grid" x1="0" [attr.x2]="width" [attr.y1]="baseline" [attr.y2]="baseline" />
       <line class="grid grid--dash" x1="0" [attr.x2]="width" y1="14" y2="14" />
-      <text class="axis" x="0" y="10">{{ peak() }}</text>
+      <!--<text class="axis" x="0" y="10">{{ peak() }}</text>-->
 
       @for (bar of bars(); track bar.index) {
         <g class="col" [class.on]="hovered() === bar.index">

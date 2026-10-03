@@ -48,6 +48,12 @@ function localDay(iso: string): string {
   const day = String(date.getDate()).padStart(2, '0');
   return `${date.getFullYear()}-${month}-${day}`;
 }
+
+function localDayFromDate(date: Date): string {
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
+}
 import { StatusBadgeComponent } from '../shared/status-badge/status-badge.component';
 
 // An order at NEW is the working state: the executor has not resolved it yet. The blotter
@@ -57,6 +63,7 @@ import { StatusBadgeComponent } from '../shared/status-badge/status-badge.compon
 // open. The user can press Refresh to open another window. Nothing here ever re-posts an order.
 export const POLL_INTERVAL_MS = 3000;
 export const MAX_POLL_ATTEMPTS = 10;
+type DatePresetId = 'today' | 'last7' | 'last30' | 'thisMonth';
 
 @Component({
   selector: 'app-order-history',
@@ -102,9 +109,17 @@ export class OrderHistoryComponent implements OnDestroy {
     ];
   });
 
+  readonly datePresets: ReadonlyArray<{ id: DatePresetId; label: string }> = [
+    { id: 'today', label: 'Today' },
+    { id: 'last7', label: 'Last 7d' },
+    { id: 'last30', label: 'Last 30d' },
+    { id: 'thisMonth', label: 'This month' }
+  ];
+
   // Column filters. Text filters match anywhere in the value; number filters take a plain
   // number or an operator, such as 100, >100, <=50 or =10.
-  readonly dateFilter = signal('');
+  readonly fromDateFilter = signal('');
+  readonly toDateFilter = signal('');
   readonly symbolFilter = signal('');
   readonly sideFilter = signal<'' | 'BUY' | 'SELL'>('');
   readonly quantityFilter = signal('');
@@ -114,7 +129,8 @@ export class OrderHistoryComponent implements OnDestroy {
   readonly activeColumnFilters = computed(
     () =>
       [
-        this.dateFilter(),
+        this.fromDateFilter(),
+        this.toDateFilter(),
         this.symbolFilter(),
         this.sideFilter(),
         this.quantityFilter(),
@@ -123,10 +139,57 @@ export class OrderHistoryComponent implements OnDestroy {
       ].filter((value) => value.trim() !== '').length + (this.filter() === 'ALL' ? 0 : 1)
   );
 
+  readonly hasActiveFilters = computed(() => this.activeColumnFilters() > 0);
+
+  readonly dateRangeLabel = computed(() => {
+    const fromDate = this.fromDateFilter().trim();
+    const toDate = this.toDateFilter().trim();
+    if (fromDate === '' && toDate === '') {
+      return 'All dates';
+    }
+    if (fromDate !== '' && toDate !== '') {
+      const start = fromDate > toDate ? toDate : fromDate;
+      const end = fromDate > toDate ? fromDate : toDate;
+      return `${start} to ${end}`;
+    }
+    return fromDate !== '' ? `From ${fromDate}` : `Up to ${toDate}`;
+  });
+
+  readonly clearFiltersLabel = computed(() => {
+    const count = this.activeColumnFilters();
+    return count > 0 ? `Reset all filters (${count})` : 'Reset all filters';
+  });
+
+  readonly activeDatePreset = computed<DatePresetId | null>(() => {
+    const fromDate = this.fromDateFilter().trim();
+    const toDate = this.toDateFilter().trim();
+    const today = localDayFromDate(new Date());
+    const last7Start = localDayFromDate(new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate() - 6));
+    const last30Start = localDayFromDate(new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate() - 29));
+    const monthStart = localDayFromDate(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+
+    if (fromDate === today && toDate === today) {
+      return 'today';
+    }
+    if (fromDate === last7Start && toDate === today) {
+      return 'last7';
+    }
+    if (fromDate === last30Start && toDate === today) {
+      return 'last30';
+    }
+    if (fromDate === monthStart && toDate === today) {
+      return 'thisMonth';
+    }
+    return null;
+  });
+
   /** The table shows what every filter allows; polling always looks at every order. */
   readonly visibleOrders = computed(() => {
     const status = this.filter();
-    const date = this.dateFilter().trim();
+    const fromDate = this.fromDateFilter().trim();
+    const toDate = this.toDateFilter().trim();
+    const rangeStart = fromDate !== '' && toDate !== '' && fromDate > toDate ? toDate : fromDate;
+    const rangeEnd = fromDate !== '' && toDate !== '' && fromDate > toDate ? fromDate : toDate;
     const symbol = this.symbolFilter().trim().toLowerCase();
     const side = this.sideFilter();
     const quantity = parseNumberFilter(this.quantityFilter());
@@ -134,14 +197,19 @@ export class OrderHistoryComponent implements OnDestroy {
     const executed = parseNumberFilter(this.executedFilter());
 
     return this.orders().filter(
-      (order) =>
-        (status === 'ALL' || order.status === status) &&
-        (date === '' || localDay(order.createdOn) === date) &&
-        (symbol === '' || order.symbol.toLowerCase().includes(symbol)) &&
-        (side === '' || order.side === side) &&
-        matchesNumber(order.quantity, quantity) &&
-        matchesNumber(order.price, price) &&
-        matchesNumber(order.executedPrice === null ? null : this.home.toHome(order.executedPrice, order.symbol), executed)
+      (order) => {
+        const placedDay = localDay(order.createdOn);
+        return (
+          (status === 'ALL' || order.status === status) &&
+          (rangeStart === '' || placedDay >= rangeStart) &&
+          (rangeEnd === '' || placedDay <= rangeEnd) &&
+          (symbol === '' || order.symbol.toLowerCase().includes(symbol)) &&
+          (side === '' || order.side === side) &&
+          matchesNumber(order.quantity, quantity) &&
+          matchesNumber(order.price, price) &&
+          matchesNumber(order.executedPrice === null ? null : this.home.toHome(order.executedPrice, order.symbol), executed)
+        );
+      }
     );
   });
 
@@ -168,12 +236,36 @@ export class OrderHistoryComponent implements OnDestroy {
 
   clearFilters(): void {
     this.filter.set('ALL');
-    this.dateFilter.set('');
+    this.fromDateFilter.set('');
+    this.toDateFilter.set('');
     this.symbolFilter.set('');
     this.sideFilter.set('');
     this.quantityFilter.set('');
     this.priceFilter.set('');
     this.executedFilter.set('');
+  }
+
+  applyDatePreset(preset: DatePresetId): void {
+    const now = new Date();
+    const today = localDayFromDate(now);
+    switch (preset) {
+      case 'today':
+        this.fromDateFilter.set(today);
+        this.toDateFilter.set(today);
+        return;
+      case 'last7':
+        this.fromDateFilter.set(localDayFromDate(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6)));
+        this.toDateFilter.set(today);
+        return;
+      case 'last30':
+        this.fromDateFilter.set(localDayFromDate(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29)));
+        this.toDateFilter.set(today);
+        return;
+      case 'thisMonth':
+        this.fromDateFilter.set(localDayFromDate(new Date(now.getFullYear(), now.getMonth(), 1)));
+        this.toDateFilter.set(today);
+        return;
+    }
   }
 
   askCancel(orderId: string): void {
