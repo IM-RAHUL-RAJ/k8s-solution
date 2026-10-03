@@ -59,7 +59,13 @@
     <div class="date-panel" role="group" aria-label="Filter orders by date range">
       <div class="date-panel__head">
         <strong>Placed range</strong>
-        <span class="muted">{{ dateRangeLabel() }}</span>
+        <div class="date-panel__actions">
+          <span class="muted">{{ dateRangeLabel() }}</span>
+          <button type="button" class="clear-filters-btn" (click)="clearFilters()"
+                  [disabled]="!hasActiveFilters()" data-testid="clear-filters">
+            {{ clearFiltersLabel() }}
+          </button>
+        </div>
       </div>
       <div class="date-panel__inputs">
         <label>
@@ -74,6 +80,14 @@
           <input type="date" aria-label="Filter to placed date" [value]="toDateFilter()"
                  (input)="toDateFilter.set($any($event.target).value)" data-testid="date-range-to" />
         </label>
+      </div>
+      <div class="date-panel__presets">
+        @for (preset of datePresets; track preset.id) {
+          <button type="button" class="date-preset" [class.active]="activeDatePreset() === preset.id"
+                  (click)="applyDatePreset(preset.id)" [attr.data-testid]="'date-preset-' + preset.id">
+            {{ preset.label }}
+          </button>
+        }
       </div>
     </div>
 
@@ -132,13 +146,7 @@
                   <option value="CANCELLED">Cancelled</option>
                 </select>
               </th>
-              <th class="act">
-                @if (activeColumnFilters() > 0) {
-                  <button type="button" class="mini ghost" (click)="clearFilters()" data-testid="clear-filters">
-                    Clear
-                  </button>
-                }
-              </th>
+              <th class="act"></th>
             </tr>
           </thead>
           <tbody>

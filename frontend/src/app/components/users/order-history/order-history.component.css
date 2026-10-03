@@ -193,6 +193,12 @@
   letter-spacing: 0.01em;
 }
 
+.date-panel__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .date-panel__inputs {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -202,6 +208,55 @@
 .date-panel__inputs label {
   display: grid;
   gap: 6px;
+}
+
+.date-panel__presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.date-preset {
+  padding: 7px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.date-preset:hover {
+  border-color: var(--muted);
+  color: var(--text);
+}
+
+.date-preset.active {
+  border-color: color-mix(in srgb, var(--accent) 48%, transparent);
+  background: color-mix(in srgb, var(--ok-bg) 78%, transparent);
+  color: var(--ok);
+}
+
+.clear-filters-btn {
+  padding: 8px 12px;
+  border: 1px solid color-mix(in srgb, var(--reject) 42%, transparent);
+  border-radius: 999px;
+  background: var(--reject-bg);
+  color: var(--reject);
+  font-size: 12px;
+  font-weight: 800;
+  transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease;
+}
+
+.clear-filters-btn:hover:not(:disabled) {
+  border-color: var(--reject);
+  background: var(--reject);
+  color: #fff;
+}
+
+.clear-filters-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .chip {
@@ -261,6 +316,11 @@ thead tr:first-child th {
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.06em;
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  background: var(--surface);
+  box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--line) 65%, transparent);
 }
 
 tbody td {
@@ -368,7 +428,11 @@ tbody tr:not(.none-row) td:last-child {
   font-weight: 400;
   text-transform: none;
   letter-spacing: 0;
-  background-color: transparent;
+  position: sticky;
+  top: 44px;
+  z-index: 5;
+  background-color: var(--surface);
+  box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--line) 65%, transparent);
 }
 
 .filter-row input,
