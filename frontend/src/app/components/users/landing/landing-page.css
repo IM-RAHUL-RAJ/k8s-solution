@@ -298,8 +298,8 @@
 .depth { grid-area: depth; }
 
 .chart { border-top: 4px solid var(--accent); }
-.panel { border-top: 4px solid var(--blue); }
-.depth { border-top: 4px solid var(--violet); }
+.panel { border-top: 4px solid var(--accent); }
+.depth { border-top: 4px solid var(--accent); }
 
 .chart .card__head b {
   color: var(--accent);
