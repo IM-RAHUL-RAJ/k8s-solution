@@ -46,6 +46,9 @@ export class WatchlistComponent {
   protected readonly pick = signal('');
   protected readonly adding = signal(false);
 
+  /** Symbol of the instrument whose details card is open, or null when closed. */
+  protected readonly selected = signal<string | null>(null);
+
   /** Tradable instruments that are not already watched, for the add control. */
   protected readonly addable = computed(() => {
     const watched = new Set(this.entries().map((entry) => entry.symbol));
@@ -70,6 +73,15 @@ export class WatchlistComponent {
       };
     })
   );
+
+  /**
+   * The card shown in the overlay. Derived from cards() so it keeps updating with live quotes,
+   * and becomes null on its own if the instrument disappears from the watchlist.
+   */
+  protected readonly selectedCard = computed(() => {
+    const symbol = this.selected();
+    return symbol ? (this.cards().find((card) => card.symbol === symbol) ?? null) : null;
+  });
 
   constructor() {
     this.home.ensureLoaded();
@@ -167,12 +179,34 @@ export class WatchlistComponent {
         next: (entries) => {
           this.entries.set(entries);
           this.busySymbol.set(null);
+          if (this.selected() === symbol) {
+            this.close();
+          }
         },
         error: (error: unknown) => {
           this.actionError.set(this.errorMessages.getMessage(error));
           this.busySymbol.set(null);
         }
       });
+  }
+
+  /** Opens the details card for a symbol. */
+  protected open(symbol: string): void {
+    this.selected.set(symbol);
+  }
+
+  /** Closes the details card. */
+  protected close(): void {
+    this.selected.set(null);
+  }
+
+  /** Price direction for colour coding: a missing quote or a change of exactly 0 counts as flat. */
+  protected dir(card: { quote?: { change: number | null } | null }): 'up' | 'down' | 'flat' {
+    const change = card.quote?.change;
+    if (change === null || change === undefined || change === 0) {
+      return 'flat';
+    }
+    return change > 0 ? 'up' : 'down';
   }
 
   protected label(assetClass: string): string {
