@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, OnInit } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
+import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
 import { AppHeaderComponent } from './components/users/shared/app-header/app-header.component';
 import { AuthService } from './core/auth/auth.service';
 import { ThemeService } from './core/theme/theme.service';
@@ -10,7 +10,7 @@ import { filter, map, startWith } from 'rxjs/operators';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [AppHeaderComponent, RouterOutlet],
+  imports: [AppHeaderComponent, RouterOutlet, RouterLink],
   templateUrl: './app.html',
   styleUrl: './app.css',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -28,6 +28,12 @@ export class App implements OnInit {
     ),
     { initialValue: this.router.url }
   );
+
+  /** Shown to a customer who is still on the emailed password, on every page except the one that fixes it. */
+  protected readonly showPasswordBanner = computed(() => {
+    const path = this.currentUrl().split('?')[0];
+    return this.auth.isAuthenticated() && !this.auth.isAdmin() && this.auth.mustChangePassword() && path !== '/account';
+  });
 
   protected readonly showHeader = computed(() => {
     const path = this.currentUrl().split('?')[0];

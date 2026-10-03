@@ -39,6 +39,8 @@ describe('App', () => {
           provide: AuthService,
           useValue: {
             isAuthenticated,
+            isAdmin: () => false,
+            mustChangePassword: () => false,
             user: signal(null),
             logout: () => undefined,
             getToken: () => null,

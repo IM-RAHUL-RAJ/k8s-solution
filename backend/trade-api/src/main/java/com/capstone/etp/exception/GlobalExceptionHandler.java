@@ -108,6 +108,17 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(errorResponse);
     }
 
+    // RegistrationException - carries its own status (409 duplicate, 422 invalid, 502/503 auth service).
+    @ExceptionHandler(RegistrationException.class)
+    public ResponseEntity<ErrorResponse> handleRegistration(RegistrationException ex) {
+        log.warn("Registration refused: code={} message={}", ex.getCatalogueCode(), ex.getMessage());
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .errorCode(ex.getCatalogueCode())
+                .message(ex.getMessage())
+                .build();
+        return ResponseEntity.status(ex.getStatus()).body(errorResponse);
+    }
+
     //handler for any generic ETPException
     @ExceptionHandler(ETPException.class)
     public ResponseEntity<ErrorResponse> handleETPException(ETPException ex) {

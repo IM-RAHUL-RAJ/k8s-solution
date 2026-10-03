@@ -928,3 +928,9 @@ a {
   background: color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
+
+/* Password fields carry our own show/hide control; hide the browser's second one (Edge, IE). */
+input[type='password']::-ms-reveal,
+input[type='password']::-ms-clear {
+  display: none;
+}

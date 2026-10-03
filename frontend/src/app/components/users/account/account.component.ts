@@ -8,6 +8,7 @@ import { AccountService } from '../../../core/services/account.service';
 import { ApiErrorMessageService } from '../../../core/services/api-error-message.service';
 import { HomeCurrencyService } from '../../../core/services/home-currency.service';
 import { AllocationSlice } from '../../../core/stats/portfolio-stats';
+import { ChangePasswordComponent } from '../shared/change-password/change-password.component';
 import { AnimatedNumberComponent } from '../shared/animated-number/animated-number.component';
 import { DonutChartComponent } from '../shared/donut-chart/donut-chart.component';
 
@@ -25,7 +26,7 @@ function assetClassLabel(assetClass: string): string {
 @Component({
   selector: 'app-account',
   standalone: true,
-  imports: [CommonModule, RouterLink, AnimatedNumberComponent, DonutChartComponent],
+  imports: [CommonModule, RouterLink, AnimatedNumberComponent, DonutChartComponent, ChangePasswordComponent],
   templateUrl: './account.component.html',
   styleUrl: './account.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush

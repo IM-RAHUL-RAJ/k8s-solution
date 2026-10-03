@@ -32,6 +32,6 @@ export function platformTargets(): readonly PlatformTarget[] {
     // Read from API_ENDPOINTS, the same values every request is built from, so the allow list
     // can never drift from where calls actually go.
     { origin: originOf(API_ENDPOINTS.tradeApiBase), pathPrefixes: ['/api/v1/'], exactPaths: [] },
-    { origin: originOf(API_ENDPOINTS.authApiBase), pathPrefixes: [], exactPaths: ['/auth/me', '/auth/session/validate'] }
+    { origin: originOf(API_ENDPOINTS.authApiBase), pathPrefixes: [], exactPaths: ['/auth/me', '/auth/session/validate', '/auth/change-password'] }
   ];
 }

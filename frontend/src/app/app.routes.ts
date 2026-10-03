@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard } from './core/auth/auth.guard';
+import { adminGuard, authGuard, customerGuard } from './core/auth/auth.guard';
 
 // Public pages stay reachable directly. Protected workspace routes run authGuard.
 export const routes: Routes = [
@@ -14,15 +14,22 @@ export const routes: Routes = [
 			import('./components/users/login/login.component').then((m) => m.LoginComponent)
 	},
 	{
+		path: 'admin',
+		title: 'Admin',
+		canActivate: [authGuard, adminGuard],
+		loadComponent: () =>
+			import('./components/users/admin/admin-dashboard.component').then((m) => m.AdminDashboardComponent)
+	},
+	{
 		path: 'dashboard',
-		canActivate: [authGuard],
+		canActivate: [authGuard, customerGuard],
 		loadComponent: () =>
 			import('./components/users/dashboard/dashboard.component').then((m) => m.DashboardComponent)
 	},
 	{
     path: 'order-ticket',
     title: 'Order ticket',
-    canActivate: [authGuard],
+    canActivate: [authGuard, customerGuard],
     loadComponent: () =>
       import('./components/users/order-ticket/order-ticket.component').then(
         (m) => m.OrderTicketComponent
@@ -31,7 +38,7 @@ export const routes: Routes = [
   {
     path: 'watchlist',
     title: 'Watchlist',
-    canActivate: [authGuard],
+    canActivate: [authGuard, customerGuard],
     loadComponent: () =>
       import('./components/users/watchlist/watchlist.component').then(
         (m) => m.WatchlistComponent
@@ -40,7 +47,7 @@ export const routes: Routes = [
   {
     path: 'blotter',
     title: 'Blotter',
-    canActivate: [authGuard],
+    canActivate: [authGuard, customerGuard],
     loadComponent: () =>
       import('./components/users/order-history/order-history.component').then(
         (m) => m.OrderHistoryComponent
@@ -49,7 +56,7 @@ export const routes: Routes = [
   {
     path: 'account',
     title: 'Account',
-    canActivate: [authGuard],
+    canActivate: [authGuard, customerGuard],
     loadComponent: () =>
       import('./components/users/account/account.component').then(
         (m) => m.AccountComponent

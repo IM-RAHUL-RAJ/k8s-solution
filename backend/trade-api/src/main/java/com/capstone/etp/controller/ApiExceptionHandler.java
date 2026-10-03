@@ -47,6 +47,10 @@ public class ApiExceptionHandler {
             case "ORD-409" -> HttpStatus.CONFLICT;
             case "VAL-422", "CUR-422" -> HttpStatus.UNPROCESSABLE_ENTITY;
             case "AUTH-401" -> HttpStatus.UNAUTHORIZED;
+            case "REG-409" -> HttpStatus.CONFLICT;
+            case "REG-422" -> HttpStatus.UNPROCESSABLE_ENTITY;
+            case "REG-502" -> HttpStatus.BAD_GATEWAY;
+            case "REG-503" -> HttpStatus.SERVICE_UNAVAILABLE;
             default -> HttpStatus.BAD_REQUEST;
         };
     }

@@ -3,6 +3,13 @@
     @if (showHeader()) {
       <app-app-header />
     }
+    @if (showPasswordBanner()) {
+      <div class="banner warn password-banner" role="alert" data-testid="password-banner">
+        <strong>You are still on your temporary password.</strong>
+        Choose your own in the Account tab.
+        <a routerLink="/account">Change it now</a>
+      </div>
+    }
     <main class="app-content shell__content" id="main">
       <router-outlet />
     </main>

@@ -22,6 +22,6 @@ describe('LandingPage', () => {
 
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelectorAll('.card').length).toBe(3);
-    expect(compiled.textContent).toContain('Every order, in agreement from ticket to fill.');
+    expect(compiled.textContent).toContain('Trade with clarity and control, from order ticket to final fill.');
   });
 });

@@ -28,7 +28,9 @@ describe('LoginComponent', () => {
     authService = {
       login: vi.fn(),
       getToken: vi.fn().mockReturnValue('test-token'),
-      isAuthenticated: vi.fn().mockReturnValue(true)
+      isAuthenticated: vi.fn().mockReturnValue(true),
+      isAdmin: vi.fn().mockReturnValue(false),
+      mustChangePassword: vi.fn().mockReturnValue(false)
     };
 
     const sessionSocketMock = {

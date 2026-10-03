@@ -61,6 +61,31 @@ export const authGuard: CanActivateFn = (
 };
 
 /**
+ * Admin Guard: the admin dashboard is for ADMIN tokens only. Anyone else signed in is sent to
+ * their own dashboard. (The trade API refuses non-admins on every admin request regardless.)
+ */
+export const adminGuard: CanActivateFn = (): boolean | UrlTree => {
+  const authService = inject(AuthService);
+  const router = inject(Router);
+
+  if (!authService.isAuthenticated()) {
+    return router.createUrlTree(['/sign-in']);
+  }
+  return authService.isAdmin() ? true : router.createUrlTree(['/dashboard']);
+};
+
+/**
+ * Customer Guard: the trading pages belong to a customer's own account. An admin has no trading
+ * account of their own to work in, so they are sent to the admin dashboard instead.
+ */
+export const customerGuard: CanActivateFn = (): boolean | UrlTree => {
+  const authService = inject(AuthService);
+  const router = inject(Router);
+
+  return authService.isAdmin() ? router.createUrlTree(['/admin']) : true;
+};
+
+/**
  * Guest Guard: Prevent authenticated users from visiting public auth pages.
  * Redirects authenticated users to dashboard.
  */

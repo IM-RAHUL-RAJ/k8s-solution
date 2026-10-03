@@ -306,9 +306,16 @@ export class LoginComponent {
         
         // Navigate to validated returnUrl if present, else dashboard.
         const requested = this.route.snapshot.queryParamMap.get('returnUrl');
+        // Admins land on the admin dashboard; a customer still on the emailed default password
+        // lands on the Account tab, where the change-password section is.
+        const home = this.authService.isAdmin()
+          ? '/admin'
+          : this.authService.mustChangePassword()
+            ? '/account'
+            : '/dashboard';
         const target = requested && requested.startsWith('/') && !requested.startsWith('//')
           ? requested
-          : '/dashboard';
+          : home;
 
         this.router.navigateByUrl(target, { replaceUrl: true });
       },

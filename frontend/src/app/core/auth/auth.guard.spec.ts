@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { Router, ActivatedRouteSnapshot, RouterStateSnapshot, UrlTree, provideRouter } from '@angular/router';
 import { vi } from 'vitest';
-import { authGuard } from './auth.guard';
+import { adminGuard, authGuard, customerGuard } from './auth.guard';
 import { AuthService } from './auth.service';
 import { of, throwError, firstValueFrom } from 'rxjs';
 
@@ -143,5 +143,44 @@ describe('authGuard', () => {
 
     expect(result).toBe(false);
     expect(authService.validateSession).not.toHaveBeenCalled();
+  });
+});
+
+describe('adminGuard and customerGuard', () => {
+  let authService: any;
+  let router: Router;
+
+  beforeEach(() => {
+    authService = { isAuthenticated: vi.fn().mockReturnValue(true), isAdmin: vi.fn().mockReturnValue(false) };
+    TestBed.configureTestingModule({
+      providers: [provideRouter([]), { provide: AuthService, useValue: authService }]
+    });
+    router = TestBed.inject(Router);
+  });
+
+  const run = (guard: any) => TestBed.runInInjectionContext(() => guard({} as any, {} as any));
+
+  it('lets an admin into the admin dashboard', () => {
+    authService.isAdmin.mockReturnValue(true);
+    expect(run(adminGuard)).toBe(true);
+  });
+
+  it('sends a customer who asks for the admin dashboard to their own dashboard', () => {
+    const result = run(adminGuard);
+    expect(router.serializeUrl(result)).toBe('/dashboard');
+  });
+
+  it('sends someone who is not signed in to sign-in', () => {
+    authService.isAuthenticated.mockReturnValue(false);
+    expect(router.serializeUrl(run(adminGuard))).toBe('/sign-in');
+  });
+
+  it('sends an admin who asks for a customer page to the admin dashboard', () => {
+    authService.isAdmin.mockReturnValue(true);
+    expect(router.serializeUrl(run(customerGuard))).toBe('/admin');
+  });
+
+  it('lets a customer into the customer pages', () => {
+    expect(run(customerGuard)).toBe(true);
   });
 });

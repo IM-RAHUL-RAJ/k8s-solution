@@ -22,6 +22,7 @@ export interface LoginResponse {
   refreshToken?: string;
   tokenType?: string;
   expiresIn?: number;
+  mustChangePassword?: boolean;
 }
 
 export interface RefreshRequest {
@@ -45,6 +46,8 @@ export class AuthService {
   private readonly refreshStorageKey = 'refresh_token';
   private readonly userStorageKey = 'auth_user';
   private readonly sessionIdKey = 'session_id';
+  private readonly mustChangeKey = 'must_change_password';
+  private readonly authChangePasswordUrl = `${API_ENDPOINTS.authApiBase}/auth/change-password`;
   private readonly forceLandingKey = 'force_landing_after_logout';
   private readonly authLoginUrl = `${API_ENDPOINTS.authApiBase}/auth/login`;
   private readonly authSessionValidateUrl = `${API_ENDPOINTS.authApiBase}/auth/session/validate`;
@@ -77,6 +80,23 @@ export class AuthService {
    * Computed signal to track authentication state
    */
   isAuthenticated = computed(() => this.tokenSignal() !== null);
+
+  /** True while the account is still on the default password that was emailed to the customer. */
+  private mustChangeSignal = signal<boolean>(sessionStorage.getItem(this.mustChangeKey) === '1');
+  readonly mustChangePassword = this.mustChangeSignal.asReadonly();
+
+  /** Roles from the verified-by-the-server token, normalised ("ROLE_ADMIN" and "admin" both count). */
+  readonly roles = computed<string[]>(() => {
+    const token = this.tokenSignal();
+    const claims = token ? this.decodeToken(token) : null;
+    const roles: unknown = claims?.roles ?? claims?.sub?.roles ?? [];
+    return Array.isArray(roles)
+      ? roles.filter((r): r is string => typeof r === 'string').map((r) => r.trim().toUpperCase().replace(/^ROLE_/, ''))
+      : [];
+  });
+
+  /** Only decides what the UI shows. The services check the role on every request. */
+  readonly isAdmin = computed(() => this.roles().includes('ADMIN'));
 
   /**
    * Get current user
@@ -131,6 +151,26 @@ export class AuthService {
     } else {
       sessionStorage.removeItem(this.sessionIdKey);
     }
+  }
+
+  private setMustChange(value: boolean): void {
+    this.mustChangeSignal.set(value);
+    if (value) {
+      sessionStorage.setItem(this.mustChangeKey, '1');
+    } else {
+      sessionStorage.removeItem(this.mustChangeKey);
+    }
+  }
+
+  /**
+   * Replace the password. The server checks the current one, signs out other refresh tokens and
+   * clears the must-change flag. A wrong current password comes back as a 400 with a message.
+   */
+  changePassword(currentPassword: string, newPassword: string): Observable<void> {
+    return this.http.post<void>(this.authChangePasswordUrl, { currentPassword, newPassword }).pipe(
+      timeout(this.requestTimeoutMs),
+      tap(() => this.setMustChange(false))
+    );
   }
 
   /**
@@ -259,6 +299,7 @@ export class AuthService {
         timeout(this.requestTimeoutMs),
         tap(response => {
           this.clearForceLandingMarker();
+          this.setMustChange((response as LoginResponse).mustChangePassword === true);
 
           // Accept either legacy `token` or `accessToken` returned by auth-service.
           const token = (response as any).token ?? (response as any).accessToken;
@@ -376,6 +417,8 @@ export class AuthService {
     sessionStorage.removeItem(this.refreshStorageKey);
     sessionStorage.removeItem(this.userStorageKey);
     sessionStorage.removeItem(this.sessionIdKey);
+    sessionStorage.removeItem(this.mustChangeKey);
+    this.mustChangeSignal.set(false);
     localStorage.removeItem(this.storageKey);
     localStorage.removeItem(this.refreshStorageKey);
     localStorage.removeItem(this.userStorageKey);

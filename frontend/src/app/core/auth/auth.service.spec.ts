@@ -364,4 +364,49 @@ describe('AuthService', () => {
       req.flush({ token: 'a.b.c' });
     });
   });
+
+  describe('Roles, default password and change password', () => {
+    const tokenWith = (claims: object) => `h.${btoa(JSON.stringify(claims))}.s`;
+
+    it('reads the admin role from the token and normalises it', () => {
+      service.login({ username: 'boss', password: 'a-long-enough-password' }).subscribe();
+      httpMock.expectOne('http://localhost:3000/auth/login').flush({ token: tokenWith({ roles: ['ROLE_admin'], accountId: 1 }) });
+
+      expect(service.isAdmin()).toBe(true);
+    });
+
+    it('a customer is not an admin', () => {
+      service.login({ username: 'cust', password: 'a-long-enough-password' }).subscribe();
+      httpMock.expectOne('http://localhost:3000/auth/login').flush({ token: tokenWith({ roles: ['CUSTOMER'], accountId: 1 }) });
+
+      expect(service.isAdmin()).toBe(false);
+    });
+
+    it('remembers that the login used the emailed default password, until it is changed', () => {
+      service.login({ username: 'cust', password: 'Temp-Password-123' }).subscribe();
+      httpMock
+        .expectOne('http://localhost:3000/auth/login')
+        .flush({ token: tokenWith({ roles: ['CUSTOMER'], accountId: 1 }), mustChangePassword: true });
+      expect(service.mustChangePassword()).toBe(true);
+
+      service.changePassword('Temp-Password-123', 'A-brand-new-password').subscribe();
+      const request = httpMock.expectOne('http://localhost:3000/auth/change-password');
+      expect(request.request.method).toBe('POST');
+      expect(request.request.body).toEqual({ currentPassword: 'Temp-Password-123', newPassword: 'A-brand-new-password' });
+      request.flush(null);
+
+      expect(service.mustChangePassword()).toBe(false);
+    });
+
+    it('forgets the flag on logout', () => {
+      service.login({ username: 'cust', password: 'Temp-Password-123' }).subscribe();
+      httpMock
+        .expectOne('http://localhost:3000/auth/login')
+        .flush({ token: tokenWith({ roles: ['CUSTOMER'], accountId: 1 }), mustChangePassword: true });
+
+      service.logout();
+
+      expect(service.mustChangePassword()).toBe(false);
+    });
+  });
 });

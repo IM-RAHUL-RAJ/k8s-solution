@@ -23,6 +23,13 @@ public class AccountAuthorizer {
         }
     }
 
+    /** For endpoints that only an admin may call. */
+    public void ensureAdmin() {
+        if (!isAdmin(getAuthenticatedUser())) {
+            throw new AccountAccessDeniedException("Admin access required");
+        }
+    }
+
     public void ensureOrderManagementAllowed() {
         AuthenticatedUser user = getAuthenticatedUser();
         if (isAdmin(user)) {

@@ -90,7 +90,7 @@ describe('OrderTicketComponent', () => {
     );
     const status = (fixture.nativeElement as HTMLElement).querySelector('[data-testid="order-status"]');
     expect(status?.textContent).toContain('NEW');
-    expect((fixture.nativeElement as HTMLElement).textContent).toContain('The order is working');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('This order is being processed');
   });
 
   it('an invalid quantity is blocked before submission', () => {

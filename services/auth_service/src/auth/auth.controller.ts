@@ -23,6 +23,8 @@ import {
 
 import { RedactedLogger } from '../common/redacted-logger';
 import { LoginCryptoService } from './services/login-crypto.service';
+import { AdminGuard } from './guards/admin.guard';
+import { ChangePasswordRequestDto } from './dto/change-password-request.dto';
 
 
 import {
@@ -54,12 +56,14 @@ export class AuthController {
     ) { }
 
     @Post("register")
+    @UseGuards(JwtAuthGuard, AdminGuard)
+    @ApiBearerAuth('bearerAuth')
     @HttpCode(HttpStatus.CREATED)
     @ApiOperation({
         operationId: 'register',
         summary: 'Register a user',
         description:
-            'Creates a user and links it to an existing trading account. Registration does not return tokens.',
+            'Admin only. Creates a user and links it to an existing trading account. With no password, a default one is generated and emailed, and the user must change it on first login. Registration does not return tokens.',
     })
     @ApiBody({ type: RegisterRequestDto })
     @ApiResponse({
@@ -106,7 +110,8 @@ export class AuthController {
             dto.username,
             dto.password,
             dto.accountId,
-            dto.roles
+            dto.roles,
+            dto.email
         );
     }
 
@@ -227,6 +232,26 @@ export class AuthController {
         return this.service.refresh(
             dto.refreshToken
         );
+    }
+
+    @Post('change-password')
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth('bearerAuth')
+    @HttpCode(HttpStatus.NO_CONTENT)
+    @ApiOperation({
+        operationId: 'changePassword',
+        summary: 'Change the signed-in user\'s password',
+        description:
+            'Verifies the current password, sets the new one (12 to 128 characters, different from the current), clears the must-change flag and signs out other refresh tokens.',
+    })
+    @ApiResponse({ status: 204, description: 'Password changed.' })
+    @ApiResponse({ status: 400, description: 'Current password wrong, or new password unchanged.', type: ErrorResponseDto })
+    async changePassword(
+        @CurrentUser() user: JwtPayload,
+        @Body() dto: ChangePasswordRequestDto,
+    ): Promise<void> {
+        this.logger.log(`[AUTH_EVENT] change_password_request_received userId=${user.sub}`);
+        await this.service.changePassword(user.sub, dto.currentPassword, dto.newPassword);
     }
 
     @Get('me')
