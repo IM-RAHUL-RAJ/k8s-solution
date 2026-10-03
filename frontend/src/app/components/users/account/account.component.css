@@ -6,6 +6,72 @@
   gap: 14px;
 }
 
+.password-flyout {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+
+  display: grid;
+  place-items: center;
+
+  padding: 24px;
+
+  /* Blur everything behind the dialog */
+  background: color-mix(in srgb, var(--bg) 55%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+
+  animation: passwordOverlayIn 180ms ease-out both;
+}
+
+.password-flyout__card {
+  width: min(560px, calc(100vw - 48px));
+  max-height: min(700px, calc(100vh - 48px));
+
+  overflow: auto;
+
+  box-shadow:
+    0 24px 60px color-mix(in srgb, var(--text) 25%, transparent),
+    0 4px 16px color-mix(in srgb, var(--text) 12%, transparent);
+
+  animation: passwordDialogIn 220ms var(--ease) both;
+}
+
+.password-flyout__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.password-flyout__head h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+@keyframes passwordOverlayIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes passwordDialogIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 .top {
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
@@ -47,6 +113,14 @@
   gap: 10px;
   min-width: 0;
   flex: 1;
+}
+
+.profile__actions {
+  margin-top: 2px;
+}
+
+.profile__actions .secondary {
+  width: fit-content;
 }
 
 .profile h1 {

@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Output, computed, inject, signal } from '@angular/core';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { AuthService } from '../../../../core/auth/auth.service';
 
@@ -20,6 +20,8 @@ function matchesNewPassword(control: AbstractControl): ValidationErrors | null {
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ChangePasswordComponent {
+  @Output() passwordChanged = new EventEmitter<void>();
+
   private readonly formBuilder = inject(FormBuilder);
   protected readonly auth = inject(AuthService);
 
@@ -87,6 +89,7 @@ export class ChangePasswordComponent {
         this.newLength.set(0);
         this.submitting.set(false);
         this.done.set(true);
+        this.passwordChanged.emit();
       },
       error: (error: unknown) => {
         this.submitting.set(false);

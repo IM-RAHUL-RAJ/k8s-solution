@@ -42,6 +42,7 @@ export class AccountComponent {
   protected readonly account = signal<AccountResponse | null>(null);
   protected readonly balance = signal<BalanceResponse | null>(null);
   protected readonly positions = signal<PositionResponse[]>([]);
+  protected readonly showChangePassword = signal(false);
 
   protected readonly initials = computed(() =>
     (this.account()?.holderName ?? '?')
@@ -112,6 +113,14 @@ export class AccountComponent {
   constructor() {
     this.home.ensureLoaded();
     this.loadAccount();
+  }
+
+  protected toggleChangePassword(): void {
+    this.showChangePassword.update((shown) => !shown);
+  }
+
+  protected handlePasswordChanged(): void {
+    this.showChangePassword.set(false);
   }
 
   protected loadAccount(): void {

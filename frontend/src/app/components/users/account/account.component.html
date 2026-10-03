@@ -1,4 +1,16 @@
 <section class="page" data-testid="account-page">
+  @if (showChangePassword()) {
+    <div class="password-flyout" role="dialog" aria-modal="false" aria-label="Change password">
+      <div class="password-flyout__card card">
+        <div class="password-flyout__head">
+          <h2>Change password</h2>
+          <button type="button" class="secondary" (click)="toggleChangePassword()">Close</button>
+        </div>
+        <app-change-password (passwordChanged)="handlePasswordChanged()" />
+      </div>
+    </div>
+  }
+
   @if (loading()) {
     <div class="top" aria-busy="true" aria-label="Loading account">
       <article class="card"><span class="skeleton short"></span><span class="skeleton"></span><span class="skeleton"></span></article>
@@ -32,8 +44,15 @@
               <dd>{{ account()?.lastUpdated | date: 'd MMM y, HH:mm' }}</dd>
             </div>
           </dl>
+          <div class="profile__actions">
+            <button type="button" class="secondary" (click)="toggleChangePassword()">
+              {{ showChangePassword() ? 'Hide password form' : 'Change password' }}
+            </button>
+          </div>
         </div>
       </article>
+
+      
 
       <article class="card lift balance" style="--i: 1">
         <p class="muted">Cash balance</p>
@@ -95,6 +114,8 @@
         }
       </article>
 
+    
+
       <article class="card table-card" style="--i: 3">
         <div class="table-card__header">
           <h2>Positions</h2>
@@ -131,9 +152,13 @@
             </tbody>
           </table>
         }
+        
       </article>
+
+      
+      
     </div>
   }
 
-  <app-change-password />
+  
 </section>
