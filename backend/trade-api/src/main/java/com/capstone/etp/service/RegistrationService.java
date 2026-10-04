@@ -61,6 +61,7 @@ public class RegistrationService {
         }
 
         adminMapper.lockReferenceAllocation();
+        adminMapper.syncIdSequences();
         if (adminMapper.countClientsByEmail(email) > 0) {
             throw new RegistrationException("REG-409", HttpStatus.CONFLICT,
                     "That username or email is already registered");

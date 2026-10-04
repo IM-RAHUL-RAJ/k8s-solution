@@ -19,6 +19,18 @@ public interface AdminMapper {
     @Select("SELECT 1 FROM (SELECT pg_advisory_xact_lock(727001)) AS locked")
     int lockReferenceAllocation();
 
+    // The seed data inserts clients, accounts and portfolios with fixed ids, which leaves their id
+    // counters at 1. Move each counter to just past the highest existing id before inserting,
+    // so a new row never collides with a seeded one. Safe to repeat, and run under the lock above.
+    @Select("""
+        SELECT setval(pg_get_serial_sequence('clients', 'id'),
+                      COALESCE((SELECT MAX(id) FROM clients), 0) + 1, false)
+             + setval(pg_get_serial_sequence('accounts', 'id'),
+                      COALESCE((SELECT MAX(id) FROM accounts), 0) + 1, false)
+             + setval(pg_get_serial_sequence('portfolios', 'id'),
+                      COALESCE((SELECT MAX(id) FROM portfolios), 0) + 1, false)""")
+    long syncIdSequences();
+
     @Select("""
         SELECT 'C' || LPAD((COALESCE(MAX(SUBSTRING(client_ref FROM 2)::bigint), 0) + 1)::text, 9, '0')
         FROM clients""")

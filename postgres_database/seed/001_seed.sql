@@ -245,3 +245,11 @@ VALUES
 (17, 2);
 
 COMMIT;
+
+
+-- The inserts above give clients, accounts and portfolios fixed ids, so their id counters are
+-- still at 1. Move each one to the highest id in use, so the next row created by the application
+-- (for example the admin registration) gets a fresh id instead of colliding with a seeded one.
+SELECT setval(pg_get_serial_sequence('clients', 'id'), (SELECT MAX(id) FROM clients));
+SELECT setval(pg_get_serial_sequence('accounts', 'id'), (SELECT MAX(id) FROM accounts));
+SELECT setval(pg_get_serial_sequence('portfolios', 'id'), (SELECT MAX(id) FROM portfolios));

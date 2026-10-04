@@ -95,6 +95,11 @@ class RegistrationServiceTest {
                 anyString(), eq("9876543210"), eq(LocalDate.of(1990, 4, 12)), eq("FEMALE"));
         verify(adminMapper).insertAccount("ACC0000011", 11L, "INDIAN_EQUITY", "INR", new BigDecimal("50000.00"));
         verify(adminMapper).insertPortfolio(21L, "Primary portfolio");
+        // The id counters are moved past the seeded rows before anything is inserted.
+        org.mockito.InOrder order = org.mockito.Mockito.inOrder(adminMapper);
+        order.verify(adminMapper).lockReferenceAllocation();
+        order.verify(adminMapper).syncIdSequences();
+        order.verify(adminMapper).insertClient(anyString(), anyString(), anyString(), anyString(), any(), any(), any());
         verify(adminMapper).insertPreferences(21L, "MODERATE");
     }
 
