@@ -25,6 +25,14 @@ export interface LoginResponse {
   mustChangePassword?: boolean;
 }
 
+export interface LoginRegistration {
+  id: string;
+  username: string;
+  accountId: number;
+  roles: string[];
+  emailSent: boolean;
+}
+
 export interface RefreshRequest {
   refreshToken: string;
 }
@@ -48,6 +56,7 @@ export class AuthService {
   private readonly sessionIdKey = 'session_id';
   private readonly mustChangeKey = 'must_change_password';
   private readonly authChangePasswordUrl = `${API_ENDPOINTS.authApiBase}/auth/change-password`;
+  private readonly authRegisterUrl = `${API_ENDPOINTS.authApiBase}/auth/register`;
   private readonly forceLandingKey = 'force_landing_after_logout';
   private readonly authLoginUrl = `${API_ENDPOINTS.authApiBase}/auth/login`;
   private readonly authSessionValidateUrl = `${API_ENDPOINTS.authApiBase}/auth/session/validate`;
@@ -160,6 +169,17 @@ export class AuthService {
     } else {
       sessionStorage.removeItem(this.mustChangeKey);
     }
+  }
+
+  /**
+   * Creates the login for an account, as the admin registering a customer. With no password the
+   * auth service generates one and emails it to `email` (it keeps only the username), and the
+   * customer must change it on first sign-in. Nothing here ever sees that password.
+   */
+  registerLogin(username: string, email: string, accountId: number): Observable<LoginRegistration> {
+    return this.http
+      .post<LoginRegistration>(this.authRegisterUrl, { username, email, accountId })
+      .pipe(timeout(this.requestTimeoutMs * 2));
   }
 
   /**

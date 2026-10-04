@@ -82,26 +82,74 @@ describe('WatchlistComponent', () => {
     return fixture;
   }
 
-  it('shows a card per watched instrument with what the customer holds', () => {
-    const root = create().nativeElement as HTMLElement;
+  const root = (fixture: ReturnType<typeof create>) => fixture.nativeElement as HTMLElement;
 
-    const cards = root.querySelectorAll('[data-testid="watch-card"]');
-    expect(cards.length).toBe(2);
-    expect(cards[0].textContent).toContain('AAPL');
-    expect(cards[0].textContent).toContain('You hold');
+  function openRow(fixture: ReturnType<typeof create>, index: number) {
+    root(fixture).querySelectorAll<HTMLElement>('[data-testid="watch-row"]')[index].click();
+    fixture.detectChanges();
+  }
+
+  it('lists one row per watched instrument, with the quote figures inline', () => {
+    const fixture = create();
+
+    const rows = root(fixture).querySelectorAll('[data-testid="watch-row"]');
+    expect(rows.length).toBe(2);
+
+    // AAPL has a quote: last price, the change in percent, and bid / ask on the row itself.
+    expect(rows[0].textContent).toContain('AAPL');
+    expect(rows[0].textContent).toContain('193.12');
+    expect(rows[0].textContent).toContain('-0.62%');
+    expect(rows[0].textContent).toContain('193.10');
+    expect(rows[0].textContent).toContain('193.14');
+    // 193.12 USD at 95 INR per USD
+    expect(rows[0].textContent).toContain('18,346.40');
+    expect(rows[0].getAttribute('data-dir')).toBe('down');
+
+    // MSFT has no quote yet, so its figures show a dash rather than inventing numbers.
+    expect(rows[1].textContent).toContain('MSFT');
+    expect(rows[1].textContent).not.toContain('193.12');
+    expect(rows[1].getAttribute('data-dir')).toBe('flat');
   });
 
-  it('shows bid, ask and the last price from the market-data quote, and waits for the rest', () => {
-    const root = create().nativeElement as HTMLElement;
+  it('opens the details for a row with bid, ask, spread, market state and what the customer holds', () => {
+    const fixture = create();
 
-    const quote = root.querySelector('[data-testid="watch-quote"]');
+    expect(root(fixture).querySelector('[data-testid="watch-overlay"]')).toBeNull();
+    openRow(fixture, 0);
+
+    const card = root(fixture).querySelector('[data-testid="watch-card"]');
+    expect(card).not.toBeNull();
+    const quote = root(fixture).querySelector('[data-testid="watch-quote"]');
     expect(quote?.textContent).toContain('193.10');
     expect(quote?.textContent).toContain('193.14');
-    expect(quote?.textContent).toContain('193.12');
+    expect(quote?.textContent).toContain('0.04');
+    expect(quote?.textContent).toContain('194.32');
     expect(quote?.textContent).toContain('REGULAR');
-    // 193.12 USD at 95 INR per USD
-    expect(quote?.textContent).toContain('18,346.40');
-    expect(root.querySelectorAll('[data-testid="watch-quote-waiting"]').length).toBe(1);
+    expect(card?.textContent).toContain('You hold');
+    expect(card?.textContent).toContain('3');
+  });
+
+  it('says it is waiting for an instrument that has no quote yet', () => {
+    const fixture = create();
+
+    openRow(fixture, 1);
+
+    expect(root(fixture).querySelector('[data-testid="watch-quote"]')).toBeNull();
+    expect(root(fixture).querySelector('[data-testid="watch-quote-waiting"]')).not.toBeNull();
+  });
+
+  it('closes the details with the close button and with Escape', () => {
+    const fixture = create();
+
+    openRow(fixture, 0);
+    root(fixture).querySelector<HTMLElement>('[data-testid="watch-close"]')!.click();
+    fixture.detectChanges();
+    expect(root(fixture).querySelector('[data-testid="watch-overlay"]')).toBeNull();
+
+    openRow(fixture, 0);
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    fixture.detectChanges();
+    expect(root(fixture).querySelector('[data-testid="watch-overlay"]')).toBeNull();
   });
 
   it('re-reads the quotes on a timer', () => {
@@ -113,16 +161,26 @@ describe('WatchlistComponent', () => {
     expect(getWatchlistQuotes).toHaveBeenCalledTimes(3);
   });
 
-  it('the remove control is a minus and takes the instrument off the list', () => {
+  it('the remove control is a minus, takes the instrument off the list, and does not open the details', () => {
     const fixture = create();
-    const root = fixture.nativeElement as HTMLElement;
-    const remove = root.querySelector<HTMLButtonElement>('[data-testid="watch-remove"]');
+    const remove = root(fixture).querySelector<HTMLButtonElement>('[data-testid="watch-row-remove"]');
 
     expect(remove?.querySelector('path')?.getAttribute('d')).toBe('M5 10h10');
     remove?.click();
     fixture.detectChanges();
 
     expect(removeFromWatchlist).toHaveBeenCalledWith(1, 'AAPL');
-    expect(root.querySelectorAll('[data-testid="watch-card"]').length).toBe(1);
+    expect(root(fixture).querySelectorAll('[data-testid="watch-row"]').length).toBe(1);
+    expect(root(fixture).querySelector('[data-testid="watch-overlay"]')).toBeNull();
+  });
+
+  it('removing the instrument whose details are open closes them', () => {
+    const fixture = create();
+    openRow(fixture, 0);
+
+    root(fixture).querySelector<HTMLButtonElement>('[data-testid="watch-row-remove"]')!.click();
+    fixture.detectChanges();
+
+    expect(root(fixture).querySelector('[data-testid="watch-overlay"]')).toBeNull();
   });
 });

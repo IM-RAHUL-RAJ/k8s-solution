@@ -11,6 +11,8 @@ import { OrderService } from '../../../core/services/order.service';
 describe('AdminDashboardComponent', () => {
   const listAccounts = vi.fn();
   const register = vi.fn();
+  const undoRegistration = vi.fn();
+  const registerLogin = vi.fn();
   const getBalance = vi.fn();
   const getPositions = vi.fn();
   const getOrderHistory = vi.fn();
@@ -34,6 +36,8 @@ describe('AdminDashboardComponent', () => {
       of([row(1, 'Priya Menon'), row(2, 'Arjun Rao', 'US_EQUITY', 'USD', 500)])
     );
     register.mockReset();
+    undoRegistration.mockReset().mockReturnValue(of(undefined));
+    registerLogin.mockReset();
     getBalance.mockReset().mockReturnValue(of({ accountId: 1, cashBalance: 1000, currency: 'INR', asOf: '' }));
     getPositions.mockReset().mockReturnValue(of([{ accountId: 1, symbol: 'AAPL', quantity: 4, averageCost: 100 }]));
     getOrderHistory.mockReset().mockReturnValue(of([]));
@@ -41,10 +45,10 @@ describe('AdminDashboardComponent', () => {
     await TestBed.configureTestingModule({
       imports: [AdminDashboardComponent],
       providers: [
-        { provide: AdminService, useValue: { listAccounts, register } },
+        { provide: AdminService, useValue: { listAccounts, register, undoRegistration } },
         { provide: AccountService, useValue: { getBalance, getPositions } },
         { provide: OrderService, useValue: { getOrderHistory } },
-        { provide: AuthService, useValue: { changePassword: vi.fn(), mustChangePassword: signal(false) } }
+        { provide: AuthService, useValue: { changePassword: vi.fn(), registerLogin, mustChangePassword: signal(false) } }
       ]
     }).compileComponents();
   });
@@ -126,17 +130,19 @@ describe('AdminDashboardComponent', () => {
       expect((root(fixture).querySelector('[data-testid="reg-currency"]') as HTMLSelectElement).value).toBe('USD');
     });
 
-    it('sends the client and account details and shows the references without any password', () => {
-      register.mockReturnValue(
-        of({
-          clientId: 5,
-          clientRef: 'C000000005',
-          accountId: 9,
-          accountRef: 'ACC0000009',
-          username: 'priya.menon',
-          email: 'priya.menon@example.com',
-          emailSent: true
-        })
+    const created = {
+      clientId: 5,
+      clientRef: 'C000000005',
+      accountId: 9,
+      accountRef: 'ACC0000009',
+      username: 'priya.menon',
+      email: 'priya.menon@example.com'
+    };
+
+    it('opens the client and account, then creates the login, and shows the references without any password', () => {
+      register.mockReturnValue(of(created));
+      registerLogin.mockReturnValue(
+        of({ id: 'u-1', username: 'priya.menon', accountId: 9, roles: ['CUSTOMER'], emailSent: true })
       );
       const fixture = create();
       click(fixture, 'tab-register');
@@ -154,25 +160,60 @@ describe('AdminDashboardComponent', () => {
           openingBalance: 25000.5
         })
       );
+      // The login is made for the new account, using the username taken from the email.
+      expect(registerLogin).toHaveBeenCalledWith('priya.menon', 'priya.menon@example.com', 9);
       const success = root(fixture).querySelector('[data-testid="register-success"]')?.textContent ?? '';
       expect(success).toContain('ACC0000009');
       expect(success).toContain('priya.menon');
       expect(success).toContain('emailed');
       expect(JSON.stringify(register.mock.calls[0][0])).not.toMatch(/password/i);
+      expect(undoRegistration).not.toHaveBeenCalled();
       // The account list was reloaded to include the new account.
       expect(listAccounts).toHaveBeenCalledTimes(2);
     });
 
-    it('does not send an incomplete form', () => {
+    it('takes the new client and account back when the login is refused as a duplicate', () => {
+      register.mockReturnValue(of(created));
+      registerLogin.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 409 })));
       const fixture = create();
       click(fixture, 'tab-register');
+      fillValid(fixture);
 
       click(fixture, 'register-submit');
 
-      expect(register).not.toHaveBeenCalled();
+      expect(undoRegistration).toHaveBeenCalledWith(9);
+      const message = root(fixture).querySelector('[data-testid="register-error"]')?.textContent ?? '';
+      expect(message).toContain('already registered');
+      expect(message).toContain('Nothing was created');
+      expect(root(fixture).querySelector('[data-testid="register-success"]')).toBeNull();
     });
 
-    it('shows the service explanation when the username or email is taken', () => {
+    it('says so, with the references, when the email cannot be sent and the undo also fails', () => {
+      register.mockReturnValue(of(created));
+      registerLogin.mockReturnValue(
+        throwError(
+          () =>
+            new HttpErrorResponse({
+              status: 503,
+              error: { errorCode: 'AUTH-503', message: 'The welcome email could not be sent' }
+            })
+        )
+      );
+      undoRegistration.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 500 })));
+      const fixture = create();
+      click(fixture, 'tab-register');
+      fillValid(fixture);
+
+      click(fixture, 'register-submit');
+
+      const message = root(fixture).querySelector('[data-testid="register-error"]')?.textContent ?? '';
+      expect(message).toContain('welcome email could not be sent');
+      expect(message).toContain('C000000005');
+      expect(message).toContain('ACC0000009');
+      expect(message).toContain('could not be removed');
+    });
+
+    it('does not call the auth service when the trade API refuses the client', () => {
       register.mockReturnValue(
         throwError(
           () =>
@@ -188,7 +229,18 @@ describe('AdminDashboardComponent', () => {
 
       click(fixture, 'register-submit');
 
+      expect(registerLogin).not.toHaveBeenCalled();
+      expect(undoRegistration).not.toHaveBeenCalled();
       expect(root(fixture).querySelector('[data-testid="register-error"]')?.textContent).toContain('already registered');
+    });
+
+    it('does not send an incomplete form', () => {
+      const fixture = create();
+      click(fixture, 'tab-register');
+
+      click(fixture, 'register-submit');
+
+      expect(register).not.toHaveBeenCalled();
     });
   });
 });

@@ -1,6 +1,7 @@
 package com.capstone.etp.mapper;
 
 import com.capstone.etp.dto.AdminAccountSummary;
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -108,4 +109,36 @@ public interface AdminMapper {
         @Result(property = "createdAt", column = "created_at")
     })
     List<AdminAccountSummary> listAccounts();
+
+    // ---- Undo of a registration that could not be finished (the login step failed) -------------
+
+    /** The client of an account created in the last few minutes, or null if it is missing or older. */
+    @Select("""
+        SELECT client_id FROM accounts
+        WHERE id = #{accountId}
+          AND created_at > CURRENT_TIMESTAMP - make_interval(mins => #{minutes})""")
+    Long findRecentAccountClient(@Param("accountId") Long accountId, @Param("minutes") int minutes);
+
+    /** Anything that makes the account a real, used one: orders, holdings or watchlist entries. */
+    @Select("""
+        SELECT (SELECT COUNT(*) FROM orders WHERE account_id = #{accountId})
+             + (SELECT COUNT(*) FROM portfolio_holdings ph
+                  JOIN portfolios p ON p.id = ph.portfolio_id WHERE p.account_id = #{accountId})
+             + (SELECT COUNT(*) FROM watchlist WHERE account_id = #{accountId})""")
+    int countActivity(@Param("accountId") Long accountId);
+
+    @Delete("DELETE FROM account_preferences WHERE account_id = #{accountId}")
+    int deletePreferences(@Param("accountId") Long accountId);
+
+    @Delete("DELETE FROM portfolios WHERE account_id = #{accountId}")
+    int deletePortfolio(@Param("accountId") Long accountId);
+
+    @Delete("DELETE FROM accounts WHERE id = #{accountId}")
+    int deleteAccount(@Param("accountId") Long accountId);
+
+    @Select("SELECT COUNT(*) FROM accounts WHERE client_id = #{clientId}")
+    int countAccountsOfClient(@Param("clientId") Long clientId);
+
+    @Delete("DELETE FROM clients WHERE id = #{clientId}")
+    int deleteClient(@Param("clientId") Long clientId);
 }

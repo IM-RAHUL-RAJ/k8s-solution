@@ -1,5 +1,6 @@
 /**
- * Creates (or resets) the first admin, since registration itself now needs an admin to call it.
+ * Creates (or resets) an admin. Registration through the API only makes customers by default,
+ * and an admin needs the ADMIN role, so this sets it directly in the database.
  *
  *   ADMIN_PASSWORD='a long password' npm run create-admin -- <username> <accountId>
  *

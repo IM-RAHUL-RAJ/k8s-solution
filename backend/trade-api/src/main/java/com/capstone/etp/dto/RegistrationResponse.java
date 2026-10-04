@@ -6,7 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/** The default password is deliberately absent: it only ever goes to the customer's inbox. */
+/** What was created. The login is created separately, by the auth service, which emails the password. */
 @Getter
 @Setter
 @NoArgsConstructor
@@ -19,5 +19,4 @@ public class RegistrationResponse {
     private String accountRef;
     private String username;
     private String email;
-    private boolean emailSent;
 }

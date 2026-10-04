@@ -42,7 +42,6 @@ import { RefreshToken }
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { SessionGateway } from './gateways/session.gateway';
 import { MailService } from './services/mail.service';
-import { AdminGuard } from './guards/admin.guard';
 import { LoginCryptoService } from './services/login-crypto.service';
 
 
@@ -118,9 +117,7 @@ import { LoginCryptoService } from './services/login-crypto.service';
 
         LoginCryptoService,
 
-        MailService,
-
-        AdminGuard
+        MailService
 
     ]
 

@@ -177,7 +177,7 @@
               @if (done.emailSent) {
                 The temporary password was emailed to {{ done.email }}. It is not shown here.
               } @else {
-                No email was sent for this registration.
+                The login was created, but no email was sent.
               }
             </p>
           </div>
@@ -278,11 +278,11 @@
         <h2>What happens</h2>
         <ol>
           <li>A client and an account are opened with the details you enter.</li>
-          <li>The auth service creates the login. The username is the email's first part.</li>
+          <li>The sign-in service creates the login. The username is the email's first part.</li>
           <li>A temporary password is generated and emailed to the customer. You never see it.</li>
           <li>On first sign-in the customer is taken to the Account tab to choose their own.</li>
         </ol>
-        <p class="muted">If the email cannot be sent, nothing is created, so no customer is left without a password.</p>
+        <p class="muted">If the login or the email fails, the new client and account are removed again, so nothing half-made is left behind.</p>
       </aside>
     </div>
   }

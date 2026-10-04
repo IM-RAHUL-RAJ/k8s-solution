@@ -94,13 +94,8 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
       JWT_SECRET: ${JWT_SECRET}
       JWT_ISSUER: ${JWT_ISSUER:-auth-service}
-      # Where the trade API reaches the auth service for admin registration. The default is the
-      # compose auth-service. To run the auth service outside Docker (npm run start:dev), set
-      # TRADE_API_AUTH_URL=http://host.docker.internal:3000 in .env.
-      AUTH_BASE_URL: ${TRADE_API_AUTH_URL:-http://auth-service:8081}
+      AUTH_BASE_URL: http://auth-service:8081
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     ports:
       - "${TRADE_API_PORT:-8084}:8084"
     depends_on:

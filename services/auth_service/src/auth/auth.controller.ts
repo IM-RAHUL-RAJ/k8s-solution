@@ -23,7 +23,6 @@ import {
 
 import { RedactedLogger } from '../common/redacted-logger';
 import { LoginCryptoService } from './services/login-crypto.service';
-import { AdminGuard } from './guards/admin.guard';
 import { ChangePasswordRequestDto } from './dto/change-password-request.dto';
 
 
@@ -56,14 +55,12 @@ export class AuthController {
     ) { }
 
     @Post("register")
-    @UseGuards(JwtAuthGuard, AdminGuard)
-    @ApiBearerAuth('bearerAuth')
     @HttpCode(HttpStatus.CREATED)
     @ApiOperation({
         operationId: 'register',
         summary: 'Register a user',
         description:
-            'Admin only. Creates a user and links it to an existing trading account. With no password, a default one is generated and emailed, and the user must change it on first login. Registration does not return tokens.',
+            'Creates a user and links it to an existing trading account. With no password (and an email), a default one is generated and emailed, and the user must change it on first login. Registration does not return tokens.',
     })
     @ApiBody({ type: RegisterRequestDto })
     @ApiResponse({

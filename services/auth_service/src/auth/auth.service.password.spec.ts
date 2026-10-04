@@ -2,8 +2,6 @@ import { BadRequestException, ServiceUnavailableException } from '@nestjs/common
 import * as argon2 from 'argon2';
 import { AuthService, MUST_CHANGE_PASSWORD_ROLE } from './auth.service';
 import { AuthUser } from './entity/auth-user.entity';
-import { AdminGuard } from './guards/admin.guard';
-import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 
 describe('AuthService default password and change password', () => {
     let userRepo: any;
@@ -112,18 +110,5 @@ describe('AuthService default password and change password', () => {
                 BadRequestException,
             );
         });
-    });
-});
-
-describe('AdminGuard', () => {
-    const contextFor = (roles: string[] | undefined) =>
-        ({ switchToHttp: () => ({ getRequest: () => ({ user: roles ? { roles } : undefined }) }) }) as unknown as ExecutionContext;
-
-    it.each([[['ADMIN']], [['customer', 'role_admin']]])('lets %j through', (roles) => {
-        expect(new AdminGuard().canActivate(contextFor(roles))).toBe(true);
-    });
-
-    it.each([[['CUSTOMER']], [[]], [undefined]])('refuses %j', (roles) => {
-        expect(() => new AdminGuard().canActivate(contextFor(roles))).toThrow(ForbiddenException);
     });
 });

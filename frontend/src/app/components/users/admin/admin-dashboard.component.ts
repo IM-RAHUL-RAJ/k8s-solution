@@ -3,8 +3,8 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { CommonModule } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
-import { forkJoin, of } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { forkJoin, of, throwError } from 'rxjs';
+import { catchError, map, switchMap } from 'rxjs/operators';
 import { CURRENCIES, convertAmount } from '../../../core/config/currency-rates';
 import {
   AccountTypeName,
@@ -12,10 +12,12 @@ import {
   GenderName,
   RegistrationRequest,
   RegistrationResponse,
+  RegistrationResult,
   RiskProfileName
 } from '../../../core/models/admin.model';
 import { BalanceResponse, PositionResponse } from '../../../core/models/account.model';
 import { OrderHistoryEntry } from '../../../core/models/order.model';
+import { AuthService } from '../../../core/auth/auth.service';
 import { AccountService } from '../../../core/services/account.service';
 import { AdminService } from '../../../core/services/admin.service';
 import { ApiErrorMessageService } from '../../../core/services/api-error-message.service';
@@ -63,6 +65,7 @@ function optionalPastDate(control: AbstractControl<string>): ValidationErrors | 
 })
 export class AdminDashboardComponent {
   private readonly adminService = inject(AdminService);
+  private readonly authService = inject(AuthService);
   private readonly accountService = inject(AccountService);
   private readonly orderService = inject(OrderService);
   private readonly errorMessages = inject(ApiErrorMessageService);
@@ -146,7 +149,7 @@ export class AdminDashboardComponent {
 
   protected readonly submitting = signal(false);
   protected readonly registerError = signal<string | null>(null);
-  protected readonly registered = signal<RegistrationResponse | null>(null);
+  protected readonly registered = signal<RegistrationResult | null>(null);
   protected readonly today = new Date().toISOString().slice(0, 10);
 
   constructor() {
@@ -271,7 +274,19 @@ export class AdminDashboardComponent {
     };
 
     this.submitting.set(true);
-    this.adminService.register(request).subscribe({
+    // Step 1 at the trade API (client + account), step 2 at the auth service (login + emailed
+    // password). If step 2 fails, step 1 is taken back so nothing half-made is left behind.
+    this.adminService
+      .register(request)
+      .pipe(
+        switchMap((created) =>
+          this.authService.registerLogin(created.username, created.email, created.accountId).pipe(
+            map((login): RegistrationResult => ({ ...created, emailSent: login.emailSent })),
+            catchError((loginError: unknown) => this.rollBack(created, loginError))
+          )
+        )
+      )
+      .subscribe({
       next: (response) => {
         this.registered.set(response);
         this.submitting.set(false);
@@ -296,8 +311,53 @@ export class AdminDashboardComponent {
     });
   }
 
+  /**
+   * The login could not be created, so remove the client and account that were just made, then
+   * report both what went wrong and what was left. The undo is refused for anything but a
+   * brand-new, unused account, so it cannot touch an established one.
+   */
+  private rollBack(created: RegistrationResponse, loginError: unknown) {
+    const reason = this.loginFailureMessage(loginError);
+    return this.adminService.undoRegistration(created.accountId).pipe(
+      map(() => null),
+      catchError(() => of('failed')),
+      switchMap((undo) =>
+        throwError(
+          () =>
+            new Error(
+              undo === null
+                ? `${reason} Nothing was created.`
+                : `${reason} The client ${created.clientRef} and account ${created.accountRef} were created but could not be removed automatically.`
+            )
+        )
+      )
+    );
+  }
+
+  /** What the auth service said, in words for the admin. */
+  private loginFailureMessage(error: unknown): string {
+    if (error instanceof HttpErrorResponse) {
+      if (error.status === 409) {
+        return 'That username or email is already registered.';
+      }
+      if (error.status === 503) {
+        const message: unknown = error.error?.message;
+        return typeof message === 'string' ? `${message}.` : 'The welcome email could not be sent.';
+      }
+      if (error.status === 0) {
+        return 'The sign-in service could not be reached.';
+      }
+      return 'The sign-in service refused the registration.';
+    }
+    return 'The sign-in service did not answer in time.';
+  }
+
   /** The service explains REG-* refusals itself (duplicate, email trouble); everything else uses the shared wording. */
   private registrationMessage(error: unknown): string {
+    // A failure of the login step, already worded and already rolled back.
+    if (error instanceof Error && !(error instanceof HttpErrorResponse)) {
+      return error.message;
+    }
     if (error instanceof HttpErrorResponse) {
       const code: unknown = error.error?.errorCode;
       if (typeof code === 'string' && code.startsWith('REG-') && typeof error.error?.message === 'string') {

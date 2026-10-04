@@ -20,9 +20,9 @@ import java.util.UUID;
 import java.util.regex.Pattern;
 
 /**
- * Admin-only. Opens a client, an account and its portfolio, then has the auth service create the
- * login and email the default password. It is one transaction: if the login cannot be created
- * (username taken, email failed, auth service down) the client and account roll back with it.
+ * Admin-only. Opens a client, an account and its portfolio in one transaction. The login (and the
+ * emailed default password) is created afterwards by the admin's browser calling the auth service,
+ * using the account id returned here. If that step fails, the browser asks for {@link #undo}.
  */
 @Slf4j
 @Service
@@ -31,9 +31,11 @@ public class RegistrationService {
 
     private static final Pattern USERNAME = Pattern.compile("^[a-z0-9._-]{3,64}$");
 
+    /** An undo only reaches accounts this young, so it can never remove a real, established account. */
+    static final int UNDO_WINDOW_MINUTES = 15;
+
     private final AdminMapper adminMapper;
     private final AccountAuthorizer accountAuthorizer;
-    private final AuthRegistrationClient authClient;
 
     private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
 
@@ -49,7 +51,7 @@ public class RegistrationService {
     }
 
     @Transactional
-    public RegistrationResponse register(RegistrationRequest request, String authorization) {
+    public RegistrationResponse register(RegistrationRequest request) {
         accountAuthorizer.ensureAdmin();
 
         String email = request.getEmail().trim().toLowerCase(Locale.ROOT);
@@ -89,9 +91,6 @@ public class RegistrationService {
             adminMapper.insertPreferences(accountId, request.getRiskProfile().name());
         }
 
-        // Last on purpose: if this throws, everything above is rolled back.
-        boolean emailSent = authClient.register(username, email, accountId, authorization);
-
         log.info("[REGISTRATION] created clientRef={} accountRef={} username={}", clientRef, accountRef, username);
         return RegistrationResponse.builder()
                 .clientId(clientId)
@@ -100,7 +99,33 @@ public class RegistrationService {
                 .accountRef(accountRef)
                 .username(username)
                 .email(email)
-                .emailSent(emailSent)
                 .build();
+    }
+
+    /**
+     * Removes a registration whose login could not be created. It only acts on an account that is
+     * brand new and has never been used, and it removes the client too only if that was its sole account.
+     */
+    @Transactional
+    public void undo(Long accountId) {
+        accountAuthorizer.ensureAdmin();
+
+        Long clientId = adminMapper.findRecentAccountClient(accountId, UNDO_WINDOW_MINUTES);
+        if (clientId == null) {
+            throw new RegistrationException("REG-404", HttpStatus.NOT_FOUND,
+                    "There is no account created in the last " + UNDO_WINDOW_MINUTES + " minutes to undo");
+        }
+        if (adminMapper.countActivity(accountId) > 0) {
+            throw new RegistrationException("REG-409", HttpStatus.CONFLICT,
+                    "This account has already been used, so it cannot be undone");
+        }
+
+        adminMapper.deletePreferences(accountId);
+        adminMapper.deletePortfolio(accountId);
+        adminMapper.deleteAccount(accountId);
+        if (adminMapper.countAccountsOfClient(clientId) == 0) {
+            adminMapper.deleteClient(clientId);
+        }
+        log.info("[REGISTRATION] undone accountId={} clientId={}", accountId, clientId);
     }
 }

@@ -32,22 +32,17 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class RegistrationServiceTest {
 
-    private static final String BEARER = "Bearer admin-token";
-
     @Mock
     private AdminMapper adminMapper;
 
     @Mock
     private AccountAuthorizer accountAuthorizer;
 
-    @Mock
-    private AuthRegistrationClient authClient;
-
     private RegistrationService service;
 
     @BeforeEach
     void setUp() {
-        service = new RegistrationService(adminMapper, accountAuthorizer, authClient);
+        service = new RegistrationService(adminMapper, accountAuthorizer);
     }
 
     private RegistrationRequest request(String email) {
@@ -79,17 +74,15 @@ class RegistrationServiceTest {
     }
 
     @Test
-    void createsClientAccountPortfolioAndPreferencesThenRegistersTheLogin() {
+    void createsClientAccountPortfolioAndPreferencesAndReturnsTheAccountIdForTheLogin() {
         refsAvailable();
-        when(authClient.register("priya.menon", "priya.menon@example.com", 21L, BEARER)).thenReturn(true);
 
-        RegistrationResponse response = service.register(request("Priya.Menon@Example.com"), BEARER);
+        RegistrationResponse response = service.register(request("Priya.Menon@Example.com"));
 
         assertThat(response.getUsername()).isEqualTo("priya.menon");
         assertThat(response.getClientRef()).isEqualTo("C000000011");
         assertThat(response.getAccountRef()).isEqualTo("ACC0000011");
         assertThat(response.getAccountId()).isEqualTo(21L);
-        assertThat(response.isEmailSent()).isTrue();
 
         verify(adminMapper).insertClient(eq("C000000011"), eq("Priya Menon"), eq("priya.menon@example.com"),
                 anyString(), eq("9876543210"), eq(LocalDate.of(1990, 4, 12)), eq("FEMALE"));
@@ -106,9 +99,8 @@ class RegistrationServiceTest {
     @Test
     void theClientRowHoldsAnUnusableHashNeverAPlainPassword() {
         refsAvailable();
-        when(authClient.register(anyString(), anyString(), anyLong(), anyString())).thenReturn(true);
 
-        service.register(request("priya.menon@example.com"), BEARER);
+        service.register(request("priya.menon@example.com"));
 
         verify(adminMapper).insertClient(anyString(), anyString(), anyString(),
                 org.mockito.ArgumentMatchers.startsWith("$2"), any(), any(), any());
@@ -118,19 +110,18 @@ class RegistrationServiceTest {
     void aNonAdminCallerIsStoppedBeforeAnythingIsWritten() {
         doThrow(new AccountAccessDeniedException("Admin access required")).when(accountAuthorizer).ensureAdmin();
 
-        assertThatThrownBy(() -> service.register(request("priya.menon@example.com"), BEARER))
+        assertThatThrownBy(() -> service.register(request("priya.menon@example.com")))
                 .isInstanceOf(AccountAccessDeniedException.class);
 
         verify(adminMapper, never()).insertClient(any(), any(), any(), any(), any(), any(), any());
-        verify(authClient, never()).register(any(), any(), any(), any());
     }
 
     @Test
     void aUsernameThatCannotBeUsedIsRejectedWithAClearMessage() {
-        assertThatThrownBy(() -> service.register(request("ab@example.com"), BEARER))
+        assertThatThrownBy(() -> service.register(request("ab@example.com")))
                 .isInstanceOf(RegistrationException.class)
                 .hasMessageContaining("before the @");
-        assertThatThrownBy(() -> service.register(request("a+b.tag@example.com"), BEARER))
+        assertThatThrownBy(() -> service.register(request("a+b.tag@example.com")))
                 .isInstanceOf(RegistrationException.class);
 
         verify(adminMapper, never()).insertClient(any(), any(), any(), any(), any(), any(), any());
@@ -140,7 +131,7 @@ class RegistrationServiceTest {
     void anEmailThatIsAlreadyAClientIsAConflict() {
         when(adminMapper.countClientsByEmail("priya.menon@example.com")).thenReturn(1);
 
-        assertThatThrownBy(() -> service.register(request("priya.menon@example.com"), BEARER))
+        assertThatThrownBy(() -> service.register(request("priya.menon@example.com")))
                 .isInstanceOf(RegistrationException.class)
                 .extracting(e -> ((RegistrationException) e).getCatalogueCode())
                 .isEqualTo("REG-409");
@@ -149,14 +140,64 @@ class RegistrationServiceTest {
     }
 
     @Test
-    void whenTheAuthServiceFailsTheErrorPropagatesSoTheTransactionRollsBack() {
-        refsAvailable();
-        when(authClient.register(anyString(), anyString(), anyLong(), anyString()))
-                .thenThrow(new RegistrationException("REG-503",
-                        org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE, "email failed"));
+    void undoRemovesAFreshUnusedRegistrationAndItsClient() {
+        when(adminMapper.findRecentAccountClient(21L, RegistrationService.UNDO_WINDOW_MINUTES)).thenReturn(11L);
+        when(adminMapper.countActivity(21L)).thenReturn(0);
+        when(adminMapper.countAccountsOfClient(11L)).thenReturn(0);
 
-        assertThatThrownBy(() -> service.register(request("priya.menon@example.com"), BEARER))
+        service.undo(21L);
+
+        org.mockito.InOrder order = org.mockito.Mockito.inOrder(adminMapper);
+        order.verify(adminMapper).deletePreferences(21L);
+        order.verify(adminMapper).deletePortfolio(21L);
+        order.verify(adminMapper).deleteAccount(21L);
+        order.verify(adminMapper).deleteClient(11L);
+        verify(accountAuthorizer).ensureAdmin();
+    }
+
+    @Test
+    void undoKeepsTheClientWhenItHasAnotherAccount() {
+        when(adminMapper.findRecentAccountClient(21L, RegistrationService.UNDO_WINDOW_MINUTES)).thenReturn(11L);
+        when(adminMapper.countActivity(21L)).thenReturn(0);
+        when(adminMapper.countAccountsOfClient(11L)).thenReturn(1);
+
+        service.undo(21L);
+
+        verify(adminMapper).deleteAccount(21L);
+        verify(adminMapper, never()).deleteClient(anyLong());
+    }
+
+    @Test
+    void undoRefusesAnEstablishedAccountOrOneThatDoesNotExist() {
+        when(adminMapper.findRecentAccountClient(5L, RegistrationService.UNDO_WINDOW_MINUTES)).thenReturn(null);
+
+        assertThatThrownBy(() -> service.undo(5L))
                 .isInstanceOf(RegistrationException.class)
-                .hasMessage("email failed");
+                .extracting(e -> ((RegistrationException) e).getCatalogueCode())
+                .isEqualTo("REG-404");
+
+        verify(adminMapper, never()).deleteAccount(anyLong());
+    }
+
+    @Test
+    void undoRefusesAnAccountThatHasBeenUsed() {
+        when(adminMapper.findRecentAccountClient(21L, RegistrationService.UNDO_WINDOW_MINUTES)).thenReturn(11L);
+        when(adminMapper.countActivity(21L)).thenReturn(3);
+
+        assertThatThrownBy(() -> service.undo(21L))
+                .isInstanceOf(RegistrationException.class)
+                .extracting(e -> ((RegistrationException) e).getCatalogueCode())
+                .isEqualTo("REG-409");
+
+        verify(adminMapper, never()).deleteAccount(anyLong());
+    }
+
+    @Test
+    void aNonAdminCannotUndo() {
+        doThrow(new AccountAccessDeniedException("Admin access required")).when(accountAuthorizer).ensureAdmin();
+
+        assertThatThrownBy(() -> service.undo(21L)).isInstanceOf(AccountAccessDeniedException.class);
+
+        verify(adminMapper, never()).deleteAccount(anyLong());
     }
 }

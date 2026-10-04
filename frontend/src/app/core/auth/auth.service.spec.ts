@@ -398,6 +398,18 @@ describe('AuthService', () => {
       expect(service.mustChangePassword()).toBe(false);
     });
 
+    it('registers a login without a password and without any token, as the open endpoint allows', () => {
+      service.registerLogin('priya.menon', 'priya.menon@example.com', 9).subscribe((result) => {
+        expect(result.emailSent).toBe(true);
+      });
+
+      const request = httpMock.expectOne('http://localhost:3000/auth/register');
+      expect(request.request.method).toBe('POST');
+      expect(request.request.body).toEqual({ username: 'priya.menon', email: 'priya.menon@example.com', accountId: 9 });
+      expect(JSON.stringify(request.request.body)).not.toMatch(/password/i);
+      request.flush({ id: 'u-1', username: 'priya.menon', accountId: 9, roles: ['CUSTOMER'], emailSent: true });
+    });
+
     it('forgets the flag on logout', () => {
       service.login({ username: 'cust', password: 'Temp-Password-123' }).subscribe();
       httpMock

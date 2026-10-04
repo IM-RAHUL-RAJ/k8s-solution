@@ -30,7 +30,7 @@ export interface RegistrationRequest {
   riskProfile?: RiskProfileName;
 }
 
-/** No password in here, on purpose: it only ever goes to the customer's inbox. */
+/** What the trade API created: the client and the account. The login comes from the auth service. */
 export interface RegistrationResponse {
   clientId: number;
   clientRef: string;
@@ -38,5 +38,18 @@ export interface RegistrationResponse {
   accountRef: string;
   username: string;
   email: string;
+}
+
+/** The auth service's answer to creating the login. It never contains the password. */
+export interface LoginRegistrationResponse {
+  id: string;
+  username: string;
+  accountId: number;
+  roles: string[];
+  emailSent: boolean;
+}
+
+/** The whole registration, once both steps have worked. */
+export interface RegistrationResult extends RegistrationResponse {
   emailSent: boolean;
 }

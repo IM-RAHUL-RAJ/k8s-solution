@@ -13,8 +13,13 @@ export class AdminService {
     return this.http.get<AdminAccountSummary[]>(`${API_ENDPOINTS.tradeApiBase}/api/v1/admin/accounts`);
   }
 
-  /** Opens the client and account, creates the login, and has the auth service email the default password. */
+  /** Step 1: opens the client and the account. Step 2 is the auth service creating the login. */
   register(request: RegistrationRequest): Observable<RegistrationResponse> {
     return this.http.post<RegistrationResponse>(`${API_ENDPOINTS.tradeApiBase}/api/v1/admin/registrations`, request);
+  }
+
+  /** Takes back step 1 when step 2 failed. Only works on a brand-new, unused account. */
+  undoRegistration(accountId: number): Observable<void> {
+    return this.http.delete<void>(`${API_ENDPOINTS.tradeApiBase}/api/v1/admin/registrations/${accountId}`);
   }
 }
