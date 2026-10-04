@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from './auth.service';
 import { io, Socket } from 'socket.io-client';
+import { API_ENDPOINTS } from '../config/api-endpoints';
 
 @Injectable({
   providedIn: 'root'
@@ -11,7 +12,7 @@ export class SessionSocketService {
   private authService = inject(AuthService);
   
   private socket: Socket | null = null;
-  private readonly wsBaseUrl = 'http://localhost:3000/session';
+  private readonly wsBaseUrl = `${API_ENDPOINTS.authApiBase}/session`;
   private isConnected = false;
 
   /**

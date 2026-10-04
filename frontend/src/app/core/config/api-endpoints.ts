@@ -1,9 +1,9 @@
 import { environment } from '../../../environments/environment';
 
 export const API_ENDPOINTS = {
-  tradeApiBase: "http://10.8.76.150:8084",//environment.tradeApiBase,
-  authApiBase: "http://localhost:3000",//environment.authApiBase,
-  tradeApiHealth: `http://10.8.76.150:8084/actuator/health`,//`${environment.tradeApiBase}/actuator/health`,
+  tradeApiBase: environment.tradeApiBase,
+  authApiBase: environment.authApiBase,
+  tradeApiHealth: `${environment.tradeApiBase}/actuator/health`,
   authApiHealth: `${environment.authApiBase}/health`,
   marketInstruments: null as string | null,
   currencyConverter: null as string | null
