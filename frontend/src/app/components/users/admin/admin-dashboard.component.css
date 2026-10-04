@@ -9,7 +9,7 @@
 .table-card,
 .detail,
 .register,
-.page > .banner,
+.page>.banner,
 app-change-password {
   width: 100%;
   max-width: 1120px;
@@ -75,9 +75,17 @@ app-change-password {
   border-left: 4px solid var(--c, var(--accent));
 }
 
-.stat--green { --c: var(--ok); }
-.stat--blue { --c: var(--blue); }
-.stat--amber { --c: var(--amber); }
+.stat--green {
+  --c: var(--ok);
+}
+
+.stat--blue {
+  --c: var(--blue);
+}
+
+.stat--amber {
+  --c: var(--amber);
+}
 
 .stat__label {
   color: var(--muted);
@@ -198,6 +206,56 @@ app-change-password {
   font-weight: 700;
 }
 
+/* ========================================================= ACCOUNT DETAILS MODAL ========================================================= */
+.detail-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100vw;
+  height: 100vh;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.detail-overlay__backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+}
+
+.detail-overlay__card {
+  position: relative;
+  z-index: 10000;
+  width: min(900px, calc(100vw - 48px));
+  max-width: 900px;
+  max-height: calc(100vh - 48px);
+  margin: 0;
+  overflow-y: auto;
+  box-sizing: border-box;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+  animation: detail-dialog-in 160ms ease-out;
+}
+
+@keyframes detail-dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 /* Registration */
 .register {
   display: grid;
@@ -295,4 +353,21 @@ label {
   height: 1px;
   overflow: hidden;
   clip-path: inset(50%);
+}
+
+/* ========================================================= MODAL RESPONSIVE BEHAVIOUR ========================================================= */
+@media (max-width: 700px) {
+  .detail-overlay {
+    padding: 12px;
+  }
+
+  .detail-overlay__card {
+    width: calc(100vw - 24px);
+    max-width: none;
+    max-height: calc(100vh - 24px);
+  }
+
+  .detail__grid {
+    grid-template-columns: 1fr;
+  }
 }
