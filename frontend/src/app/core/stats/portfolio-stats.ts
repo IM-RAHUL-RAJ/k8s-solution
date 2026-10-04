@@ -124,7 +124,7 @@ export function executionQuality(
     }
 
     // The limit is in the home currency; the executed price is in the instrument's. Compare like with like.
-    const executed = toHome(order.executedPrice, order.symbol);
+    const executed = order.executedPrice;//toHome(order.executedPrice, order.symbol);
 
     const improvement =
       order.side === 'BUY'
