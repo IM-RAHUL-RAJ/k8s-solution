@@ -172,9 +172,7 @@
                 </td>
                 <td class="tabular num">
                   @if (order.executedPrice !== null) {
-                    <span [attr.title]="home.currencyOf(order.symbol) && home.currencyOf(order.symbol) !== home.homeCurrency()
-                      ? 'Filled at ' + (order.executedPrice | number: '1.2-2') + ' ' + home.currencyOf(order.symbol)
-                      : null">{{ home.toHome(order.executedPrice, order.symbol) | number: '1.2-2' }}</span>
+                     <span>{{ order.executedPrice | number: '1.2-2' }}</span>
                   } @else {
                     <span class="muted">&mdash;</span>
                   }
