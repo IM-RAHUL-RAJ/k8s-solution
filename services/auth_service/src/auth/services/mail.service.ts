@@ -7,7 +7,8 @@ import type { Transporter } from 'nodemailer';
  * Sends the welcome email that carries a new customer's default password over SMTP.
  *
  * Configure with SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM and (optionally)
- * SMTP_SECURE=true for implicit TLS. Without SMTP_HOST the service reports itself as not
+ * SMTP_SECURE=true for implicit TLS. APP_LOGIN_URL is optional: when it is not set, the email has
+ * no link and just carries the username and password. Without SMTP_HOST the service reports itself as not
  * configured and registration refuses to create a user it could not tell the password to.
  * The password is written into the message and nowhere else: it is never logged.
  */
@@ -38,7 +39,7 @@ export class MailService {
 
     async sendWelcome(to: string, name: string, username: string, password: string): Promise<void> {
         const from = this.config.get<string>('SMTP_FROM') ?? this.config.get<string>('SMTP_USER');
-        const loginUrl = this.config.get<string>('APP_LOGIN_URL') ?? 'http://localhost:4200/sign-in';
+        const loginUrl = this.config.get<string>('APP_LOGIN_URL')?.trim() || null;
         const greeting = name?.trim() ? `Hello ${name.trim()},` : 'Hello,';
 
         await this.getTransporter().sendMail({
@@ -53,8 +54,8 @@ export class MailService {
                 `Username: ${username}`,
                 `Temporary password: ${password}`,
                 '',
-                `Sign in at ${loginUrl}`,
-                'You will be asked to choose your own password in the Account tab. Please do that straight away.',
+                ...(loginUrl ? [`Sign in at ${loginUrl}`] : []),
+                'When you sign in you will be asked to choose your own password in the Account tab. Please do that straight away.',
                 '',
                 'If you did not expect this email, you can ignore it.',
             ].join('\n'),
@@ -65,8 +66,8 @@ export class MailService {
                   <tr><td>Username</td><td><strong>${escapeHtml(username)}</strong></td></tr>
                   <tr><td>Temporary password</td><td><code style="font-size:15px"><strong>${escapeHtml(password)}</strong></code></td></tr>
                 </table>
-                <p><a href="${escapeHtml(loginUrl)}">Sign in to Quorum</a></p>
-                <p>You will be asked to choose your own password in the <strong>Account</strong> tab. Please do that straight away.</p>
+                ${loginUrl ? `<p><a href="${escapeHtml(loginUrl)}">Sign in to Quorum</a></p>` : ''}
+                <p>When you sign in you will be asked to choose your own password in the <strong>Account</strong> tab. Please do that straight away.</p>
                 <p style="color:#666">If you did not expect this email, you can ignore it.</p>`,
         });
         this.logger.log(`[AUTH_EVENT] welcome_email_sent username=${username}`);
