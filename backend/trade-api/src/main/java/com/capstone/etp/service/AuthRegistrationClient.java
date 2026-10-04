@@ -7,10 +7,13 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
+import java.net.http.HttpClient;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
@@ -28,7 +31,18 @@ public class AuthRegistrationClient {
 
     public AuthRegistrationClient(@Value("${app.auth.base-url}") String baseUrl) {
         this.baseUrl = baseUrl;
-        this.restClient = RestClient.builder().baseUrl(baseUrl).build();
+
+        // HTTP/1.1 on purpose. The JDK client's default is to offer an upgrade to HTTP/2 over plain
+        // text, and the auth service (a Node server with socket.io attached) answers an upgrade
+        // request it does not recognise by closing the connection with no reply: "HTTP/1.1 header
+        // parser received no bytes". The read timeout leaves room for the SMTP send.
+        HttpClient httpClient = HttpClient.newBuilder()
+                .version(HttpClient.Version.HTTP_1_1)
+                .connectTimeout(Duration.ofSeconds(5))
+                .build();
+        JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
+        requestFactory.setReadTimeout(Duration.ofSeconds(30));
+        this.restClient = RestClient.builder().baseUrl(baseUrl).requestFactory(requestFactory).build();
     }
 
     /** @return true when the auth service says the welcome email went out. */
