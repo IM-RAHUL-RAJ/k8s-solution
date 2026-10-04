@@ -1,6 +1,7 @@
 package com.capstone.etp.service;
 
 import com.capstone.etp.exception.RegistrationException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -18,12 +19,15 @@ import java.util.Map;
  * service decides whether the caller really is an admin. No password is sent: the auth service
  * generates the default one and emails it.
  */
+@Slf4j
 @Component
 public class AuthRegistrationClient {
 
     private final RestClient restClient;
+    private final String baseUrl;
 
     public AuthRegistrationClient(@Value("${app.auth.base-url}") String baseUrl) {
+        this.baseUrl = baseUrl;
         this.restClient = RestClient.builder().baseUrl(baseUrl).build();
     }
 
@@ -49,12 +53,14 @@ public class AuthRegistrationClient {
         } catch (RegistrationException e) {
             throw e;
         } catch (RestClientException e) {
+            log.error("[REGISTRATION] auth service unreachable at {}: {}", baseUrl, e.getMessage());
             throw new RegistrationException("REG-502", HttpStatus.BAD_GATEWAY,
                     "The auth service could not be reached");
         }
     }
 
     private RegistrationException translate(HttpStatusCode status) {
+        log.warn("[REGISTRATION] auth service at {} answered {}", baseUrl, status.value());
         if (status.value() == 409) {
             return new RegistrationException("REG-409", HttpStatus.CONFLICT,
                     "That username or email is already registered");
