@@ -4,15 +4,8 @@ import { Observable, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 import { AuthService } from './auth.service';
 
-/**
- * Auth Guard: Protects routes that require authentication
- * 
- * SECURITY CRITICAL:
- * - Validates return URL to prevent open redirect attacks
- * - Only allows paths on the same origin (starts with "/" but not "//")
- * - Validates session is still active (prevents multi-device access)
- * - Redirects to sign-in if not authenticated
- */
+//Auth Guard: Protects routes that require authentication
+ 
 export const authGuard: CanActivateFn = (
   route: ActivatedRouteSnapshot,
   state: RouterStateSnapshot
@@ -21,7 +14,7 @@ export const authGuard: CanActivateFn = (
   const router = inject(Router);
 
   // After logout, keep user on landing even if browser back lands on a guarded URL.
-  // The flag is cleared after a brief delay in logout(), so this only protects immediate back navigation.
+  
   if (authService.shouldForceLandingAfterLogout()) {
     return of(router.createUrlTree(['/']));
   }
@@ -33,7 +26,7 @@ export const authGuard: CanActivateFn = (
     const returnUrl = url.pathname + url.search;
 
     // Validate return URL to prevent open redirect attacks
-    // Only allow paths on this origin (must start with "/" but not "//")
+    
     if (returnUrl.startsWith('/') && !returnUrl.startsWith('//')) {
       return of(router.createUrlTree(['/sign-in'], {
         queryParams: { returnUrl }
@@ -61,10 +54,7 @@ export const authGuard: CanActivateFn = (
   );
 };
 
-/**
- * Admin Guard: the admin dashboard is for ADMIN tokens only. Anyone else signed in is sent to
- * their own dashboard. (The trade API refuses non-admins on every admin request regardless.)
- */
+//Admin Guard: the admin dashboard is for ADMIN tokens only.
 export const adminGuard: CanActivateFn = (): boolean | UrlTree => {
   const authService = inject(AuthService);
   const router = inject(Router);
@@ -75,10 +65,7 @@ export const adminGuard: CanActivateFn = (): boolean | UrlTree => {
   return authService.isAdmin() ? true : router.createUrlTree(['/dashboard']);
 };
 
-/**
- * Customer Guard: the trading pages belong to a customer's own account. An admin has no trading
- * account of their own to work in, so they are sent to the admin dashboard instead.
- */
+// Customer Guard: the trading pages belong to a customer's own account
 export const customerGuard: CanActivateFn = (): boolean | UrlTree => {
   const authService = inject(AuthService);
   const router = inject(Router);
