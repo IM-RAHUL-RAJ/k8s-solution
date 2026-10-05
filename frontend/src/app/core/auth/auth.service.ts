@@ -65,29 +65,24 @@ export class AuthService {
   private publicKeyPromise: Promise<CryptoKey | null> | null = null;
   private readonly requestTimeoutMs = 12000;
 
-  /**
-   * Token is mirrored in memory and sessionStorage.
-   */
+  //Token is mirrored in memory and sessionStorage.
+
   private tokenSignal = signal<string | null>(this.readTokenFromStorage());
 
-  /**
-   * Refresh token is kept in memory and sessionStorage only.
-   */
+  // Refresh token is kept in memory and sessionStorage only.
+   
   private refreshTokenSignal = signal<string | null>(this.readRefreshTokenFromStorage());
 
-  /**
-   * User information from login response
-   */
+  // User information from login response
+   
   private userSignal = signal<User | null>(this.readUserFromStorage());
 
-  /**
-   * Session ID from JWT token (for multi-device logout detection)
-   */
+  // Session ID from JWT token (for multi-device logout detection)
+
   private sessionIdSignal = signal<string | null>(this.readSessionIdFromStorage());
 
-  /**
-   * Computed signal to track authentication state
-   */
+  //Computed signal to track authentication state
+   
   isAuthenticated = computed(() => this.tokenSignal() !== null);
 
   /** True while the account is still on the default password that was emailed to the customer. */
@@ -107,14 +102,10 @@ export class AuthService {
   /** Only decides what the UI shows. The services check the role on every request. */
   readonly isAdmin = computed(() => this.roles().includes('ADMIN'));
 
-  /**
-   * Get current user
-   */
+  // Get current user
   user = this.userSignal.asReadonly();
 
-  /**
-   * Get current token (memory-only, cleared on logout)
-   */
+  // Get current token (memory-only, cleared on logout)
   getToken(): string | null {
     return this.tokenSignal();
   }
@@ -126,33 +117,25 @@ export class AuthService {
     return this.sessionIdSignal();
   }
 
-  /**
-   * Read only decoded claims from current access token.
-   */
+  // Read only decoded claims from current access token.
   getTokenClaims(): any | null {
     const token = this.tokenSignal();
     return token ? this.decodeToken(token) : null;
   }
 
-  /**
-   * Store token in memory and sessionStorage.
-   */
+  // Store token in memory and sessionStorage.
   private setToken(token: string): void {
     this.tokenSignal.set(token);
     sessionStorage.setItem(this.storageKey, token);
   }
 
-  /**
-   * Store refresh token in memory and sessionStorage.
-   */
+  // Store refresh token in memory and sessionStorage.
   private setRefreshToken(token: string): void {
     this.refreshTokenSignal.set(token);
     sessionStorage.setItem(this.refreshStorageKey, token);
   }
 
-  /**
-   * Store session ID in memory and sessionStorage.
-   */
+  // Store session ID in memory and sessionStorage.
   private setSessionId(sessionId: string | null): void {
     this.sessionIdSignal.set(sessionId);
     if (sessionId) {
@@ -171,21 +154,15 @@ export class AuthService {
     }
   }
 
-  /**
-   * Creates the login for an account, as the admin registering a customer. With no password the
-   * auth service generates one and emails it to `email` (it keeps only the username), and the
-   * customer must change it on first sign-in. Nothing here ever sees that password.
-   */
+  // Creates the login for an account
   registerLogin(username: string, email: string, accountId: number): Observable<LoginRegistration> {
     return this.http
       .post<LoginRegistration>(this.authRegisterUrl, { username, email, accountId })
       .pipe(timeout(this.requestTimeoutMs * 2));
   }
 
-  /**
-   * Replace the password. The server checks the current one, signs out other refresh tokens and
-   * clears the must-change flag. A wrong current password comes back as a 400 with a message.
-   */
+  // Replace the password. 
+
   changePassword(currentPassword: string, newPassword: string): Observable<void> {
     return this.http.post<void>(this.authChangePasswordUrl, { currentPassword, newPassword }).pipe(
       timeout(this.requestTimeoutMs),
@@ -193,9 +170,8 @@ export class AuthService {
     );
   }
 
-  /**
-   * Store user in memory and sessionStorage.
-   */
+  //Store user in memory and sessionStorage.
+   
   private setUser(user: User | null): void {
     this.userSignal.set(user);
     if (user) {
@@ -205,33 +181,25 @@ export class AuthService {
     }
   }
 
-  /**
-   * Restore token from sessionStorage. It must match the stored copy at all times, see verifyStorageIntegrity.
-   */
+  // Restore token from sessionStorage. It must match the stored copy at all times, see verifyStorageIntegrity.
   private readTokenFromStorage(): string | null {
     const token = sessionStorage.getItem(this.storageKey);
     return token && token.trim().length > 0 ? token : null;
   }
 
-  /**
-   * Restore refresh token from sessionStorage first, then legacy localStorage.
-   */
+  // Restore refresh token from sessionStorage first, then legacy localStorage.
   private readRefreshTokenFromStorage(): string | null {
     const token = sessionStorage.getItem(this.refreshStorageKey) ?? localStorage.getItem(this.refreshStorageKey);
     return token && token.trim().length > 0 ? token : null;
   }
 
-  /**
-   * Restore session ID from sessionStorage first, then legacy localStorage.
-   */
+  // Restore session ID from sessionStorage first, then legacy localStorage.
   private readSessionIdFromStorage(): string | null {
     const sessionId = sessionStorage.getItem(this.sessionIdKey) ?? localStorage.getItem(this.sessionIdKey);
     return sessionId && sessionId.trim().length > 0 ? sessionId : null;
   }
 
-  /**
-   * Restore user from sessionStorage first, then legacy localStorage.
-   */
+  // Restore user from sessionStorage first, then legacy localStorage.
   private readUserFromStorage(): User | null {
     try {
       const user = sessionStorage.getItem(this.userStorageKey) ?? localStorage.getItem(this.userStorageKey);
@@ -241,9 +209,7 @@ export class AuthService {
     }
   }
 
-  /**
-   * Decode JWT and extract claims
-   */
+  // Decode JWT and extract claims  
   private decodeToken(token: string): any {
     try {
       const parts = token.split('.');
@@ -256,12 +222,7 @@ export class AuthService {
     }
   }
 
-  /**
-   * The login body. Credentials are RSA-OAEP encrypted with the auth service's public key, so
-   * the Network tab shows an opaque `payload` instead of the username and password.
-   * Falls back to the plain body only where the browser cannot encrypt (non-secure origin)
-   * or the service has no key endpoint, so sign-in never breaks because of this.
-   */
+  // Build the login body, encrypting credentials if possible.
   private async buildLoginBody(credentials: LoginRequest): Promise<LoginRequest | { payload: string }> {
     try {
       const key = await this.loadPublicKey();
@@ -306,11 +267,8 @@ export class AuthService {
     return btoa(binary);
   }
 
-  /**
-   * Sign in with username and password against the Auth service
-   * @param credentials - Username and password
-   * @returns Observable<LoginResponse>
-   */
+  
+  // Sign in with username and password against the Auth service
   login(credentials: LoginRequest): Observable<LoginResponse> {
     const body$ = this.canEncryptLogin() ? from(this.buildLoginBody(credentials)) : of(credentials);
     return body$
@@ -380,9 +338,8 @@ export class AuthService {
       );
   }
 
-  /**
-   * Refresh access token using refresh token. Refresh failure means session is no longer valid.
-   */
+  // Refresh access token using refresh token. Refresh failure means session is no longer valid.
+  
   refreshAccessToken(): Observable<string> {
     const refreshToken = this.refreshTokenSignal();
     if (!refreshToken) {
@@ -422,10 +379,7 @@ export class AuthService {
     );
   }
 
-  /**
-   * Sign out and clear session
-   * Clears token immediately and navigates to landing page
-   */
+  // Sign out and clear session. Clears token immediately and navigates to landing page.
   logout(reason?: string): void {
     // Immediately clear token, user, and session ID from memory and local storage
     this.tokenSignal.set(null);
@@ -460,11 +414,7 @@ export class AuthService {
     this.router.navigateByUrl('/', { replaceUrl: true });
   }
 
-  /**
-   * The access token lives in memory and sessionStorage. If the stored copy was edited or
-   * removed (dev tools, another script) it no longer matches what this app issued: treat the
-   * session as unauthorised and send the user to sign in. Returns false when it signed out.
-   */
+  // If the stored copy was edited or removed (dev tools, another script) it no longer matches what this app issued: treat the session as unauthorised and send the user to sign in. 
   verifyStorageIntegrity(): boolean {
     const inMemory = this.tokenSignal();
     if (inMemory === null) {
@@ -486,11 +436,8 @@ export class AuthService {
     sessionStorage.removeItem(this.forceLandingKey);
   }
 
-  /**
-   * Validate if current session is still active on the server
-   * Detects when session was invalidated from another device/tab
-   * @returns Observable<{isValid: boolean}>
-   */
+  // Validate if current session is still active on the server
+  
   validateSession(): Observable<{isValid: boolean}> {
     return this.http.get<{isValid: boolean}>(this.authSessionValidateUrl)
       .pipe(
@@ -508,10 +455,7 @@ export class AuthService {
       );
   }
 
-  /**
-   * Handle login errors and return user-friendly messages
-   * Never expose token or internal error details
-   */
+  // Handle login errors and return user-friendly messages  
   private handleLoginError(error: HttpErrorResponse): Error {
     let userMessage = 'An error occurred during sign-in. Please try again.';
 
