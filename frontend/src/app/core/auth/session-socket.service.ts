@@ -15,10 +15,7 @@ export class SessionSocketService {
   private readonly wsBaseUrl = `${API_ENDPOINTS.authApiBase}/session`;
   private isConnected = false;
 
-  /**
-   * Connect to the WebSocket session gateway
-   * Called after successful login to listen for SESSION_KICKED events
-   */
+  // Connect to the WebSocket session gateway  
   connect(): void {
     // Don't reconnect if already connected
     if (this.socket?.connected) {
@@ -88,10 +85,8 @@ export class SessionSocketService {
     });
   }
 
-  /**
-   * Gracefully disconnect from session gateway
-   * Called on logout
-   */
+  // Gracefully disconnect from session gateway
+ 
   disconnect(): void {
     if (this.socket) {
       this.isConnected = false;
@@ -100,9 +95,7 @@ export class SessionSocketService {
     }
   }
 
-  /**
-   * Check if WebSocket is currently connected
-   */
+  // Check if WebSocket is currently connected  
   isSessionConnected(): boolean {
     return this.isConnected && !!this.socket?.connected;
   }
