@@ -46,10 +46,18 @@ test.describe('place an order', () => {
     await page.getByTestId('order-quantity').fill('1');
     await page.getByTestId('order-price').fill('10.00');
 
+    // Click place-order to show the review
+    await page.getByTestId('place-order').click();
+
+    // The review dialog should appear
+    await expect(page.getByTestId('confirm-order')).toBeVisible();
+
     const response = page.waitForResponse(
       (r) => r.request().method() === 'POST' && r.url().includes('/api/v1/orders')
     );
-    await page.getByTestId('place-order').click();
+    
+    // Confirm the order (this triggers the actual API call)
+    await page.getByTestId('confirm-order').click();
     await response;
 
     // The API answers before the fill exists. NEW, FILLED and REJECTED are all valid; asserting

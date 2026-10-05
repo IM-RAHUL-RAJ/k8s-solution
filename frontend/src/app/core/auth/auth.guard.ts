@@ -21,6 +21,7 @@ export const authGuard: CanActivateFn = (
   const router = inject(Router);
 
   // After logout, keep user on landing even if browser back lands on a guarded URL.
+  // The flag is cleared after a brief delay in logout(), so this only protects immediate back navigation.
   if (authService.shouldForceLandingAfterLogout()) {
     return of(router.createUrlTree(['/']));
   }
@@ -85,17 +86,3 @@ export const customerGuard: CanActivateFn = (): boolean | UrlTree => {
   return authService.isAdmin() ? router.createUrlTree(['/admin']) : true;
 };
 
-/**
- * Guest Guard: Prevent authenticated users from visiting public auth pages.
- * Redirects authenticated users to dashboard.
- */
-export const guestGuard: CanActivateFn = (): Observable<boolean | UrlTree> => {
-  const authService = inject(AuthService);
-  const router = inject(Router);
-
-  if (authService.isAuthenticated()) {
-    return of(router.createUrlTree(['/dashboard']));
-  }
-
-  return of(true);
-};

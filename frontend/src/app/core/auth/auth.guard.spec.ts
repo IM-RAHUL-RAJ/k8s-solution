@@ -17,7 +17,8 @@ describe('authGuard', () => {
       validateSession: vi.fn().mockReturnValue(of(undefined)),
       verifyStorageIntegrity: vi.fn().mockReturnValue(true),
       logout: vi.fn(),
-      shouldForceLandingAfterLogout: vi.fn().mockReturnValue(false)
+      shouldForceLandingAfterLogout: vi.fn().mockReturnValue(false),
+      clearForceLandingMarker: vi.fn()
     };
 
     TestBed.configureTestingModule({

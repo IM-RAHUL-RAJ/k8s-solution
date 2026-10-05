@@ -452,6 +452,10 @@ export class AuthService {
       this.router.navigate(['/sign-in'], { queryParams: { sessionMessage: reason }, replaceUrl: true });
       return;
     }
+    
+    // Clear the landing flag after a brief delay so it only protects against immediate back button use
+    setTimeout(() => this.clearForceLandingMarker(), 50);
+    
     // Navigate to landing page
     this.router.navigateByUrl('/', { replaceUrl: true });
   }
@@ -478,7 +482,7 @@ export class AuthService {
     return sessionStorage.getItem(this.forceLandingKey) === '1';
   }
 
-  private clearForceLandingMarker(): void {
+  clearForceLandingMarker(): void {
     sessionStorage.removeItem(this.forceLandingKey);
   }
 
