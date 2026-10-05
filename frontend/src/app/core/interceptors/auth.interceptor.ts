@@ -4,13 +4,8 @@ import { catchError, switchMap, throwError } from 'rxjs';
 import { platformTargets } from '../config/api-endpoints';
 import { AuthService } from '../auth/auth.service';
 
-/**
- * The only place in the application that sets an Authorization header.
- *
- * It is an allow list: the token is attached when the outgoing URL is an origin this platform
- * owns AND a protected path on it, and to nothing else. A third party added tomorrow gets no
- * token without anybody remembering to exclude it.
- */
+// The only place in the application that sets an Authorization header.
+ 
 function shouldAttachToken(url: string): boolean {
   let target: URL;
   try {
