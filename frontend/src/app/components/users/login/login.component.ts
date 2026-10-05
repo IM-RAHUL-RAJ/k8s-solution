@@ -31,49 +31,33 @@ export class LoginComponent {
   private cdr = inject(ChangeDetectorRef);
   private appRef = inject(ApplicationRef);
 
-  /**
-   * Form group for sign-in with username and password validation
-   */
+
+  // Form group for sign-in with username and password validation
+  
   signInForm: FormGroup;
 
-  /**
-   * Track submission state
-   */
+  // Track submission state
   isSubmitting = signal(false);
 
-  /**
-   * Error message from failed login attempt
-   */
+  // Error message from failed login attempt
   errorMessage = signal<string | null>(null);
 
-  /**
-   * Track current theme for login page icon toggle
-   */
+  // Track current theme for login page icon toggle
   currentTheme = signal<'light' | 'dark'>('light');
 
-  /**
-   * Toggle password visibility for login field
-   */
+  // Toggle password visibility for login field
   showPassword = signal(false);
 
-  /**
-   * Failed sign-in attempts in this page/session.
-   */
+  // Failed sign-in attempts in this page/session.
   failedAttempts = signal(0);
 
-  /**
-   * Trigger signal to force re-evaluation of countdown computed signals.
-   */
+  // Trigger signal to force re-evaluation of countdown computed signals.
   private countdownTrigger = signal(0);
 
-  /**
-   * Lockout end timestamp in epoch milliseconds.
-   */
+  // Lockout end timestamp in epoch milliseconds.
   lockoutUntil = signal<number | null>(this.readLockoutUntil());
 
-  /**
-   * Compute remaining seconds in lockout for display (updates via timer).
-   */
+  // Compute remaining seconds in lockout for display (updates via timer).
   lockoutSecondsRemaining = computed(() => {
     this.countdownTrigger(); // Depend on trigger to force re-evaluation every tick
     const until = this.lockoutUntil();
@@ -83,9 +67,7 @@ export class LoginComponent {
     return Math.max(1, Math.ceil((until - Date.now()) / 1000));
   });
 
-  /**
-   * Compute button text for lockout countdown.
-   */
+  // Compute button text for lockout countdown.
   lockoutButtonText = computed(() => {
     const secs = this.lockoutSecondsRemaining();
     if (secs > 0) {
@@ -94,9 +76,7 @@ export class LoginComponent {
     return 'Sign in';
   });
 
-  /**
-   * Track if lockout countdown interval is active.
-   */
+  // Track if lockout countdown interval is active.
   private lockoutCountdownInterval: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
@@ -245,25 +225,19 @@ export class LoginComponent {
     return raw.slice(0, this.maxInputLength);
   }
 
-  /**
-   * Toggle light/dark theme from login screen
-   */
+  // Toggle light/dark theme from login screen
   toggleTheme(): void {
     this.themeService.toggleTheme();
     this.currentTheme.set(this.themeService.isDarkMode() ? 'dark' : 'light');
   }
 
-  /**
-   * Toggle whether password text is visible
-   */
+  // Toggle whether password text is visible
   togglePasswordVisibility(): void {
     this.showPassword.update(value => !value);
   }
 
-  /**
-   * Handle form submission
-   * Validates form and sends login request
-   */
+  // Handle form submission
+
   onSubmit(): void {
     if (this.isCurrentlyLockedOut()) {
       return;
@@ -352,9 +326,7 @@ export class LoginComponent {
     return this.signInForm.get('password');
   }
 
-  /**
-   * Check if username field has validation error and is touched
-   */
+  // Check if username field has validation error and is touched  
   usernameError(): string | null {
     const control = this.username;
     if (control?.hasError('required') && control?.touched) {
@@ -372,9 +344,7 @@ export class LoginComponent {
     return null;
   }
 
-  /**
-   * Check if password field has validation error and is touched
-   */
+  // Check if password field has validation error and is touched
   passwordError(): string | null {
     const control = this.password;
     if (control?.hasError('required') && control?.touched) {
@@ -392,9 +362,7 @@ export class LoginComponent {
     return null;
   }
 
-  /**
-   * Check if form can be submitted
-   */
+  // Check if form can be submitted
   canSubmit(): boolean {
     return this.signInForm.valid && !this.isSubmitting() && !this.isCurrentlyLockedOut();
   }
