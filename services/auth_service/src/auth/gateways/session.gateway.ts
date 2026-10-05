@@ -8,11 +8,8 @@ import { Server, Socket } from 'socket.io';
 import { Logger, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 
-/**
- * WebSocket Gateway for real-time session invalidation
- * Allows the backend to push SESSION_KICKED messages to browsers
- * when a user logs in from another device/tab
- */
+// WebSocket Gateway for real-time session invalidation
+
 @Injectable()
 @WebSocketGateway({
   namespace: '/session',
@@ -31,9 +28,8 @@ export class SessionGateway implements OnGatewayConnection, OnGatewayDisconnect 
 
   constructor(private jwtService: JwtService) {}
 
-  /**
-   * Extract userId from JWT token in query params or auth header
-   */
+  // Extract userId from JWT token in query params or auth header
+  
   private extractUserIdFromToken(token: string | string[] | undefined): string | null {
     if (!token) return null;
 
@@ -68,7 +64,7 @@ export class SessionGateway implements OnGatewayConnection, OnGatewayDisconnect 
     }
     this.userSessions.get(userId)!.add(socket.id);
 
-    // Join user to a room named after their userId (easier to broadcast to all their sockets)
+    
     socket.join(`user:${userId}`);
 
     this.logger.log(
@@ -92,10 +88,7 @@ export class SessionGateway implements OnGatewayConnection, OnGatewayDisconnect 
     }
   }
 
-  /**
-   * Called by AuthService when a user logs in
-   * Kicks all other sessions of that user
-   */
+  // Called by AuthService when a user logs in kicks all other sessions of that user
   kickOtherSessions(userId: string): void {
     if (!this.userSessions.has(userId)) {
       this.logger.debug(`[SESSION_GATEWAY] No active sessions to kick for userId=${userId}`);
@@ -114,9 +107,7 @@ export class SessionGateway implements OnGatewayConnection, OnGatewayDisconnect 
     );
   }
 
-  /**
-   * Get count of active sessions for a user (for testing/debugging)
-   */
+  
   getActiveSessionCount(userId: string): number {
     return this.userSessions.get(userId)?.size || 0;
   }
