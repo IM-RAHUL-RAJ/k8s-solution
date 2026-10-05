@@ -7,13 +7,7 @@ import { AccountContextService } from './account-context.service';
 import { AccountService } from './account.service';
 import { InstrumentService } from './instrument.service';
 
-/**
- * The account's home currency and each instrument's own currency, loaded once and shared.
- *
- * The trade API takes a limit price in the home currency and reports executed prices and
- * average costs in the instrument's currency. Every screen that shows money converts through
- * here, so what the customer sees is always in one currency: their own.
- */
+// Service to manage the account's home currency and each instrument's own currency.
 @Injectable({ providedIn: 'root' })
 export class HomeCurrencyService {
   private readonly accountService = inject(AccountService);

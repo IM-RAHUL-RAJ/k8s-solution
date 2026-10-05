@@ -1,9 +1,6 @@
-// One place for every sentence a trader can be shown for an API failure. The application
-// branches on `errorCode`, never on the developer-facing `message`. Typing the map as a
-// Record over the code union means a code added to the union without a sentence does not
-// compile, which is the completeness property the sprint asks for.
+// One place for every sentence a trader can be shown for an API failure.
 
-/** Codes in the two contracts (trade-api catalogue, auth-api ErrorResponse) plus the backend's CUR-422. */
+//Codes in the two contracts (trade-api catalogue, auth-api ErrorResponse) plus the backend's CUR-422. 
 export const CATALOGUE_CODES = [
   'ACC-404',
   'ACC-403',
