@@ -1,7 +1,4 @@
-// Mirrors backend/trade-api util/CurrencyConverter.java exactly: units of each currency per
-// 1 USD. The trade API converts an order's limit price from the account currency into the
-// instrument currency with this table, so the ticket shows the same figures the backend uses.
-// If the backend table changes, change this one with it.
+// Mirrors backend/trade-api util/CurrencyConverter.java exactly
 export const USD_RATES: Readonly<Record<string, number>> = {
   USD: 1,
   EUR: 0.85,
