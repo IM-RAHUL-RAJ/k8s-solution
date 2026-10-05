@@ -7,10 +7,7 @@ export interface AccountContext {
   displayName: string;
 }
 
-/**
- * The account this session may trade, taken from the signed-in session (the token's
- * `accountId` claim). Components render it read-only; the Trade REST API re-checks it.
- */
+// The account this session may trade, taken from the signed-in session 
 @Injectable({ providedIn: 'root' })
 export class AccountContextService {
   private readonly auth = inject(AuthService);
