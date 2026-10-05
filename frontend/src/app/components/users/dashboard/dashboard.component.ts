@@ -71,10 +71,7 @@ export class DashboardComponent {
     )
   );
 
-  /**
-   * Cash plus holdings, in the home currency. Holdings are at cost: the platform has no live
-   * prices to mark them to market, so this is what the account put in, not what it would sell for.
-   */
+  // Cash plus holdings, in the home currency. 
   protected readonly netWorth = computed(() => (this.balance()?.cashBalance ?? 0) + this.invested());
 
   protected readonly cashShare = computed(() => {
