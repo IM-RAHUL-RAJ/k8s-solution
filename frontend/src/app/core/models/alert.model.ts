@@ -22,5 +22,5 @@ export interface CreateAlertRequest {
   threshold: number;
 }
 
-/** The server's cap per account; shown as a hint, enforced by the server. */
+// The server's cap per account; shown as a hint, enforced by the server.
 export const MAX_ALERTS_PER_ACCOUNT = 25;
