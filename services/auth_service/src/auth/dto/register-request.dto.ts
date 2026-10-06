@@ -5,6 +5,7 @@ import {
   MaxLength,
   Matches,
   IsNumber,
+  IsEmail,
   Min,
   IsOptional,
   IsArray,
@@ -31,18 +32,29 @@ export class RegisterRequestDto {
   })
   username!: string;
 
-  @ApiProperty({
-    description: 'User password. Minimum 12 characters.',
+  @ApiPropertyOptional({
+    description:
+      'User password. Minimum 12 characters. Leave it out and provide an email: a default password is generated and emailed, and the user must change it.',
     example: 'correct horse battery staple',
     minLength: 12,
     maxLength: 128,
     writeOnly: true,
   })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
   @MinLength(12)
   @MaxLength(128)
-  password!: string;
+  password?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Where the default password is emailed. Required when no password is given. It is not stored: the username is the identity.',
+    example: 'priya.menon@example.com',
+  })
+  @IsOptional()
+  @IsEmail()
+  @MaxLength(254)
+  email?: string;
 
   @ApiProperty({
     description: 'Numeric trading account identifier.',

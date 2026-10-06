@@ -57,6 +57,15 @@ services:
       DB_NAME: ${DB_NAME:-springboot_db}
       DB_USER: ${DB_USER:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      # Welcome emails carrying a new customer's default password. Without SMTP_HOST,
+      # admin registration is refused rather than creating a user nobody can tell the password to.
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      # Optional: a sign-in link to put in the welcome email. Leave empty for no link.
+      APP_LOGIN_URL: ${APP_LOGIN_URL:-}
     ports:
       - "${AUTH_PORT:-8081}:8081"
     depends_on:

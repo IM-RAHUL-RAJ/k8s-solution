@@ -1,0 +1,527 @@
+:host {
+  display: block;
+}
+
+.page {
+  gap: 18px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.header h1 {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.header .muted {
+  font-size: 14px;
+}
+
+.page > .banner {
+  margin: 0;
+  padding: 14px 18px;
+  border-radius: 16px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 20px;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.glyph {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.glyph.spin {
+  animation: spin 800ms linear infinite;
+}
+
+/* The working banner breathes so it reads as something still in motion. */
+.working {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.working__dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: var(--new);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.notice__close {
+  padding: 0 8px;
+  border: none;
+  background: none;
+  color: inherit;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.act {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.mini {
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background-color: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.mini:hover:not(:disabled) {
+  border-color: var(--muted);
+  background-color: var(--bg);
+}
+
+.mini:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.mini.ghost {
+  color: var(--muted);
+}
+
+.mini.ghost:hover:not(:disabled) {
+  border-color: var(--reject);
+  color: var(--reject);
+  background-color: var(--reject-bg);
+}
+
+.mini.danger {
+  border-color: var(--reject);
+  background-color: var(--reject);
+  color: var(--surface);
+}
+
+.mini.danger:hover:not(:disabled) {
+  background-color: var(--reject);
+  opacity: 0.9;
+}
+
+.confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  animation: confirmIn 220ms var(--ease);
+}
+
+.confirm__ask {
+  color: var(--reject);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+@keyframes confirmIn {
+  from {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.date-panel {
+  display: grid;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+}
+
+.date-panel__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.date-panel__head strong {
+  font-size: 13px;
+  letter-spacing: 0.01em;
+}
+
+.date-panel__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.date-panel__inputs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.date-panel__inputs label {
+  display: grid;
+  gap: 6px;
+}
+
+.date-panel__presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.date-preset {
+  padding: 7px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.date-preset:hover {
+  border-color: var(--muted);
+  color: var(--text);
+}
+
+.date-preset.active {
+  border-color: color-mix(in srgb, var(--accent) 48%, transparent);
+  background: color-mix(in srgb, var(--ok-bg) 78%, transparent);
+  color: var(--ok);
+}
+
+.clear-filters-btn {
+  padding: 8px 12px;
+  border: 1px solid color-mix(in srgb, var(--reject) 42%, transparent);
+  border-radius: 999px;
+  background: var(--reject-bg);
+  color: var(--reject);
+  font-size: 12px;
+  font-weight: 800;
+  transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease;
+}
+
+.clear-filters-btn:hover:not(:disabled) {
+  border-color: var(--reject);
+  background: var(--reject);
+  color: #fff;
+}
+
+.clear-filters-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  background-color: var(--surface);
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.chip:hover {
+  border-color: var(--muted);
+  color: var(--text);
+}
+
+.chip.active {
+  border-color: var(--accent);
+  background-color: var(--ok-bg);
+  color: var(--ok);
+  font-weight: 800;
+}
+
+.chip__count {
+  min-width: 26px;
+  padding: 2px 9px;
+  border-radius: 99px;
+  background-color: var(--bg);
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+/* Cards and table container */
+.card {
+  border-radius: 24px;
+}
+
+.table-card {
+  overflow-x: auto;
+  padding: 6px 8px 10px;
+}
+
+/* Table */
+table {
+  border-collapse: separate;
+  border-spacing: 0 4px;
+}
+
+thead tr:first-child th {
+  padding: 14px 16px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  background: var(--surface);
+  box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--line) 65%, transparent);
+}
+
+tbody td {
+  padding: 16px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+tbody td strong {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+/* Rounded rows: curve the outer ends of each row.
+   Rows need a background to show the curve. */
+tbody tr:not(.none-row) td {
+  background: var(--surface);
+}
+
+tbody tr:not(.none-row) td:first-child {
+  border-top-left-radius: 14px;
+  border-bottom-left-radius: 14px;
+}
+
+tbody tr:not(.none-row) td:last-child {
+  border-top-right-radius: 14px;
+  border-bottom-right-radius: 14px;
+}
+
+.num {
+  text-align: right;
+}
+
+.side {
+  color: var(--ok);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.side--sell {
+  color: var(--reject);
+}
+
+.none {
+  padding: 16px 0;
+  text-align: center;
+}
+
+.empty {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 48px 20px;
+  font-size: 14px;
+  text-align: center;
+}
+
+.empty p:first-of-type {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.empty svg {
+  width: 44px;
+  height: 44px;
+  margin-bottom: 8px;
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+
+.skeleton {
+  margin-bottom: 10px;
+  border-radius: 12px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.8);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .working__dot {
+    animation: none;
+  }
+}
+
+/* Column filters sit directly under the headings they filter. */
+.filter-row th {
+  padding: 4px 8px 14px;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  position: sticky;
+  top: 44px;
+  z-index: 5;
+  background-color: var(--surface);
+  box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--line) 65%, transparent);
+}
+
+.filter-row input,
+.filter-row select {
+  min-width: 0;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 12px;
+}
+
+.filter-row .num input {
+  text-align: right;
+}
+
+.none-row td {
+  padding: 32px 16px;
+  font-size: 14px;
+  text-align: center;
+}
+
+.ccy {
+  margin-left: 4px;
+  padding: 2px 9px;
+  border-radius: 99px;
+  background: var(--blue-bg);
+  color: var(--blue);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  vertical-align: middle;
+}
+
+/* Cancel: red at rest so it reads as the "stop" action, solid when you reach for it. */
+.cancel-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px 8px 12px;
+  border: 1px solid color-mix(in srgb, var(--reject) 45%, transparent);
+  border-radius: 99px;
+  background: var(--reject-bg);
+  color: var(--reject);
+  font-size: 13px;
+  font-weight: 800;
+  box-shadow: none;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease,
+    transform 180ms var(--ease),
+    box-shadow 200ms ease;
+}
+
+.cancel-btn svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  transition: transform 260ms var(--ease);
+}
+
+.cancel-btn:hover {
+  background: var(--reject);
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 16px -8px var(--reject);
+}
+
+.cancel-btn:hover svg {
+  transform: rotate(90deg);
+}
+
+.mini.yes-cancel {
+  background: var(--reject);
+  border-color: var(--reject);
+  color: #fff;
+  border-radius: 99px;
+}
+
+.mini.keep {
+  background: var(--ok-bg);
+  border-color: color-mix(in srgb, var(--ok) 40%, transparent);
+  color: var(--ok);
+  border-radius: 99px;
+}
+
+.mini.keep:hover:not(:disabled) {
+  background: var(--ok);
+  color: #fff;
+}

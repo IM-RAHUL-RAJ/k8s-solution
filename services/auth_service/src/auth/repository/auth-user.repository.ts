@@ -50,6 +50,10 @@ export class AuthUserRepository {
     return this.repo.save(authUser);
   }
 
+  async deleteById(id: string): Promise<void> {
+    await this.repo.delete({ id });
+  }
+
   async findByAccountId(accountId: number): Promise<AuthUser | null> {
     return this.repo.findOne({
       where: { accountId }

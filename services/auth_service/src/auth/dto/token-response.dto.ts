@@ -25,4 +25,11 @@ export class TokenResponseDto {
         example: 900,
     })
     expiresIn!: number;
+
+    @ApiProperty({
+        description: 'True while the user is still on the default password emailed to them and should change it.',
+        example: false,
+        required: false,
+    })
+    mustChangePassword?: boolean;
 }
