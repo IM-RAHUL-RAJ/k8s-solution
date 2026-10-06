@@ -5,6 +5,7 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { RedactedLogger } from '../common/redacted-logger';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { LoginCryptoService } from './services/login-crypto.service';
 
 describe('AuthController', () => {
   let controller: AuthController;
@@ -23,6 +24,7 @@ describe('AuthController', () => {
       controllers: [AuthController],
       providers: [
         { provide: AuthService, useValue: service },
+        { provide: LoginCryptoService, useValue: { decrypt: jest.fn(), getPublicKey: jest.fn() } },
         { provide: JwtService, useValue: { verify: jest.fn() } },
         { provide: ConfigService, useValue: { getOrThrow: jest.fn().mockReturnValue('test-secret') } },
         {

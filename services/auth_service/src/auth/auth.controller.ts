@@ -5,7 +5,8 @@ import {
     UseGuards,
     Get,
     HttpCode,
-    HttpStatus
+    HttpStatus,
+    UnauthorizedException
 } from '@nestjs/common';
 import {
     ApiBearerAuth,
@@ -21,6 +22,8 @@ import {
 } from './auth.service';
 
 import { RedactedLogger } from '../common/redacted-logger';
+import { LoginCryptoService } from './services/login-crypto.service';
+import { ChangePasswordRequestDto } from './dto/change-password-request.dto';
 
 
 import {
@@ -47,7 +50,8 @@ export class AuthController {
 
 
     constructor(
-        private service: AuthService
+        private service: AuthService,
+        private loginCrypto: LoginCryptoService
     ) { }
 
     @Post("register")
@@ -56,7 +60,7 @@ export class AuthController {
         operationId: 'register',
         summary: 'Register a user',
         description:
-            'Creates a user and links it to an existing trading account. Registration does not return tokens.',
+            'Creates a user and links it to an existing trading account. With no password (and an email), a default one is generated and emailed, and the user must change it on first login. Registration does not return tokens.',
     })
     @ApiBody({ type: RegisterRequestDto })
     @ApiResponse({
@@ -103,7 +107,8 @@ export class AuthController {
             dto.username,
             dto.password,
             dto.accountId,
-            dto.roles
+            dto.roles,
+            dto.email
         );
     }
 
@@ -147,15 +152,35 @@ export class AuthController {
         @Body() dto: LoginRequestDto
     ) {
 
+        const { username, password } = dto.payload
+            ? this.loginCrypto.decrypt(dto.payload)
+            : { username: dto.username, password: dto.password };
+
         this.logger.log(
-            `[AUTH_EVENT] login_request_received username=${dto.username}`
+            `[AUTH_EVENT] login_request_received username=${username}`
         );
 
         return this.service.login(
-            dto.username,
-            dto.password
+            username,
+            password
         );
 
+    }
+
+    @Get('public-key')
+    @ApiOperation({
+        operationId: 'getLoginPublicKey',
+        summary: 'Public key for encrypting login credentials',
+        description:
+            'Returns the base64 SPKI RSA public key the browser uses to encrypt the login payload. Regenerated whenever the service starts.',
+    })
+    @ApiResponse({
+        status: 200,
+        description: 'Public key.',
+        schema: { example: { publicKey: 'MIIBIjANBgkq...' } },
+    })
+    publicKey() {
+        return { publicKey: this.loginCrypto.getPublicKey() };
     }
 
     @Post('refresh')
@@ -206,6 +231,26 @@ export class AuthController {
         );
     }
 
+    @Post('change-password')
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth('bearerAuth')
+    @HttpCode(HttpStatus.NO_CONTENT)
+    @ApiOperation({
+        operationId: 'changePassword',
+        summary: 'Change the signed-in user\'s password',
+        description:
+            'Verifies the current password, sets the new one (12 to 128 characters, different from the current), clears the must-change flag and signs out other refresh tokens.',
+    })
+    @ApiResponse({ status: 204, description: 'Password changed.' })
+    @ApiResponse({ status: 400, description: 'Current password wrong, or new password unchanged.', type: ErrorResponseDto })
+    async changePassword(
+        @CurrentUser() user: JwtPayload,
+        @Body() dto: ChangePasswordRequestDto,
+    ): Promise<void> {
+        this.logger.log(`[AUTH_EVENT] change_password_request_received userId=${user.sub}`);
+        await this.service.changePassword(user.sub, dto.currentPassword, dto.newPassword);
+    }
+
     @Get('me')
     @UseGuards(JwtAuthGuard)
     @ApiTags('Profile')
@@ -240,6 +285,57 @@ export class AuthController {
         );
 
         return this.service.getCurrentUser(user.sub);
+    }
+
+    @Get('session/validate')
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth('bearerAuth')
+    @ApiOperation({
+        operationId: 'validateSession',
+        summary: 'Validate if current session is active',
+        description:
+            'Protected endpoint that validates if the sessionId in the token matches the active session for this user. Used to detect when session was invalidated on another device.',
+    })
+    @ApiResponse({
+        status: 200,
+        description: 'Session is valid.',
+        schema: {
+            example: {
+                isValid: true,
+            },
+        },
+    })
+    @ApiResponse({
+        status: 401,
+        description: 'Session is invalid (was logged out from another device).',
+        type: ErrorResponseDto,
+        schema: {
+            example: {
+                errorCode: 'AUTH-401',
+                message: 'Session invalidated',
+            },
+        },
+    })
+    validateSession(
+        @CurrentUser() user: JwtPayload,
+    ) {
+        this.logger.debug(
+            `[AUTH_EVENT] session_validate_request userId=${user.sub} sessionId=${user.sessionId}`
+        );
+
+        const isValid = this.service.isSessionValid(user.sub, user.sessionId);
+        
+        if (!isValid) {
+            this.logger.warn(
+                `[AUTH_EVENT] session_invalid userId=${user.sub} sessionId=${user.sessionId}`
+            );
+            throw new UnauthorizedException({
+                errorCode: 'AUTH-401',
+                message: 'Session invalidated',
+            });
+        }
+
+        return { isValid: true };
     }
 
 }

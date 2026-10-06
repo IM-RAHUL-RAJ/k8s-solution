@@ -1,0 +1,164 @@
+<section class="page" data-testid="account-page">
+  @if (showChangePassword()) {
+    <div class="password-flyout" role="dialog" aria-modal="false" aria-label="Change password">
+      <div class="password-flyout__card card">
+        <div class="password-flyout__head">
+          <h2>Change password</h2>
+          <button type="button" class="secondary" (click)="toggleChangePassword()">Close</button>
+        </div>
+        <app-change-password (passwordChanged)="handlePasswordChanged()" />
+      </div>
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="top" aria-busy="true" aria-label="Loading account">
+      <article class="card"><span class="skeleton short"></span><span class="skeleton"></span><span class="skeleton"></span></article>
+      <article class="card"><span class="skeleton short"></span><span class="skeleton tall"></span></article>
+    </div>
+    <article class="card"><span class="skeleton"></span><span class="skeleton"></span><span class="skeleton"></span></article>
+  } @else if (error()) {
+    <div class="banner error" role="alert">{{ error() }}</div>
+    <div><button type="button" class="secondary" (click)="loadAccount()">Try again</button></div>
+  } @else {
+    <div class="top">
+      <article class="card lift profile" style="--i: 0">
+        <span class="profile__avatar" aria-hidden="true">{{ initials() }}</span>
+        <div class="profile__body">
+          <h1 data-testid="account-holder">{{ account()?.holderName }}</h1>
+          <dl>
+            <div>
+              <dt>Account</dt>
+              <dd class="mono" data-testid="account-id">{{ account()?.accountId }}</dd>
+            </div>
+            <div>
+              <dt>Status</dt>
+              <dd>
+                <span class="pill" [class.pill--off]="account()?.status !== 'ACTIVE'">
+                  <span class="pill__dot"></span>{{ account()?.status }}
+                </span>
+              </dd>
+            </div>
+            <div>
+              <dt>Last updated</dt>
+              <dd>{{ account()?.lastUpdated | date: 'd MMM y, HH:mm' }}</dd>
+            </div>
+          </dl>
+          <div class="profile__actions">
+            <button type="button" class="secondary" (click)="toggleChangePassword()">
+              {{ showChangePassword() ? 'Hide password form' : 'Change password' }}
+            </button>
+          </div>
+        </div>
+      </article>
+
+      
+
+      <article class="card lift balance" style="--i: 1">
+        <p class="muted">Cash balance</p>
+        <p class="balance__value" data-testid="account-cash">
+          <app-animated-number [value]="balance()?.cashBalance ?? 0" [decimals]="2" />
+          <span class="balance__unit">{{ balance()?.currency }}</span>
+        </p>
+        @if (balance()?.asOf; as asOf) {
+          <p class="muted fine">As of {{ asOf | date: 'd MMM y, HH:mm' }}</p>
+        }
+        <a class="button" routerLink="/order-ticket">Place an order</a>
+      </article>
+    </div>
+
+    <div class="lower" [class.lower--solo]="rows().length === 0">
+      <article class="card lift insights" style="--i: 2">
+        <div class="table-card__header">
+          <h2>Asset mix</h2>
+          <span class="muted">By asset class (invested cost)</span>
+        </div>
+        @if (rows().length === 0) {
+          <div class="empty">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6.5" /><path d="M10 3.5V10h6.5" /></svg>
+            <p>No asset mix yet.</p>
+            <p class="muted">The chart appears once holdings are created by filled buy orders.</p>
+          </div>
+        } @else {
+          <app-donut-chart [slices]="assetClassSlices()" [unit]="balance()?.currency ?? ''" centreLabel="Exposure" />
+          <div class="mix-meta">
+            <p class="mix-meta__label">Herfindahl-Hirschman Index (HHI) Diversification score</p>
+            <p>
+              <strong class="tabular">{{ concentrationHhi() | number: '1.0-0' }}</strong>
+              <span class="mix-meta__band"> · {{ concentrationBand() }}</span>
+            </p>
+          </div>
+          <div class="mix-help">
+            <p>
+              <strong>HHI Score:</strong> <br>
+              <span>&lt; 1,500 — Unconcentrated</span> <br>
+              <span>1,500–2,500 — Moderately Concentrated</span> <br>
+              <span>&gt; 2,500 — Highly Concentrated</span>
+            </p>
+            <a href="https://www.investopedia.com/terms/h/hhi.asp"
+               target="_blank" rel="noopener noreferrer">
+              Learn diversification basics and concentration risks
+            </a>
+          </div>
+          <ul class="mix-list">
+            @for (slice of assetClassSlices(); track slice.label) {
+              <li>
+                <span class="mix-list__label">{{ slice.label }}</span>
+                <span class="tabular">{{ slice.share | number: '1.1-1' }}%</span>
+              </li>
+            }
+          </ul>
+          <div class="muted fine">
+            HHI sums squared holding shares by cost. Lower means wider spread across positions.
+          </div>
+        }
+      </article>
+
+    
+
+      <article class="card table-card" style="--i: 3">
+        <div class="table-card__header">
+          <h2>Positions</h2>
+          <span class="muted" data-testid="account-invested">
+            {{ invested() | number: '1.2-2' }} {{ balance()?.currency }} invested at cost
+          </span>
+        </div>
+
+        @if (rows().length === 0) {
+          <div class="empty">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3l7 3.5-7 3.5-7-3.5zM3 10l7 3.5 7-3.5" /></svg>
+            <p>No positions yet.</p>
+            <p class="muted">Filled buy orders create positions.</p>
+          </div>
+        } @else {
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Symbol</th>
+                <th scope="col" class="num">Quantity</th>
+                <th scope="col" class="num">Average cost ({{ balance()?.currency }})</th>
+                <th scope="col" class="num">Cost value</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of rows(); track row.symbol; let i = $index) {
+                <tr [style.animation-delay.ms]="i * 50" data-testid="position-row">
+                  <td><strong>{{ row.symbol }}</strong></td>
+                  <td class="tabular num">{{ row.quantity }}</td>
+                  <td class="tabular num">{{ row.averageCostHome | number: '1.2-2' }}</td>
+                  <td class="tabular num">{{ row.cost | number: '1.2-2' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+        
+      </article>
+
+      
+      
+    </div>
+  }
+
+  
+</section>

@@ -3,8 +3,18 @@ import {
     UnauthorizedException,
     Logger,
     ConflictException,
-    BadRequestException
+    BadRequestException,
+    ServiceUnavailableException
 } from '@nestjs/common';
+
+import { randomInt } from 'crypto';
+
+/**
+ * Marks a user who is still on the emailed default password. It lives in the existing roles
+ * column, so no schema change is needed. Nothing authorises on it; it only tells the client to
+ * ask for a new password, and it is removed when the password is changed.
+ */
+export const MUST_CHANGE_PASSWORD_ROLE = 'MUST_CHANGE_PASSWORD';
 
 
 import * as argon2 from 'argon2';
@@ -20,6 +30,8 @@ import { JwtTokenService }
 
 import { AuthUser } from './entity/auth-user.entity';
 import { RefreshTokenRepository } from './repository/refresh-token.repository';
+import { SessionGateway } from './gateways/session.gateway';
+import { MailService } from './services/mail.service';
 
 
 
@@ -37,8 +49,11 @@ export class AuthService {
 
     // Login throttle configuration
     private readonly LOGIN_ATTEMPT_LIMIT = 5;
-    private readonly LOGIN_THROTTLE_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+    private readonly LOGIN_THROTTLE_WINDOW_MS = 60 * 1000; // 60 seconds (matches frontend)
     private readonly loginAttempts = new Map<string, { count: number; firstAttempt: number }>();
+
+    // Session management: Map of userId -> active sessionId
+    private readonly activeSessionIds = new Map<string, string>();
 
     constructor(
 
@@ -48,7 +63,11 @@ export class AuthService {
 
         private refreshService: RefreshTokenService,
 
-        private refreshTokenRepo: RefreshTokenRepository
+        private refreshTokenRepo: RefreshTokenRepository,
+
+        private sessionGateway: SessionGateway,
+
+        private mailService: MailService
 
     ) { 
         // Clean up expired throttle entries periodically
@@ -99,6 +118,37 @@ export class AuthService {
 
     private clearLoginAttempts(username: string): void {
         this.loginAttempts.delete(username);
+    }
+
+    /**
+     * Generate a unique session ID
+     */
+    private generateSessionId(): string {
+        return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    }
+
+    /**
+     * Set active session for a user (invalidates previous session)
+     */
+    private setActiveSession(userId: string, sessionId: string): void {
+        this.activeSessionIds.set(userId, sessionId);
+        this.logger.debug(`[SESSION] New session created for userId=${userId} sessionId=${sessionId}`);
+    }
+
+    /**
+     * Validate if a sessionId is active for a user
+     */
+    isSessionValid(userId: string, sessionId: string): boolean {
+        const activeSessionId = this.activeSessionIds.get(userId);
+        return activeSessionId === sessionId;
+    }
+
+    /**
+     * Invalidate all sessions for a user
+     */
+    private invalidateUserSessions(userId: string): void {
+        this.activeSessionIds.delete(userId);
+        this.logger.debug(`[SESSION] All sessions invalidated for userId=${userId}`);
     }
 
 
@@ -158,6 +208,13 @@ export class AuthService {
         }
 
         // Password is valid and user exists
+        const sessionId = this.generateSessionId();
+        this.setActiveSession(user.id, sessionId);
+
+        // Kick all other sessions for this user (multi-device logout)
+        // This sends SESSION_KICKED message to all other browsers/tabs
+        this.sessionGateway.kickOtherSessions(user.id);
+
         const accessToken =
             this.jwtService.generateAccessToken(
 
@@ -165,7 +222,9 @@ export class AuthService {
 
                 user.accountId,
 
-                user.roles
+                user.roles,
+
+                sessionId
 
             );
 
@@ -178,7 +237,7 @@ export class AuthService {
         this.clearLoginAttempts(username);
 
         this.logger.log(
-            `[AUTH_EVENT] login_succeeded userId=${user.id} accountId=${user.accountId} roles=${user.roles.join(',')}`
+            `[AUTH_EVENT] login_succeeded userId=${user.id} accountId=${user.accountId} roles=${user.roles.join(',')} sessionId=${sessionId}`
         );
 
         return {
@@ -189,16 +248,41 @@ export class AuthService {
 
             tokenType: "Bearer",
 
-            expiresIn: 900
+            expiresIn: 900,
+
+            mustChangePassword: (user.roles ?? []).includes(MUST_CHANGE_PASSWORD_ROLE)
 
         };
 
     }
 
-    async register(username: string, password: string, accountId: number, roles?: string[]) {
+    /**
+     * Without a password, a default one is generated and emailed to `email`, and the user is
+     * flagged to change it. The generated password is never logged or returned.
+     */
+    async register(username: string, password: string | undefined, accountId: number, roles?: string[], email?: string) {
         this.logger.log(
             `[AUTH_EVENT] register_attempt_started username=${username} accountId=${accountId}`
         );
+
+        const generated = password === undefined || password === '';
+        if (generated) {
+            if (!email) {
+                throw new BadRequestException({
+                    errorCode: 'VAL-422',
+                    message: 'Invalid input',
+                });
+            }
+            if (!this.mailService.isConfigured()) {
+                // Refuse before creating anything: a user nobody can tell the password to is useless.
+                this.logger.error('[AUTH_EVENT] register_rejected_mail_not_configured');
+                throw new ServiceUnavailableException({
+                    errorCode: 'AUTH-503',
+                    message: 'Email is not configured, so a default password cannot be sent',
+                });
+            }
+        }
+        const effectivePassword = generated ? this.generateDefaultPassword() : (password as string);
 
         // Check if username already exists
         const exists = await this.userRepo.existsByUsername(username);
@@ -213,7 +297,7 @@ export class AuthService {
         }
 
         // Hash the password with argon2
-        const passwordHash = await argon2.hash(password, {
+        const passwordHash = await argon2.hash(effectivePassword, {
             type: argon2.argon2id,
             memoryCost: 65536,
             timeCost: 3,
@@ -225,7 +309,8 @@ export class AuthService {
         authUser.username = username;
         authUser.passwordHash = passwordHash;
         authUser.accountId = accountId;
-        authUser.roles = roles && roles.length > 0 ? roles : ['CUSTOMER'];
+        const baseRoles = roles && roles.length > 0 ? roles : ['CUSTOMER'];
+        authUser.roles = generated ? [...baseRoles, MUST_CHANGE_PASSWORD_ROLE] : baseRoles;
 
         try {
             const savedUser = await this.userRepo.create(authUser);
@@ -233,14 +318,36 @@ export class AuthService {
                 `[AUTH_EVENT] register_succeeded userId=${savedUser.id} username=${username} accountId=${accountId}`
             );
 
+            let emailSent = false;
+            if (generated) {
+                try {
+                    await this.mailService.sendWelcome(email as string, username, username, effectivePassword);
+                    emailSent = true;
+                } catch (mailError) {
+                    // The caller must not be left with a user whose password nobody received.
+                    await this.userRepo.deleteById(savedUser.id);
+                    this.logger.error(
+                        `[AUTH_EVENT] register_rolled_back_email_failed username=${username} error=${(mailError as Error).message}`
+                    );
+                    throw new ServiceUnavailableException({
+                        errorCode: 'AUTH-503',
+                        message: 'The welcome email could not be sent',
+                    });
+                }
+            }
+
             return {
                 id: savedUser.id,
                 username: savedUser.username,
                 accountId: savedUser.accountId,
                 roles: savedUser.roles,
+                emailSent,
                 createdOn: new Date().toISOString(),
             };
         } catch (error) {
+            if (error instanceof ServiceUnavailableException) {
+                throw error;
+            }
             this.logger.error(
                 `[AUTH_EVENT] register_failed_database_error username=${username} error=${error}`
             );
@@ -249,6 +356,66 @@ export class AuthService {
                 message: 'Registration failed',
             });
         }
+    }
+
+    /** 16 characters, every class present, no look-alikes (0/O, 1/l/I). */
+    private generateDefaultPassword(): string {
+        const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+        const lower = 'abcdefghijkmnopqrstuvwxyz';
+        const digits = '23456789';
+        const symbols = '!@#$%^&*?';
+        const all = upper + lower + digits + symbols;
+        const pick = (set: string) => set[randomInt(set.length)];
+
+        const chars = [pick(upper), pick(lower), pick(digits), pick(symbols)];
+        while (chars.length < 16) {
+            chars.push(pick(all));
+        }
+        for (let i = chars.length - 1; i > 0; i--) {
+            const j = randomInt(i + 1);
+            [chars[i], chars[j]] = [chars[j], chars[i]];
+        }
+        return chars.join('');
+    }
+
+    /**
+     * Lets a signed-in user replace their password. Signs out their other refresh tokens, and
+     * clears the "must change" flag. A wrong current password is a 400, not a 401: a 401 would
+     * make the client think the session itself had died.
+     */
+    async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<void> {
+        const user = await this.userRepo.findById(userId);
+        if (!user) {
+            throw new UnauthorizedException({ errorCode: 'AUTH-401', message: 'Unauthorised' });
+        }
+
+        if (this.isThrottled(user.username)) {
+            throw new BadRequestException({ errorCode: 'AUTH-429', message: 'Too many attempts. Try again later.' });
+        }
+
+        const currentOk = await argon2.verify(user.passwordHash, currentPassword);
+        if (!currentOk) {
+            this.recordFailedAttempt(user.username);
+            this.logger.warn(`[AUTH_EVENT] change_password_wrong_current userId=${user.id}`);
+            throw new BadRequestException({ errorCode: 'AUTH-400', message: 'Current password is incorrect' });
+        }
+
+        if (currentPassword === newPassword || await argon2.verify(user.passwordHash, newPassword)) {
+            throw new BadRequestException({ errorCode: 'AUTH-400', message: 'New password must be different' });
+        }
+
+        user.passwordHash = await argon2.hash(newPassword, {
+            type: argon2.argon2id,
+            memoryCost: 65536,
+            timeCost: 3,
+            parallelism: 4,
+        });
+        user.roles = (user.roles ?? []).filter((role) => role !== MUST_CHANGE_PASSWORD_ROLE);
+        await this.userRepo.create(user);
+        await this.refreshTokenRepo.revokeAllUserTokens(user.id);
+        this.clearLoginAttempts(user.username);
+
+        this.logger.log(`[AUTH_EVENT] change_password_succeeded userId=${user.id}`);
     }
 
     async refresh(refreshToken: string) {
@@ -319,17 +486,31 @@ export class AuthService {
             });
         }
 
-        // Generate new tokens
+        // Get the current active session ID for this user
+        // (session ID doesn't change on refresh, only on login)
+        const sessionId = this.activeSessionIds.get(user.id);
+        if (!sessionId) {
+            this.logger.error(
+                `[AUTH_EVENT] refresh_failed_no_session userId=${user.id}`
+            );
+            throw new UnauthorizedException({
+                errorCode: 'AUTH-401',
+                message: 'Unauthorised',
+            });
+        }
+
+        // Generate new tokens with same session ID
         const accessToken = this.jwtService.generateAccessToken(
             user.id,
             user.accountId,
-            user.roles
+            user.roles,
+            sessionId
         );
 
         const newRefreshToken = await this.refreshService.create(user.id);
 
         this.logger.log(
-            `[AUTH_EVENT] refresh_succeeded userId=${user.id} accountId=${user.accountId}`
+            `[AUTH_EVENT] refresh_succeeded userId=${user.id} accountId=${user.accountId} sessionId=${sessionId}`
         );
 
         return {
