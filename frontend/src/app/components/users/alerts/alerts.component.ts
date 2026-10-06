@@ -11,7 +11,7 @@ import { AlertService } from '../../../core/services/alert.service';
 import { ApiErrorMessageService } from '../../../core/services/api-error-message.service';
 import { HomeCurrencyService } from '../../../core/services/home-currency.service';
 
-/** How often the list looks again, so a fired alert shows up without a manual refresh. */
+// How often the list looks again, so a fired alert shows up without a manual refresh.
 export const ALERT_REFRESH_MS = 15_000;
 
 function positiveAmount(control: AbstractControl<string>): ValidationErrors | null {
@@ -19,11 +19,9 @@ function positiveAmount(control: AbstractControl<string>): ValidationErrors | nu
   return /^\d+(\.\d{1,4})?$/.test(value) && Number(value) > 0 ? null : { amount: true };
 }
 
-/**
- * Price alerts: tell me when this crosses that level. An alert fires once, is handed to notifications,
- * and reaches the customer on the channel they chose in Settings. This page never sends anything: it
- * only creates alerts and shows what became of them, including whether a fired alert was handed over.
- */
+// Price alerts: tell me when this crosses that level. An alert fires once, is handed to notifications,
+// and reaches the customer on the channel they chose in Settings. This page never sends anything: it
+// only creates alerts and shows what became of them, including whether a fired alert was handed over.
 @Component({
   selector: 'app-alerts',
   standalone: true,
