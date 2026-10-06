@@ -40,20 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * The four extension modules against a REAL Postgres, over REAL HTTP with REAL signed tokens: the
- * JWT filter, the error handling, the strict JSON mapper and every SQL statement the modules run.
- * Kafka is the one thing replaced, by calling the listeners with the messages the executor would
- * publish; Fauxnance is replaced by a local HTTP server so the real client code is exercised.
- *
- * Run it against a database that has the platform schema, the seed and 003_extensions.sql applied:
- * <pre>
- *   TEST_DB_URL=jdbc:postgresql://localhost:5432/springboot_db TEST_DB_USER=postgres TEST_DB_PASSWORD=postgres \
- *   mvn test -Dtest=ExtensionsChainIT
- * </pre>
- * It is skipped when TEST_DB_URL is not set, and its name keeps it out of the default surefire run.
- * It truncates the four module tables first and leaves the platform tables alone.
- */
+
 @EnabledIfEnvironmentVariable(named = "TEST_DB_URL", matches = ".+")
 @SpringBootTest(classes = TradeApiApplication.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = {

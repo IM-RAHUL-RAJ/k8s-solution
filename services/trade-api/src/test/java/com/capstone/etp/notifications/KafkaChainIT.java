@@ -36,14 +36,7 @@ import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * The same chain over a REAL (embedded) Kafka broker, to show what the unit tests cannot: the
- * listeners' group ids, offsets committed only after the work is recorded, a replayed event doing
- * nothing the second time, and a poison message going to the dead-letter topic without stopping the
- * partition behind it.
- *
- * Needs the database from {@link ExtensionsChainIT} (TEST_DB_URL); skipped without it.
- */
+
 @EnabledIfEnvironmentVariable(named = "TEST_DB_URL", matches = ".+")
 @EmbeddedKafka(partitions = 1, topics = {"trade-events", "trade-events.DLT", "market-data"})
 @SpringBootTest(classes = TradeApiApplication.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
