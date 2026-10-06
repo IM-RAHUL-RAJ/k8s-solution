@@ -10,18 +10,10 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * The portfolio module's own table, portfolio_realised_pnl: the only table this module writes.
- * Everything it knows about accounts, positions and instruments is read through the platform's
- * AccountService / AccountMapper, never through SQL of its own against the trading tables.
- */
+
 @Mapper
 public interface RealisedPnlMapper {
 
-    /**
-     * Books one sale. {@code event_id} is the primary key, so booking the same event a second time
-     * inserts nothing and returns 0: a replay cannot double-count.
-     */
     @Insert("""
             INSERT INTO portfolio_realised_pnl
                    (event_id, account_id, symbol, quantity, executed_price, average_cost,
@@ -39,7 +31,6 @@ public interface RealisedPnlMapper {
                        @Param("realisedPnl") BigDecimal realisedPnl,
                        @Param("bookedAt") Instant bookedAt);
 
-    /** Total realised profit and loss booked in the window ({@code from} inclusive, {@code to} exclusive; null is unbounded). */
     @Select("""
             <script>
             SELECT COALESCE(SUM(realised_pnl), 0)
@@ -69,7 +60,6 @@ public interface RealisedPnlMapper {
     @Select("SELECT 1")
     int ping();
 
-    /** Realised profit and loss for one symbol. */
     class SymbolRealised {
         private String symbol;
         private BigDecimal realised;

@@ -11,14 +11,13 @@ export const CATALOGUE_CODES = [
   'AUTH-401',
   'AUTH-409',
   'CUR-422',
-  // Sprint 10 extensions: a pricing outage, notification and alert lookups, the alert cap.
   'MKT-503',
   'NTF-404',
   'ALR-404',
   'ALR-409'
 ] as const;
 
-/** Raised by this application itself when a feature has no backend endpoint. */
+// Raised by this application itself when a feature has no backend endpoint.
 export const CLIENT_CODES = ['API-NOT-AVAILABLE'] as const;
 
 export type CatalogueCode = (typeof CATALOGUE_CODES)[number] | (typeof CLIENT_CODES)[number];
@@ -44,23 +43,23 @@ export const ERROR_MESSAGES: Record<CatalogueCode, string> = {
   'API-NOT-AVAILABLE': 'This feature is not available yet because the platform does not expose it.'
 };
 
-/** On the sign-in form the same code reads differently: the customer is not "expired", they were refused. */
+// On the sign-in form the same code reads differently: the customer is not "expired", they were refused. 
 export const SIGN_IN_MESSAGES: Partial<Record<CatalogueCode, string>> = {
   'AUTH-401': 'Your username or password was not accepted. Check them and try again.'
 };
 
-/** Cancelling reads differently: ORD-409 there means the order is no longer working, not a holdings problem. */
+// Cancelling reads differently: ORD-409 there means the order is no longer working, not a holdings problem. 
 export const CANCEL_MESSAGES: Partial<Record<CatalogueCode, string>> = {
   'ORD-409':
     'This order can no longer be cancelled. It has already been filled, rejected or cancelled, or it just changed. Refresh the blotter to see where it stands.',
   'ACC-403': 'This sign-in cannot cancel orders on this account.'
 };
 
-/** The request never got a response: a service that is down, or a CORS rule that blocks this origin. */
+// The request never got a response: a service that is down, or a CORS rule that blocks this origin. 
 export const UNREACHABLE_MESSAGE =
   'The trading service is currently unavailable. Check your connection and try again in a moment.';
 
-/** A code nobody has mapped yet. Never a blank panel. */
+// A code nobody has mapped yet. Never a blank panel. 
 export const FALLBACK_MESSAGE = "We couldn't complete your request. Please try again.";
 
 export function isCatalogueCode(code: unknown): code is CatalogueCode {

@@ -12,20 +12,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Books realised profit and loss at the moment of a sale and never again.
- *
- * <p>For a sell fill: {@code (executedPrice - averageCostAtSale) * quantitySold}. A sell leaves
- * average cost unchanged (contracts/portfolio-api.yaml), so the event's {@code averageCostAfter} IS the
- * average cost at the sale, even when the sale closes the position. Today's price plays no part: this is
- * what was made on that sale, and it is written once.
- *
- * <p>Units. The executor reports {@code executedPrice} in the ACCOUNT's currency but
- * {@code averageCostAfter} in the INSTRUMENT's currency, so the average cost is converted to the account
- * currency before the two are subtracted. The result is stored in the account's base currency.
- *
- * <p>Replay-safe: the ledger is keyed on the event id, so the same event booked twice changes nothing.
- */
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -34,10 +21,7 @@ public class RealisedPnlBook {
     private final RealisedPnlMapper ledger;
     private final AccountMapper accountMapper;
 
-    /**
-     * @return true if the sale was booked now; false if this event had already been booked
-     * @throws MalformedEventException if the account or instrument is unknown, which a retry cannot fix
-     */
+    
     public boolean bookSale(UUID eventId, long accountId, String symbol, int quantity,
                             BigDecimal executedPrice, BigDecimal averageCost, Instant bookedAt) {
         BalanceResponse balance = accountMapper.getBalance(accountId);

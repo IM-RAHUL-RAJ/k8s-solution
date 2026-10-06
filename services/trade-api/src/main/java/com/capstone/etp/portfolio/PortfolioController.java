@@ -12,11 +12,6 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.LocalDate;
 import java.util.List;
 
-/**
- * contracts/portfolio-api.yaml, served by the Trade REST API beside the order and account routes.
- * The routes are under {@code /api/v1/}, so the bearer token is verified before they run, and each one
- * compares the token's accountId claim with the account in the path before it reads anything.
- */
 @RestController
 @RequestMapping("/api/v1/portfolio/{accountId}")
 @RequiredArgsConstructor

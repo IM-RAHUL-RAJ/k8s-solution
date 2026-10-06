@@ -11,15 +11,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.OptionalInt;
 
-/**
- * {@code GET /health} from contracts/portfolio-api.yaml: liveness plus the state of the two things the
- * module depends on. It answers 200 while the service is running; a failing dependency degrades
- * {@code status} and does not fail the response. It is public (the contract says {@code security: []})
- * and carries no customer data and no key.
- *
- * Fauxnance's {@code /usage} costs quota, so the answer is cached for
- * {@code app.portfolio.usage-cache-seconds} and the endpoint can be polled freely.
- */
+
 @Slf4j
 @RestController
 class PortfolioHealthController {

@@ -14,18 +14,6 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Consumes {@code trade-events} in the {@code portfolio-service} group and books realised profit and
- * loss for every filled SELL. This is the accumulation the contract asks for: the figure is written
- * when the sale happens, from the event's own prices, and is never recomputed from a current quote.
- *
- * <p>The group starts from the earliest retained event (30 days) the first time it runs, so existing
- * sales within retention are booked; it is safe to do so because booking is idempotent on the event id.
- * Sales older than the topic's retention are not in the ledger (see the module README).
- *
- * <p>Authorisation: no caller and no token. The listener reads nothing for a customer; it only writes
- * rows to this module's own table from a message on an internal topic.
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor

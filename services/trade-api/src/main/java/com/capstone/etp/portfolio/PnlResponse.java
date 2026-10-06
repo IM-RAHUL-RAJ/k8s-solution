@@ -7,11 +7,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
-/**
- * contracts/portfolio-api.yaml PnlResponse. {@code from} and {@code to} bound the REALISED figure
- * only; the unrealised figure is always as at {@code asOf}. {@code bySymbol} is present only when it
- * was asked for.
- */
 public record PnlResponse(
         Long accountId,
         String baseCurrency,

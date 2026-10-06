@@ -16,19 +16,8 @@ export function isPricingUnavailable(error: unknown): boolean {
   return error instanceof HttpErrorResponse && error.status === 503 && error.error?.errorCode === 'MKT-503';
 }
 
-/**
- * Holdings priced against live quotes, with profit and loss.
- *
- * Three honest states, none of which hides what the platform knows:
- * <ul>
- *   <li>Priced: every figure carries when its price was observed.</li>
- *   <li>Stale or partial: the number is shown and marked (a price that is old, or a holding that could
- *       not be priced and is left out of the totals). A stale portfolio is never passed off as live.</li>
- *   <li>Pricing unavailable (503 MKT-503): the page falls back to the holdings at cost, from the
- *       account routes, instead of an empty screen. Trading is unaffected.</li>
- * </ul>
- * Prices reach this page through the platform only; the browser never calls a quote provider.
- */
+// Holdings priced against live quotes, with profit and loss.
+
 @Component({
   selector: 'app-portfolio',
   standalone: true,

@@ -20,31 +20,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Turns a set of symbols into prices, spending as little of the shared Fauxnance quota as it can.
- *
- * <ol>
- *   <li><b>Cache.</b> A quote fetched within {@code app.portfolio.quote-ttl-seconds} is reused, so a
- *       customer refreshing the screen, or several customers holding the same symbols, share one call.</li>
- *   <li><b>Batch.</b> Whatever is not cached goes in ONE call per 25 symbols, never one call per position.
- *       Ten holdings cost one unit of quota, not ten.</li>
- *   <li><b>Cooldown.</b> After a failed call the provider is left alone for
- *       {@code app.portfolio.provider-cooldown-seconds}: it saves quota and means an outage costs one
- *       slow request, not one per customer.</li>
- *   <li><b>Fallback.</b> If a symbol could not be fetched, the last price this service holds for it is
- *       served, marked stale: first the expired cache entry, then the last quote the poller put on
- *       {@code market-data}. Only a symbol with no price from any source is left unpriced.</li>
- * </ol>
- *
- * Stale is a state, not an error: every figure carries the time it was observed and whether it is
- * stale, either because the provider said so or because it is older than
- * {@code app.portfolio.stale-after-seconds}.
- */
+// Turns a set of symbols into prices, spending as little of the shared Fauxnance quota as it can.
+
 @Slf4j
 @Service
 public class PricingService {
 
-    /** A price ready to be served. {@code stale} is already decided. */
     public record PricedQuote(String symbol, BigDecimal price, String currency, Instant asOf, boolean stale) {
     }
 
@@ -75,7 +56,6 @@ public class PricingService {
         this.cooldown = Duration.ofSeconds(cooldownSeconds);
     }
 
-    /** Prices for as many of the symbols as any source can supply. Symbols with no price are absent. */
     public Map<String, PricedQuote> price(Collection<String> symbols) {
         Instant now = clock.instant();
         Map<String, PricedQuote> priced = new LinkedHashMap<>();
@@ -96,7 +76,6 @@ public class PricingService {
         return priced;
     }
 
-    /** How many symbols are currently held in the cache (for tests and diagnostics). */
     int cachedCount() {
         return cache.size();
     }
@@ -127,7 +106,6 @@ public class PricingService {
         }
     }
 
-    /** The best price this service still holds for a symbol that could not be fetched. Always stale. */
     private Optional<PricedQuote> fallback(String symbol, Instant now) {
         CachedQuote expired = cache.get(symbol);
         Optional<MarketQuote> fromTopic = topicCache.get(symbol)

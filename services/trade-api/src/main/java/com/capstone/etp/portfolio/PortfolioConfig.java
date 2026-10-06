@@ -9,7 +9,6 @@ import java.time.Clock;
 @Configuration
 class PortfolioConfig {
 
-    /** One clock for the module so staleness and cache windows can be tested with a fixed time. */
     @Bean
     @ConditionalOnMissingBean(Clock.class)
     Clock portfolioClock() {

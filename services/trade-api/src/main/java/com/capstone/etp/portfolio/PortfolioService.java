@@ -26,24 +26,7 @@ import java.util.Map;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
-/**
- * Portfolio and P&amp;L, as defined in contracts/portfolio-api.yaml:
- * <ul>
- *   <li>cost basis = quantity x average cost</li>
- *   <li>market value = quantity x last price</li>
- *   <li>unrealised P&amp;L = market value - cost basis (never stored)</li>
- *   <li>realised P&amp;L = booked at each sale by {@link RealisedPnlBook}, summed here (never recomputed from today's price)</li>
- *   <li>total value = cash + the sum of market values</li>
- * </ul>
- *
- * <p>Positions, cash and instrument currencies are read through {@link AccountService}, the layer that
- * owns them (which also checks the account exists). This class writes nothing: not to the trading
- * tables, and not even to its own; its only table is written by the trade-event listener. A pricing
- * outage surfaces here, on these routes, and cannot touch order placement.
- *
- * <p>Every route first requires that the verified token's accountId claim contains the account in the
- * path ({@link AccountAuthorizer#ensureOwnAccount}); a mismatch is 403 ACC-403 and is logged.
- */
+
 @Slf4j
 @Service
 public class PortfolioService {
@@ -68,7 +51,6 @@ public class PortfolioService {
         this.clock = clock;
     }
 
-    // ------------------------------------------------------------------ routes
 
     public PortfolioSummaryResponse summary(Long accountId) {
         authorizer.ensureOwnAccount(accountId);
@@ -138,9 +120,7 @@ public class PortfolioService {
                 realised.add(unrealised), breakdown, valuation.asOf);
     }
 
-    // ------------------------------------------------------------------ valuation
 
-    /** One position, priced, with its unrealised figure converted to the base currency for totals. */
     private record Row(PricedPositionResponse response, BigDecimal unrealisedBase) {
     }
 
@@ -155,11 +135,6 @@ public class PortfolioService {
         Instant asOf;
     }
 
-    /**
-     * Reads the account, prices what it holds, and returns every figure the three routes need.
-     *
-     * @throws PricingUnavailableException when the account holds something and NO holding could be priced
-     */
     private Valuation value(Long accountId, String symbolFilter) {
         BalanceResponse balance = accountService.getBalance(accountId);
         List<PositionResponse> open = accountService.getPositions(accountId).stream()
@@ -234,7 +209,6 @@ public class PortfolioService {
                 quote.asOf(), quote.stale()), unrealisedBase);
     }
 
-    /** Amount in {@code from} expressed in {@code to}, or null if either currency is not one the platform can convert. */
     private static BigDecimal convert(BigDecimal amount, String from, String to) {
         if (from.equalsIgnoreCase(to)) {
             return amount;
@@ -250,7 +224,6 @@ public class PortfolioService {
         return (value == null ? BigDecimal.ZERO : value).setScale(MONEY_SCALE, RoundingMode.HALF_UP);
     }
 
-    /** Percentage points against {@code base}; null when there is nothing to measure against. */
     private static BigDecimal percent(BigDecimal part, BigDecimal base) {
         if (base == null || base.signum() == 0) {
             return null;

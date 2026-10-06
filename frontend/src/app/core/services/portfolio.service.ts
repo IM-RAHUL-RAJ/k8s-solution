@@ -4,10 +4,8 @@ import { Observable } from 'rxjs';
 import { API_ENDPOINTS } from '../config/api-endpoints';
 import { PnlResponse, PortfolioSummary, PricedPosition } from '../models/portfolio.model';
 
-/**
- * Priced holdings and profit and loss (contracts/portfolio-api.yaml). Prices reach the browser only
- * through these routes: the browser never calls the quote provider and never holds its key.
- */
+// Priced holdings and profit and loss (contracts/portfolio-api.yaml)
+ 
 @Injectable({ providedIn: 'root' })
 export class PortfolioService {
   private readonly http = inject(HttpClient);

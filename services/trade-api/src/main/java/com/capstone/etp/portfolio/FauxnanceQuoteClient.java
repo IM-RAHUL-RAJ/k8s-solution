@@ -18,16 +18,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.OptionalInt;
 
-/**
- * The Fauxnance API, called from the server only. The key is read from the environment
- * ({@code FAUXNANCE_API_KEY}) and is sent as a request header; it is never part of a response, a log
- * line, an exception message or anything the browser receives. The base URL is configuration, not
- * input, and the only thing taken from a caller is the list of symbols, which come from the
- * instruments table and are URL-encoded.
- *
- * One call carries up to 25 symbols and costs one unit of the daily quota of 2000, however many symbols it
- * holds; callers batch for that reason.
- */
+
 @Slf4j
 @Component
 class FauxnanceQuoteClient implements QuoteProvider {
@@ -77,7 +68,6 @@ class FauxnanceQuoteClient implements QuoteProvider {
         return parse(body);
     }
 
-    /** Remaining daily quota, from {@code GET /usage}. Empty if the answer carries no recognisable figure. */
     OptionalInt usageRemaining() throws QuoteProviderException {
         String body;
         try {
@@ -100,7 +90,6 @@ class FauxnanceQuoteClient implements QuoteProvider {
         }
     }
 
-    /** Accepts the batch shapes Fauxnance answers with: a bare array, or {@code data.quotes[]} entries. */
     Map<String, ProviderQuote> parse(String body) throws QuoteProviderException {
         if (body == null || body.isBlank()) {
             return Map.of();
