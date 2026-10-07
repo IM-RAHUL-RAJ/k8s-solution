@@ -17,6 +17,8 @@ services:
       # Sprint 10 extensions: preferences, notifications, price alerts, realised P&L
       - ./databases/postgreSQL/migrations/003_extensions.sql:/docker-entrypoint-initdb.d/005_extensions.sql:ro
       - ./databases/postgreSQL/migrations/004_sprint10_ui_enhancements.sql:/docker-entrypoint-initdb.d/006_sprint10_ui_enhancements.sql:ro
+      # Automated trading: the strategies customers set up
+      - ./databases/postgreSQL/migrations/005_automation.sql:/docker-entrypoint-initdb.d/007_automation.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-springboot_db}"]
       interval: 10s
