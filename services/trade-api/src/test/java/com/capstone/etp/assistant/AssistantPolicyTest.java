@@ -19,8 +19,6 @@ class AssistantPolicyTest {
             "Can you recommend a good stock?",
             "which stock is best to buy",
             "What to invest in this week",
-            "Is it a good time to sell?",
-            "predict the price of bitcoin",
             "SHOULD   I   SELL   MSFT",
             "buy or sell nvda",
             "any investment ideas?",

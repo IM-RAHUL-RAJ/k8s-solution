@@ -13,7 +13,33 @@ class NotificationComposer {
     record Draft(NotificationKind kind, String subject, String body) {
     }
 
+    private final AutomatedOrderLookup automated;
+
+    NotificationComposer() {
+        this((AutomatedOrderLookup) orderId -> java.util.Optional.empty());
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    NotificationComposer(org.springframework.beans.factory.ObjectProvider<AutomatedOrderLookup> automated) {
+        this(automated.getIfAvailable(() -> orderId -> java.util.Optional.empty()));
+    }
+
+    NotificationComposer(AutomatedOrderLookup automated) {
+        this.automated = automated;
+    }
+
     Draft compose(String eventType, TradeEvent event) {
+        Draft draft = plain(eventType, event);
+        java.util.Optional<String> strategy = automated.describe(event.orderId());
+        if (strategy.isEmpty()) {
+            return draft;
+        }
+        // Explicit that no person pressed the button: the subject is marked and the message names the strategy.
+        return new Draft(draft.kind(), "Automated " + Character.toLowerCase(draft.subject().charAt(0)) + draft.subject().substring(1),
+                "This trade was placed automatically by " + strategy.get() + ". " + draft.body());
+    }
+
+    private Draft plain(String eventType, TradeEvent event) {
         String order = event.side() + " " + event.quantity() + " " + event.symbol();
         return switch (eventType) {
             case "ORDER_FILLED" -> new Draft(NotificationKind.ORDER_FILLED,

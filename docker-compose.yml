@@ -19,6 +19,7 @@ services:
       - ./databases/postgreSQL/migrations/004_sprint10_ui_enhancements.sql:/docker-entrypoint-initdb.d/006_sprint10_ui_enhancements.sql:ro
       # Automated trading: the strategies customers set up
       - ./databases/postgreSQL/migrations/005_automation.sql:/docker-entrypoint-initdb.d/007_automation.sql:ro
+      - ./databases/postgreSQL/migrations/006_automation_history.sql:/docker-entrypoint-initdb.d/008_automation_history.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-springboot_db}"]
       interval: 10s

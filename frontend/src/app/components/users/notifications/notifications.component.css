@@ -131,3 +131,16 @@
   display: flex;
   justify-content: flex-end;
 }
+
+/* A trade an automated strategy placed, so it is never mistaken for one placed by hand. */
+.automated {
+  display: inline-block;
+  margin-right: 8px;
+  padding: 1px 8px;
+  vertical-align: middle;
+  color: var(--blue);
+  background: var(--blue-bg);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 800;
+}

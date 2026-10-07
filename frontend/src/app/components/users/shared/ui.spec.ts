@@ -292,8 +292,18 @@ describe('navigation shell', () => {
     const root = fixture.nativeElement as HTMLElement;
 
     const labels = Array.from(root.querySelectorAll('.nav-item__label')).map((node) => node.textContent!.trim());
-    expect(labels).toEqual(expect.arrayContaining(['Dashboard', 'Orders', 'Portfolio', 'Watchlist', 'Alerts', 'Inbox']));
+    expect(labels).toEqual(expect.arrayContaining(['Dashboard', 'Orders', 'Portfolio', 'Watchlist', 'Alerts']));
+    // the inbox lives in the top bar now, not in the side menu
+    expect(labels).not.toContain('Inbox');
     expect(root.querySelectorAll('.nav-item app-icon').length).toBeGreaterThanOrEqual(6);
+  });
+
+  it('the top bar has the inbox with its unread count', () => {
+    const fixture = TestBed.createComponent(AppHeaderComponent);
+    fixture.detectChanges();
+    const root = fixture.nativeElement as HTMLElement;
+
+    expect(root.querySelector('[data-testid="inbox-link"]')?.getAttribute('href')).toBe('/notifications');
     expect(root.querySelector('[data-testid="unread-badge"]')?.textContent).toBe('3');
   });
 

@@ -101,11 +101,16 @@ public class RestGeminiClient implements GeminiClient {
      * safe to make once more. An answer from Google, good or bad, is never repeated.
      */
     private Optional<String> callWithRetry(String model, Map<String, Object> body) {
+        long started = System.nanoTime();
         try {
             return call(model, body);
         } catch (RestClientResponseException e) {
             throw e;
         } catch (RestClientException first) {
+            // Only a connection that broke quickly is worth one more go; a slow one would just keep the customer waiting.
+            if (System.nanoTime() - started > 3_000_000_000L) {
+                throw first;
+            }
             log.warn("[ASSISTANT] the connection broke ({}), trying once more", first.getClass().getSimpleName());
             return call(model, body);
         }

@@ -35,6 +35,7 @@ class AutomationControllerTest {
     private AccountService accounts;
     private AutomationController controller;
     private com.capstone.etp.service.MarketQuoteCache quotes;
+    private AutomationEventMapper events;
 
     @BeforeEach
     void setUp() {
@@ -49,7 +50,8 @@ class AutomationControllerTest {
         when(service.progressOf(any())).thenReturn(Optional.empty());
         when(service.recentResults()).thenReturn(List.of());
         quotes = mock(com.capstone.etp.service.MarketQuoteCache.class);
-        controller = new AutomationController(properties, store, service, new AccountAuthorizer(), accounts, quotes);
+        events = mock(AutomationEventMapper.class);
+        controller = new AutomationController(properties, store, service, new AccountAuthorizer(), accounts, quotes, events);
     }
 
     @AfterEach
@@ -221,9 +223,15 @@ class AutomationControllerTest {
     void statusShowsOnlyOwnStrategiesAndOwnResultsWithProgress() {
         when(store.findByAccount(1L)).thenReturn(List.of(stored(5, 1, true)));
         when(service.progressOf("5")).thenReturn(Optional.of(new AutomationService.Progress(12, 51)));
-        when(service.recentResults()).thenReturn(List.of(
-                new AutomationResult("5", "AAPL", 1L, SignalType.BUY, OrderOutcome.ORDER_SUBMITTED, null, "ok", java.time.Instant.now()),
-                new AutomationResult("9", "AAPL", 2L, SignalType.BUY, OrderOutcome.ORDER_SUBMITTED, null, "ok", java.time.Instant.now())));
+        AutomationEvent saved = new AutomationEvent();
+        saved.setStrategyId(5L);
+        saved.setAccountId(1L);
+        saved.setStrategyType("MA_CROSSOVER");
+        saved.setSymbol("AAPL");
+        saved.setTriggerSide("BUY");
+        saved.setOutcome("ORDER_SUBMITTED");
+        saved.setCreatedAt(java.time.Instant.now());
+        when(events.findByAccount(1L, 200)).thenReturn(List.of(saved));
 
         var body = controller.status().getBody();
 
@@ -233,6 +241,17 @@ class AutomationControllerTest {
         assertEquals(51, body.strategies().get(0).required());
         assertEquals(1, body.results().size());
         verify(store, never()).findByAccount(2L);
+        verify(events, never()).findByAccount(eq(2L), anyInt());
+        assertEquals("MA_CROSSOVER", body.results().get(0).strategyType());
+    }
+
+    @Test
+    void whenTheHistoryTableCannotBeReadRecentActivityIsShownInstead() {
+        when(events.findByAccount(any(), anyInt())).thenThrow(new IllegalStateException("no table"));
+        when(service.recentResults()).thenReturn(List.of(
+                new AutomationResult("5", "AAPL", 1L, SignalType.BUY, OrderOutcome.ORDER_SUBMITTED, null, "ok", java.time.Instant.now())));
+
+        assertEquals(1, controller.status().getBody().results().size());
     }
 
     @Test

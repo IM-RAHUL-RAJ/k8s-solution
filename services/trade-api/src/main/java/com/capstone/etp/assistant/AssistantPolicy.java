@@ -45,8 +45,6 @@ public final class AssistantPolicy {
             "\\b(stock|share|coin|etf|fund|crypto)s? (should|to) (i )?(buy|sell|invest)\\b",
             "\\bwhich (stock|share|coin|etf|fund|crypto|company)s?\\b.*\\b(should|to|can) (i )?(buy|sell|invest|pick)\\b",
             "\\bwhat to (buy|sell|invest)\\b",
-            "\\b(good|right|best|wise) (time|moment) to (buy|sell|invest)\\b",
-            "\\b(predict|forecast|price target)\\b",
             "\\b(buy|sell) or (sell|buy|hold)\\b",
             "\\bgive me .*\\b(tip|tips|advice|pick|picks|recommendation|recommendations)\\b",
             "\\bwhere (should|do) i (put|invest|park)\\b");

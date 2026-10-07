@@ -27,6 +27,11 @@ public class AutomationProperties {
      * so it is off unless asked for (AUTOMATION_SIMULATION=true), and meant for demonstrations and testing.
      */
     private boolean simulationEnabled = false;
+    /**
+     * Allowance on an automated order's limit, in percent: a BUY is sent at the ask plus this, a SELL at the bid minus this, so a
+     * quote that moves a little before the executor checks it does not get the order refused.
+     */
+    private java.math.BigDecimal limitBufferPercent = new java.math.BigDecimal("0.10");
     /** Strategies one account may hold, on or off. */
     private int maxPerAccount = 10;
 }

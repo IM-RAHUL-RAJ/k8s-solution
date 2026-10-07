@@ -89,7 +89,8 @@ class AutomationServiceTest {
         assertEquals("AAPL", request.getSymbol());
         assertEquals(OrderSide.BUY, request.getSide());
         assertEquals(100, request.getQuantity());
-        assertEquals(new BigDecimal("12.00"), request.getPrice());
+        // no ask in this quote, so the last price plus the 0.1% allowance
+        assertEquals(new BigDecimal("12.01"), request.getPrice());
         assertTrue(request.getIdempotencyKey() != null);
     }
 
@@ -312,5 +313,50 @@ class AutomationServiceTest {
         feed(service, "AAPL", 10, 10, 10, 10, 12);
 
         verify(tradeApi, times(2)).submit(any());
+    }
+
+    // ----------------------------------------------------------------------- the limit meets the executor's rule
+
+    @Test
+    void aBuyIsSentAtTheAskAndASellAtTheBidSoTheExecutorFillsThem() {
+        AutomationService service = service(ma("aapl-ma", "AAPL", 7, true));
+        MarketQuote ask = MarketQuote.builder().symbol("AAPL").price(new BigDecimal("100")).bid(new BigDecimal("99.90")).ask(new BigDecimal("100.10")).build();
+
+        assertEquals(0, service.marketableLimit(SignalType.BUY, ask).compareTo(new BigDecimal("100.2001")));
+        assertEquals(0, service.marketableLimit(SignalType.SELL, ask).compareTo(new BigDecimal("99.8001")));
+        // BUY limit at or above the ask; SELL limit at or below the bid
+        assertTrue(service.marketableLimit(SignalType.BUY, ask).compareTo(ask.getAsk()) >= 0);
+        assertTrue(service.marketableLimit(SignalType.SELL, ask).compareTo(ask.getBid()) <= 0);
+    }
+
+    @Test
+    void theTriggerIsSavedBeforeTheOrderGoesAndTheOutcomeAfter() {
+        AutomationEventMapper events = mock(AutomationEventMapper.class);
+        when(events.insertTrigger(any(), any(), any(), any(), any(), any(), any(), any(), any())).thenReturn(41L);
+        UUID orderId = UUID.randomUUID();
+        when(tradeApi.submit(any())).thenReturn(TradeApiClient.SubmissionResult.submitted(orderId, "status NEW"));
+        AutomationService service = service(ma("5", "AAPL", 7, true));
+        service.useHistory(events);
+
+        feed(service, "AAPL", 10, 10, 10, 10, 12);
+
+        var inOrder = org.mockito.Mockito.inOrder(events, tradeApi);
+        inOrder.verify(events).insertTrigger(org.mockito.ArgumentMatchers.eq(5L), org.mockito.ArgumentMatchers.eq(7L),
+                org.mockito.ArgumentMatchers.eq("MA_CROSSOVER"), org.mockito.ArgumentMatchers.eq("AAPL"), org.mockito.ArgumentMatchers.eq("BUY"),
+                any(), any(), org.mockito.ArgumentMatchers.eq(100), any());
+        inOrder.verify(tradeApi).submit(any());
+        inOrder.verify(events).recordOutcome(41L, "ORDER_SUBMITTED", orderId, null);
+    }
+
+    @Test
+    void aHistoryThatCannotBeWrittenNeverStopsTheTrade() {
+        AutomationEventMapper events = mock(AutomationEventMapper.class);
+        when(events.insertTrigger(any(), any(), any(), any(), any(), any(), any(), any(), any())).thenThrow(new IllegalStateException("db"));
+        AutomationService service = service(ma("5", "AAPL", 7, true));
+        service.useHistory(events);
+
+        feed(service, "AAPL", 10, 10, 10, 10, 12);
+
+        verify(tradeApi, times(1)).submit(any());
     }
 }

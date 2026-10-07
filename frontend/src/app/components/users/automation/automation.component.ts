@@ -1,4 +1,4 @@
-import { DatePipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { AutomationStatus, AutomationStrategy, CreateStrategyRequest, OrderOutcome } from '../../../core/models/advice.model';
 import { AccountContextService } from '../../../core/services/account-context.service';
@@ -31,7 +31,7 @@ type StrategyType = CreateStrategyRequest['type'];
 @Component({
   selector: 'app-automation',
   standalone: true,
-  imports: [DatePipe, IconComponent, MascotComponent, EmptyStateComponent, ModalComponent, SelectComponent, EchartComponent],
+  imports: [DatePipe, DecimalPipe, IconComponent, MascotComponent, EmptyStateComponent, ModalComponent, SelectComponent, EchartComponent],
   templateUrl: './automation.component.html',
   styleUrl: './automation.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -56,6 +56,13 @@ export class AutomationComponent {
   protected readonly strategies = computed(() => this.status()?.strategies ?? []);
   protected readonly results = computed(() => this.status()?.results ?? []);
   protected readonly simulationEnabled = computed(() => this.status()?.simulationEnabled ?? false);
+
+  /** The history, all strategies or one. */
+  protected readonly historyFilter = signal<string>('all');
+  protected readonly history = computed(() => {
+    const filter = this.historyFilter();
+    return this.results().filter((result) => filter === 'all' || result.strategyId === filter);
+  });
 
   /** One chart per running strategy: the prices it has collected and the lines its rule compares them with. */
   protected readonly charts = computed<Record<string, ChartOption>>(() => {
@@ -131,6 +138,15 @@ export class AutomationComponent {
 
   protected outcome(value: OrderOutcome): { label: string; hint: string } {
     return OUTCOME[value];
+  }
+
+  /** The most recent automated trade of one strategy, for its card. */
+  protected lastTrade(strategyId: string) {
+    return this.results().find((result) => result.strategyId === strategyId) ?? null;
+  }
+
+  protected shortType(type: string | null): string {
+    return type === 'MA_CROSSOVER' ? 'MA crossover' : type === 'BOLLINGER_BANDS' ? 'Bollinger' : 'Strategy';
   }
 
   protected typeLabel(type: string | null): string {

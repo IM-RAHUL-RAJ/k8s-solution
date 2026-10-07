@@ -82,16 +82,20 @@ describe('CandleChartComponent', () => {
     ]);
   });
 
-  it('offers just 1 Day, 1 Month and 3 Months, and re-fetches when one is chosen', async () => {
+  it('offers 1 Week, 1 Month, 3 Months and 6 Months, and re-fetches when one is chosen', async () => {
     await build();
-    expect(Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('[role="radio"]')).map((b) => b.textContent!.trim())).toEqual(['1 Day', '1 Month', '3 Months']);
+    expect(Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('[role="radio"]')).map((b) => b.textContent!.trim())).toEqual(['1 Week', '1 Month', '3 Months', '6 Months']);
 
-    el('preset-1D')!.click();
+    el('preset-1W')!.click();
     await settle();
 
-    // today is read in 15-minute bars
-    expect(getCandles).toHaveBeenLastCalledWith('AAPL', '15m', 32);
-    expect(el('preset-1D')?.getAttribute('aria-checked')).toBe('true');
+    // a week is read in hourly bars
+    expect(getCandles).toHaveBeenLastCalledWith('AAPL', '1h', 168);
+    expect(el('preset-1W')?.getAttribute('aria-checked')).toBe('true');
+
+    el('preset-6M')!.click();
+    await settle();
+    expect(getCandles).toHaveBeenLastCalledWith('AAPL', '1d', 183);
     expect(el('preset-1M')?.getAttribute('aria-checked')).toBe('false');
   });
 

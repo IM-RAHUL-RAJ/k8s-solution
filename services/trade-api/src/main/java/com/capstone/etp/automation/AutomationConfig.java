@@ -43,7 +43,10 @@ class AutomationConfig {
 
     @Bean
     AutomationService automationService(AutomationProperties properties, AutomationMapper store, HistorySeeder seeder,
-                                        TradeApiClient tradeApi, ExecutorService automationOrderExecutor, Clock clock) {
-        return new AutomationService(properties, store, seeder, tradeApi, automationOrderExecutor, clock);
+                                        TradeApiClient tradeApi, ExecutorService automationOrderExecutor, Clock clock,
+                                        AutomationEventMapper events) {
+        AutomationService service = new AutomationService(properties, store, seeder, tradeApi, automationOrderExecutor, clock);
+        service.useHistory(events);
+        return service;
     }
 }

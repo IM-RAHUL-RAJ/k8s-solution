@@ -125,3 +125,26 @@
     display: inline-grid;
   }
 }
+
+.inbox-link {
+  position: relative;
+}
+
+.inbox-link--active {
+  background: var(--muted-bg);
+}
+
+.inbox-link__count {
+  position: absolute;
+  top: 2px;
+  right: 0;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  color: #fff;
+  background: var(--signal);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 18px;
+  text-align: center;
+}

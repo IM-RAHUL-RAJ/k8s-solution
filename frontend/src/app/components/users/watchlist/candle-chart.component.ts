@@ -210,7 +210,7 @@ export class CandleChartComponent {
   }
 
   private legendFor(time: import('lightweight-charts').Time, bar: { open: number; high: number; low: number; close: number }): Legend {
-    const intraday = this.preset() === '1D';
+    const intraday = CANDLE_PRESETS.find((candidate) => candidate.value === this.preset())?.intraday ?? false;
     const key = String(time);
     const match = this.candles().find((candle) => (intraday ? String(Math.floor(Date.parse(candle.timestamp) / 1000)) : candle.timestamp.slice(0, 10)) === key);
     return { time: this.fullLabel(time, intraday), ...bar, volume: match?.volume ?? null, up: bar.close >= bar.open };

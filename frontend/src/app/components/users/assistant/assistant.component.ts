@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, ElementRef, afterNextRender, computed, effect, inject, signal, viewChild, Injector } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { AnimationName } from '../../../core/mascot/pixel-mascot';
 import { ChatMessage, QuickAction } from '../../../core/models/assistant.model';
@@ -152,7 +153,12 @@ export class AssistantComponent {
         this.loading.set(false);
       },
       error: (error: unknown) => {
-        this.push({ role: 'bot', text: this.errors.getMessage(error), error: true, retry: { message, quickAction } });
+        const text = error instanceof HttpErrorResponse && error.status === 0
+          ? 'I could not reach the trading service just now. It may be restarting or busy; press Try again in a moment.'
+          : error instanceof HttpErrorResponse && error.status === 429
+            ? 'You are asking a little fast. Give me a few seconds and try again.'
+            : this.errors.getMessage(error);
+        this.push({ role: 'bot', text, error: true, retry: { message, quickAction } });
         this.loading.set(false);
       }
     });

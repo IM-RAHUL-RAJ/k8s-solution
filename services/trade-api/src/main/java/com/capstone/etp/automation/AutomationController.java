@@ -49,8 +49,8 @@ public class AutomationController {
                                Integer collected, Integer required, AutomationService.StrategyChart chart) {
     }
 
-    public record ResultView(String strategyId, String symbol, Long accountId, String trigger, String outcome,
-                             UUID orderId, String detail, Instant at) {
+    public record ResultView(String strategyId, String strategyType, String symbol, Long accountId, String trigger, String outcome,
+                             UUID orderId, java.math.BigDecimal limitPrice, Integer quantity, String detail, Instant at) {
     }
 
     public record StatusResponse(boolean running, boolean simulationEnabled, List<StrategyView> strategies, List<ResultView> results) {
@@ -68,9 +68,11 @@ public class AutomationController {
     private final AccountAuthorizer authorizer;
     private final AccountService accounts;
     private final MarketQuoteCache quotes;
+    private final AutomationEventMapper events;
 
     AutomationController(AutomationProperties properties, AutomationMapper store, AutomationService service,
-                         AccountAuthorizer authorizer, AccountService accounts, MarketQuoteCache quotes) {
+                         AccountAuthorizer authorizer, AccountService accounts, MarketQuoteCache quotes, AutomationEventMapper events) {
+        this.events = events;
         this.quotes = quotes;
         this.properties = properties;
         this.store = store;
@@ -88,13 +90,36 @@ public class AutomationController {
                 strategies.add(view(definition));
             }
         }
-        List<ResultView> results = service.recentResults().stream()
-                .filter(result -> own.contains(result.accountId()))
-                .limit(50)
-                .map(result -> new ResultView(result.strategyId(), result.symbol(), result.accountId(),
-                        result.trigger().name(), result.outcome().name(), result.orderId(), result.detail(), result.at()))
-                .toList();
+        List<ResultView> results = history(own);
         return ResponseEntity.ok(new StatusResponse(properties.isEnabled(), properties.isSimulationEnabled(), strategies, results));
+    }
+
+    /**
+     * The trade history: every trigger and what became of its order, newest first, from the database so it survives a restart.
+     * If the history table cannot be read, what this process remembers is shown instead.
+     */
+    private List<ResultView> history(List<Long> own) {
+        try {
+            List<ResultView> saved = new ArrayList<>();
+            for (Long accountId : own) {
+                for (AutomationEvent event : events.findByAccount(accountId, 200)) {
+                    saved.add(new ResultView(event.getStrategyId() == null ? null : String.valueOf(event.getStrategyId()), event.getStrategyType(),
+                            event.getSymbol(), event.getAccountId(), event.getTriggerSide(), event.getOutcome(), event.getOrderId(),
+                            event.getLimitPrice(), event.getQuantity(), event.getDetail(), event.getCreatedAt()));
+                }
+            }
+            saved.sort((left, right) -> right.at().compareTo(left.at()));
+            return saved;
+        } catch (RuntimeException e) {
+            log.warn("[AUTOMATION] the history table could not be read, showing recent activity only: {}", e.getClass().getSimpleName());
+            return service.recentResults().stream()
+                    .filter(result -> own.contains(result.accountId()))
+                    .filter(result -> result.outcome() != OrderOutcome.STRATEGY_TRIGGERED)
+                    .limit(50)
+                    .map(result -> new ResultView(result.strategyId(), null, result.symbol(), result.accountId(),
+                            result.trigger().name(), result.outcome().name(), result.orderId(), null, null, result.detail(), result.at()))
+                    .toList();
+        }
     }
 
     /** Creates a strategy, switched OFF. */

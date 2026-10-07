@@ -34,8 +34,8 @@ describe('AutomationComponent', () => {
     simulationEnabled,
     strategies,
     results: [
-      { strategyId: '5', symbol: 'AAPL', accountId: 1, trigger: 'BUY', outcome: 'ORDER_SUBMITTED', orderId: 'o1', detail: 'status NEW', at: '2026-10-07T10:00:00Z' },
-      { strategyId: '5', symbol: 'AAPL', accountId: 1, trigger: 'SELL', outcome: 'ORDER_SUBMISSION_FAILED', orderId: null, detail: 'HTTP 503', at: '2026-10-07T11:00:00Z' }
+      { strategyId: '5', strategyType: 'MA_CROSSOVER', symbol: 'AAPL', limitPrice: 100.2, quantity: 100, accountId: 1, trigger: 'BUY', outcome: 'ORDER_SUBMITTED', orderId: 'o1', detail: 'status NEW', at: '2026-10-07T11:00:00Z' },
+      { strategyId: '5', strategyType: 'MA_CROSSOVER', symbol: 'AAPL', limitPrice: 99.8, quantity: 100, accountId: 1, trigger: 'SELL', outcome: 'ORDER_SUBMISSION_FAILED', orderId: null, detail: 'HTTP 503', at: '2026-10-07T10:00:00Z' }
     ]
   });
 
@@ -84,10 +84,10 @@ describe('AutomationComponent', () => {
     expect(el(fixture, 'strategy-progress')?.textContent).toContain('12 of 51');
   });
 
-  it('says when it is ready to act', async () => {
+  it('says when it is watching and will trade by itself', async () => {
     const fixture = await build(of(status(true, [strategy({ enabled: true, collected: 51, required: 51 })])));
 
-    expect(el(fixture, 'strategy-progress')?.textContent).toContain('ready to act');
+    expect(el(fixture, 'strategy-progress')?.textContent).toContain('trades by itself when the condition is met');
   });
 
   it('says automation is switched off on the platform when the kill switch is set', async () => {
@@ -259,5 +259,31 @@ describe('AutomationComponent', () => {
 
     expect(simulateStrategy).toHaveBeenCalledWith('5', 'BUY');
     expect(el(fixture, 'confirm-demo')).toBeNull();
+  });
+
+  it('gives each strategy its own card with its number and kind, and shows its last automated trade', async () => {
+    const fixture = await build(of(status(true, [strategy({ id: '5', enabled: true }), strategy({ id: '6', type: 'BOLLINGER_BANDS', parameters: 'period 20, multiplier 2' })])));
+
+    expect(el(fixture, 'strategy-5')?.textContent).toContain('#5');
+    expect(el(fixture, 'strategy-5')!.querySelector('[data-testid="strategy-type"]')!.textContent).toContain('MA crossover');
+    expect(el(fixture, 'strategy-6')!.querySelector('[data-testid="strategy-type"]')!.textContent).toContain('Bollinger');
+    expect(el(fixture, 'strategy-5')!.querySelector('[data-testid="strategy-last"]')!.textContent).toContain('BUY 100 AAPL');
+    expect(el(fixture, 'strategy-6')!.querySelector('[data-testid="strategy-last"]')).toBeNull();
+  });
+
+  it('keeps a history table of automated trades, which can be narrowed to one strategy', async () => {
+    const fixture = await build(of(status(true, [strategy({ id: '5' }), strategy({ id: '6' })])));
+
+    expect(all(fixture, 'history-row').length).toBe(2);
+    expect(all(fixture, 'history-row')[0].textContent).toContain('100.20');
+
+    el(fixture, 'history-6')!.click();
+    fixture.detectChanges();
+    expect(all(fixture, 'history-row').length).toBe(0);
+    expect(el(fixture, 'automation-no-results')).not.toBeNull();
+
+    el(fixture, 'history-all')!.click();
+    fixture.detectChanges();
+    expect(all(fixture, 'history-row').length).toBe(2);
   });
 });

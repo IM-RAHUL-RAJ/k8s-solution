@@ -158,14 +158,35 @@ class AssistantServiceTest {
     }
 
     @Test
-    void somethingNotAboutTheAppIsDeclinedWithoutTouchingDataOrTheModel() {
+    void somethingNotAboutTheAppReadsNoDataAndFallsBackToAFriendlySteerWhenTheModelHasNothing() {
         ChatResponse response = service.chat(1L, ask("tell me a joke about cats"));
 
         assertEquals(AssistantIntent.OFF_TOPIC, response.intent());
         assertEquals(AssistantPolicy.OFF_TOPIC_REFUSAL, response.answer());
         assertEquals(8, response.quickActions().size());
-        verify(gemini, never()).generate(anyString(), anyString());
         verifyNoInteractions(portfolio);
+        verify(accounts, never()).getOrders(any(), any(), any(), any());
+    }
+
+    @Test
+    void withoutAModelSomethingNotAboutTheAppIsDeclinedOutright() {
+        when(gemini.isConfigured()).thenReturn(false);
+
+        ChatResponse response = service.chat(1L, ask("tell me a joke about cats"));
+
+        assertEquals(AssistantPolicy.OFF_TOPIC_REFUSAL, response.answer());
+        verify(gemini, never()).generate(anyString(), anyString());
+    }
+
+    @Test
+    void aDataServiceThatIsDownGivesAPlainAnswerNotAFailedRequest() {
+        when(portfolio.summary(1L)).thenThrow(new com.capstone.etp.portfolio.PricingUnavailableException());
+
+        ChatResponse response = service.chat(1L, new ChatRequest("x", null, "portfolio_performance"));
+
+        assertTrue(response.answer().contains("could not read"), response.answer());
+        assertEquals("RULES", response.answeredBy());
+        assertTrue(response.dataCards().isEmpty());
     }
 
     // ----------------------------------------------------------------------- account scope

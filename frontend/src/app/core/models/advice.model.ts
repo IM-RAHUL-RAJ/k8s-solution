@@ -76,8 +76,12 @@ export interface CreateStrategyRequest {
 }
 
 export interface AutomationResult {
-  strategyId: string;
+  strategyId: string | null;
+  /** MA_CROSSOVER or BOLLINGER_BANDS; null for activity recorded before the history table existed. */
+  strategyType: string | null;
   symbol: string;
+  limitPrice: number | null;
+  quantity: number | null;
   accountId: number;
   trigger: 'BUY' | 'SELL' | 'NONE';
   outcome: OrderOutcome;

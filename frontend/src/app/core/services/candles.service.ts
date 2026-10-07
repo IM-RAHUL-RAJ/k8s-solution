@@ -6,15 +6,16 @@ import { API_ENDPOINTS } from '../config/api-endpoints';
 /** The sizes of bar the platform can serve. */
 export type CandlePeriod = '1d' | '4h' | '1h' | '15m';
 
-/** What the chart offers: one day, one month, three months. */
-export type CandlePreset = '1D' | '1M' | '3M';
+/** What the chart offers: a week, a month, three months, six months. */
+export type CandlePreset = '1W' | '1M' | '3M' | '6M';
 
 export const CANDLE_PRESETS: ReadonlyArray<{ value: CandlePreset; label: string; period: CandlePeriod; bars: number; intraday: boolean }> = [
-  // Today: 15-minute bars, about a trading session's worth
-  { value: '1D', label: '1 Day', period: '15m', bars: 32, intraday: true },
-  // A month and three months: one bar a day
+  // A week: hourly bars (a market that trades round the clock fills all of them)
+  { value: '1W', label: '1 Week', period: '1h', bars: 168, intraday: true },
+  // A month, three and six months: one bar a day
   { value: '1M', label: '1 Month', period: '1d', bars: 31, intraday: false },
-  { value: '3M', label: '3 Months', period: '1d', bars: 92, intraday: false }
+  { value: '3M', label: '3 Months', period: '1d', bars: 92, intraday: false },
+  { value: '6M', label: '6 Months', period: '1d', bars: 183, intraday: false }
 ];
 
 export interface Candle {

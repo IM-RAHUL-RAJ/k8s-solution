@@ -198,7 +198,23 @@ public class AutomationService implements QuoteObserver {
             return;
         }
 
-        fire(active, signal, quote.getPrice(), keyFor(definition, active.symbol(), signal.type(), quote, prices.size()), "");
+        fire(active, signal, marketableLimit(signal.type(), quote), keyFor(definition, active.symbol(), signal.type(), quote, prices.size()), "");
+    }
+
+    /**
+     * The limit an automated order is sent with. The executor fills a BUY when the limit is at or above the ask, and a SELL when it
+     * is at or below the bid, so a BUY uses the ask and a SELL the bid (the last price sits between them and would be refused),
+     * with a small allowance (app.automation.limit-buffer-percent) for the quote moving before the executor looks again.
+     */
+    BigDecimal marketableLimit(SignalType side, MarketQuote quote) {
+        BigDecimal reference = side == SignalType.BUY ? quote.getAsk() : quote.getBid();
+        if (reference == null || reference.signum() <= 0) {
+            reference = quote.getPrice();
+        }
+        BigDecimal buffer = properties.getLimitBufferPercent().movePointLeft(2);
+        return side == SignalType.BUY
+                ? reference.multiply(BigDecimal.ONE.add(buffer))
+                : reference.multiply(BigDecimal.ONE.subtract(buffer));
     }
 
     /** A trigger: record it, build the order and hand it to the one order thread. The same path for a live tick and a demo. */
@@ -218,7 +234,40 @@ public class AutomationService implements QuoteObserver {
                 .price(price.setScale(2, RoundingMode.HALF_UP))
                 .idempotencyKey(key)
                 .build();
-        executor.execute(() -> submit(definition, active.symbol(), signal, request));
+        Long eventId = recordTrigger(definition, active.symbol(), signal, request, note);
+        executor.execute(() -> submit(definition, active.symbol(), signal, request, eventId));
+    }
+
+    /** The persistent history (automation_events). Optional: without it the in-memory list still works. */
+    private volatile AutomationEventMapper events;
+
+    public void useHistory(AutomationEventMapper events) {
+        this.events = events;
+    }
+
+    private Long recordTrigger(StrategyDefinition definition, String symbol, StrategySignal signal, PlaceOrderRequest request, String note) {
+        if (events == null) {
+            return null;
+        }
+        try {
+            Long strategyId = definition.getId() == null || !definition.getId().matches("\\d+") ? null : Long.valueOf(definition.getId());
+            return events.insertTrigger(strategyId, definition.getAccountId(), String.valueOf(definition.getType()), symbol,
+                    signal.type().name(), request.getIdempotencyKey(), request.getPrice(), request.getQuantity(), note + signal.reason());
+        } catch (RuntimeException e) {
+            log.warn("[AUTOMATION] could not save the trigger to the history: {}", e.getClass().getSimpleName());
+            return null;
+        }
+    }
+
+    private void recordOutcome(Long eventId, OrderOutcome outcome, UUID orderId, String detail) {
+        if (events == null || eventId == null) {
+            return;
+        }
+        try {
+            events.recordOutcome(eventId, outcome.name(), orderId, detail);
+        } catch (RuntimeException e) {
+            log.warn("[AUTOMATION] could not save the outcome to the history: {}", e.getClass().getSimpleName());
+        }
     }
 
     /** What a running strategy is looking at: the prices collected and the lines the rule compares them with. */
@@ -326,7 +375,7 @@ public class AutomationService implements QuoteObserver {
         return value == null ? null : value.setScale(2, RoundingMode.HALF_UP);
     }
 
-    private void submit(StrategyDefinition definition, String symbol, StrategySignal signal, PlaceOrderRequest request) {
+    private void submit(StrategyDefinition definition, String symbol, StrategySignal signal, PlaceOrderRequest request, Long eventId) {
         log.info("[AUTOMATION] order submission attempt strategy={} symbol={} accountId={} side={} quantity={} idempotencyKey={}",
                 definition.getId(), symbol, definition.getAccountId(), request.getSide(), request.getQuantity(),
                 request.getIdempotencyKey());
@@ -345,18 +394,21 @@ public class AutomationService implements QuoteObserver {
                         OrderOutcome.ORDER_SUBMITTED, definition.getId(), symbol, definition.getAccountId(),
                         signal.type(), result.orderId(), now);
                 remember(definition, symbol, signal.type(), OrderOutcome.ORDER_SUBMITTED, result.orderId(), result.detail(), now);
+                recordOutcome(eventId, OrderOutcome.ORDER_SUBMITTED, result.orderId(), null);
             }
             case REJECTED -> {
                 log.warn("[AUTOMATION] event={} strategy={} symbol={} accountId={} trigger={} detail={} at={}",
                         OrderOutcome.ORDER_REJECTED, definition.getId(), symbol, definition.getAccountId(),
                         signal.type(), result.detail(), now);
                 remember(definition, symbol, signal.type(), OrderOutcome.ORDER_REJECTED, null, result.detail(), now);
+                recordOutcome(eventId, OrderOutcome.ORDER_REJECTED, null, result.detail());
             }
             case FAILED -> {
                 log.error("[AUTOMATION] event={} strategy={} symbol={} accountId={} trigger={} detail={} at={}",
                         OrderOutcome.ORDER_SUBMISSION_FAILED, definition.getId(), symbol, definition.getAccountId(),
                         signal.type(), result.detail(), now);
                 remember(definition, symbol, signal.type(), OrderOutcome.ORDER_SUBMISSION_FAILED, null, result.detail(), now);
+                recordOutcome(eventId, OrderOutcome.ORDER_SUBMISSION_FAILED, null, result.detail());
             }
         }
     }

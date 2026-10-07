@@ -50,8 +50,7 @@ export class SidebarComponent {
     { label: 'Watchlist', path: '/watchlist', icon: 'star' },
     { label: 'Alerts', path: '/alerts', icon: 'bell' },
     { label: 'Advice', path: '/advice', icon: 'candles' },
-    { label: 'Automation', path: '/automation', icon: 'clock' },
-    { label: 'Inbox', path: '/notifications', icon: 'inbox', unread: true }
+    { label: 'Automation', path: '/automation', icon: 'clock' }
   ];
 
   private readonly adminItems: NavigationItem[] = [

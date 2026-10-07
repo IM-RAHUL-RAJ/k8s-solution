@@ -1,8 +1,9 @@
 import { ChangeDetectionStrategy, Component, ElementRef, HostListener, computed, inject, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { MascotService } from '../../../../core/mascot/mascot.service';
 import { ShellStateService } from '../../../../core/ui/shell-state.service';
+import { NotificationService } from '../../../../core/services/notification.service';
 import { IconComponent } from '../icon/icon.component';
 import { MascotComponent } from '../mascot/mascot.component';
 
@@ -27,7 +28,7 @@ export function avatarColorOf(name: string): string {
 @Component({
   selector: 'app-app-header',
   standalone: true,
-  imports: [RouterLink, IconComponent, MascotComponent],
+  imports: [RouterLink, RouterLinkActive, IconComponent, MascotComponent],
   templateUrl: './app-header.component.html',
   styleUrl: './app-header.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -41,6 +42,8 @@ export class AppHeaderComponent {
 
   protected readonly mustChangePassword = this.auth.mustChangePassword;
   protected readonly isAdmin = this.auth.isAdmin;
+  /** The unread count, kept fresh by the side menu's poll. */
+  protected readonly unread = inject(NotificationService).unread;
   protected readonly menuOpen = signal(false);
 
   protected readonly displayName = computed(() => this.auth.user()?.username ?? 'Account');
