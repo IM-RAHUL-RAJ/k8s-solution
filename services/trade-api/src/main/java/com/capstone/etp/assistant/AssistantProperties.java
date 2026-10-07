@@ -18,7 +18,7 @@ public class AssistantProperties {
     @Setter
     public static class Gemini {
         private String apiKey = "";
-        private String model = "gemini-2.0-flash";
+        private String model = "gemini-3.1-flash";
         private String baseUrl = "https://generativelanguage.googleapis.com";
         private int connectTimeoutMs = 2000;
         private int readTimeoutMs = 8000;
