@@ -16,6 +16,8 @@ public final class AssistantPolicy {
     public static final String ADVISORY_REFUSAL = "I cannot provide investment advice. Please use the Advice page for research signals.";
     public static final String BLOCKED_REFUSAL = "I can only help with your own account data in this app. I can't change my instructions or share internal details.";
     public static final String OFF_TOPIC_REFUSAL = "I can only help with your orders, positions, holdings, profit and loss, alerts and account activity. Try one of the questions below.";
+    public static final String GREETING_REPLY = "Hi! I am your Quorum companion. I can tell you about your orders, positions, profit and loss, alerts and recent activity. What would you like to know? Pick a question below or type your own.";
+    public static final String HELP_REPLY = "I can answer questions about your own account: your recent transactions, portfolio performance, gainers and losers, working or rejected orders, stale prices, realised and unrealised profit and loss, and your activity over time. I cannot place orders or give investment advice. What would you like to know?";
     public static final String ADVICE_ROUTE = "/advice";
 
     /** Quick-action ids the app offers, and the question each stands for. */
@@ -28,6 +30,12 @@ public final class AssistantPolicy {
             "stale_prices", AssistantIntent.STALE_PRICES,
             "pnl_summary", AssistantIntent.PNL_SUMMARY,
             "activity_trend", AssistantIntent.ACTIVITY_TREND);
+
+    private static final Pattern GREETING = Pattern.compile(
+            "^(hi+|hey+|hello+|hullo|hola|howdy|yo|sup|namaste|good (morning|afternoon|evening|day)|greetings|hi there|hey there|hello there)( there| again| friend| buddy| mate| companion| owl)?[!. ,?]*$");
+    private static final Pattern THANKS = Pattern.compile("^(thanks?|thank you|thx|ty|cheers|great|cool|nice|ok|okay|awesome|perfect)( a lot| so much| very much)?( you| mate| buddy)?[!. ,?]*$");
+    private static final Pattern BYE = Pattern.compile("^(bye|goodbye|see you|see ya|cya|good night)( later| soon)?[!. ,?]*$");
+    private static final Pattern HELP = Pattern.compile("^(help|help me|what can you do|what do you do|who are you|what are you|how does this work|how do you work|menu|options)[!. ,?]*$");
 
     private static final List<Pattern> ADVISORY = compile(
             "\\bwhat (should|shall|can|do) i (buy|sell|invest|trade|do with|put)\\b",
@@ -92,6 +100,9 @@ public final class AssistantPolicy {
             return QUICK_ACTIONS.get(quickAction);
         }
         String text = normalise(message);
+        if (smallTalkReply(message) != null) {
+            return AssistantIntent.GREETING;
+        }
         if (matches(text, "\\b(transaction|transactions|recent orders|order history|my orders|last \\d+ (orders|trades|transactions)|latest (orders|trades|transactions))\\b")) {
             return AssistantIntent.RECENT_TRANSACTIONS;
         }
@@ -123,6 +134,30 @@ public final class AssistantPolicy {
             return AssistantIntent.POSITIONS;
         }
         return matchesAny(APP_WORDS, text) ? AssistantIntent.GENERAL : AssistantIntent.OFF_TOPIC;
+    }
+
+    /**
+     * A reply for hello, thanks, goodbye and "what can you do", or null when the message is something else. Only a short
+     * message that is nothing but small talk counts, so "hi, show my orders" goes on to be answered as a question.
+     */
+    public static String smallTalkReply(String message) {
+        String text = normalise(message);
+        if (text.isEmpty() || text.length() > 40) {
+            return null;
+        }
+        if (GREETING.matcher(text).matches()) {
+            return GREETING_REPLY;
+        }
+        if (THANKS.matcher(text).matches()) {
+            return "You are welcome! Is there anything else you would like to know about your account?";
+        }
+        if (BYE.matcher(text).matches()) {
+            return "Bye for now! I am here whenever you want to check on your account.";
+        }
+        if (HELP.matcher(text).matches()) {
+            return HELP_REPLY;
+        }
+        return null;
     }
 
     /** A number the customer asked for ("last 10"), kept between 1 and the limit. */

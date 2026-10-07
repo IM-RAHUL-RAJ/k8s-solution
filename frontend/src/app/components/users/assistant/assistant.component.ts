@@ -76,6 +76,9 @@ export class AssistantComponent {
     if (last.error) {
       return 'sad';
     }
+    if (last.response?.intent === 'GREETING') {
+      return 'wave';
+    }
     if (last.response?.advisoryBlocked || last.response?.intent === 'BLOCKED' || last.response?.intent === 'OFF_TOPIC') {
       return 'think';
     }

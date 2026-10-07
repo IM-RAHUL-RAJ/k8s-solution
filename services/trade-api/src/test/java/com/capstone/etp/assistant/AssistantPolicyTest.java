@@ -95,9 +95,29 @@ class AssistantPolicyTest {
 
     @Test
     void thingsThatAreNotAboutTheAppAreOffTopic() {
-        for (String message : new String[] {"tell me a joke", "what is the capital of France", "write a poem", "hello there"}) {
+        for (String message : new String[] {"tell me a joke", "what is the capital of France", "write a poem"}) {
             assertEquals(AssistantIntent.OFF_TOPIC, AssistantPolicy.classify(message, null), message);
         }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Hi", "hi!", "Hello", "hey there", "HELLO THERE!", "good morning", "hii", "Thanks", "thank you!", "bye", "help", "What can you do?", "who are you"})
+    void smallTalkIsRecognisedAndAnswered(String message) {
+        assertTrue(AssistantPolicy.smallTalkReply(message) != null, message);
+        assertEquals(AssistantIntent.GREETING, AssistantPolicy.classify(message, null), message);
+        assertFalse(AssistantPolicy.isAdvisory(message) || AssistantPolicy.isInjection(message), message);
+    }
+
+    @Test
+    void aGreetingFollowedByAQuestionIsTheQuestion() {
+        assertEquals(null, AssistantPolicy.smallTalkReply("hi, show my last 5 orders"));
+        assertEquals(AssistantIntent.RECENT_TRANSACTIONS, AssistantPolicy.classify("hi, show my last 5 orders", null));
+        assertEquals(null, AssistantPolicy.smallTalkReply("hello " + "x".repeat(60)));
+    }
+
+    @Test
+    void theWelcomeAsksWhatTheyWouldLikeToKnow() {
+        assertTrue(AssistantPolicy.smallTalkReply("hi").contains("What would you like to know?"));
     }
 
     @Test

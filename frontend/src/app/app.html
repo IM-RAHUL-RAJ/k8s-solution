@@ -17,6 +17,9 @@
       <router-outlet />
     </main>
   </div>
+  @if (showLauncher()) {
+    <app-chat-launcher />
+  }
   @if (showDock()) {
     <app-mascot-dock />
   }

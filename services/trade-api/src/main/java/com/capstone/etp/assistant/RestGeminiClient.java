@@ -5,27 +5,41 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Calls Gemini (generateContent) from the server, with the key in a request header. The key is never logged or put in a
  * message; nothing the customer typed is logged either. Any failure is a quiet "no answer" and the caller falls back.
+ *
+ * If the configured model is not found (404: a wrong or retired model id), the fallback models are tried in turn, the
+ * one that works is remembered, and the models this key can actually use are listed once in the log so the id can be fixed.
  */
 @Slf4j
 public class RestGeminiClient implements GeminiClient {
 
     private final RestClient restClient;
     private final String apiKey;
-    private final String model;
+    private final List<String> models;
     private final int maxOutputTokens;
+    private volatile String working;
+    private volatile boolean listed;
 
-    public RestGeminiClient(RestClient restClient, String apiKey, String model, int maxOutputTokens) {
+    public RestGeminiClient(RestClient restClient, String apiKey, String model, List<String> fallbackModels, int maxOutputTokens) {
         this.restClient = restClient;
         this.apiKey = apiKey == null ? "" : apiKey.trim();
-        this.model = model;
+        Set<String> order = new LinkedHashSet<>();
+        order.add(model);
+        if (fallbackModels != null) {
+            fallbackModels.stream().map(String::trim).filter(name -> !name.isEmpty()).forEach(order::add);
+        }
+        this.models = List.copyOf(order);
         this.maxOutputTokens = maxOutputTokens;
     }
 
@@ -43,27 +57,88 @@ public class RestGeminiClient implements GeminiClient {
                 "systemInstruction", Map.of("parts", List.of(Map.of("text", systemInstruction))),
                 "contents", List.of(Map.of("role", "user", "parts", List.of(Map.of("text", userContent)))),
                 "generationConfig", Map.of("temperature", 0.2, "maxOutputTokens", maxOutputTokens));
-        try {
-            JsonNode response = restClient.post()
-                    .uri("/v1beta/models/{model}:generateContent", model)
-                    .header("x-goog-api-key", apiKey)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(body)
-                    .retrieve()
-                    .body(JsonNode.class);
-            JsonNode text = response == null ? null : response.path("candidates").path(0).path("content").path("parts").path(0).path("text");
-            if (text == null || text.isMissingNode() || !text.isTextual() || text.asText().isBlank()) {
-                log.warn("[ASSISTANT] the model returned no usable text");
+
+        for (String model : candidates()) {
+            try {
+                Optional<String> text = call(model, body);
+                if (text.isPresent()) {
+                    if (!model.equals(working)) {
+                        log.info("[ASSISTANT] using model {}", model);
+                    }
+                    working = model;
+                }
+                return text;
+            } catch (RestClientResponseException e) {
+                if (e.getStatusCode().value() == 404) {
+                    log.warn("[ASSISTANT] model {} was not found (404)", model);
+                    listModelsOnce();
+                    continue;
+                }
+                log.warn("[ASSISTANT] the model call failed: status={} model={}", e.getStatusCode().value(), model);
+                return Optional.empty();
+            } catch (RuntimeException e) {
+                // The message can carry the URL; the type is enough.
+                log.warn("[ASSISTANT] the model call failed: {} model={}", e.getClass().getSimpleName(), model);
                 return Optional.empty();
             }
-            return Optional.of(text.asText().trim());
+        }
+        return Optional.empty();
+    }
+
+    /** The model that last worked first, then the configured order. */
+    private List<String> candidates() {
+        List<String> order = new ArrayList<>();
+        if (working != null) {
+            order.add(working);
+        }
+        models.stream().filter(name -> !name.equals(working)).forEach(order::add);
+        return order;
+    }
+
+    private Optional<String> call(String model, Map<String, Object> body) {
+        JsonNode response = restClient.post()
+                .uri("/v1beta/models/{model}:generateContent", model)
+                .header("x-goog-api-key", apiKey)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(body)
+                .retrieve()
+                .body(JsonNode.class);
+        JsonNode text = response == null ? null : response.path("candidates").path(0).path("content").path("parts").path(0).path("text");
+        if (text == null || text.isMissingNode() || !text.isTextual() || text.asText().isBlank()) {
+            log.warn("[ASSISTANT] the model {} returned no usable text", model);
+            return Optional.empty();
+        }
+        return Optional.of(text.asText().trim());
+    }
+
+    /** Once per run: which models can this key call? So a wrong id in the settings can be corrected from the log. */
+    private void listModelsOnce() {
+        if (listed) {
+            return;
+        }
+        listed = true;
+        try {
+            JsonNode response = restClient.get()
+                    .uri("/v1beta/models?pageSize=200")
+                    .header("x-goog-api-key", apiKey)
+                    .retrieve()
+                    .body(JsonNode.class);
+            List<String> names = new ArrayList<>();
+            if (response != null) {
+                for (JsonNode model : response.path("models")) {
+                    boolean generates = false;
+                    for (JsonNode method : model.path("supportedGenerationMethods")) {
+                        generates |= "generateContent".equals(method.asText());
+                    }
+                    String name = model.path("name").asText("").replaceFirst("^models/", "");
+                    if (generates && name.contains("gemini")) {
+                        names.add(name);
+                    }
+                }
+            }
+            log.warn("[ASSISTANT] models this key can use (set GEMINI_MODEL to one of these): {}", names);
         } catch (RestClientException e) {
-            // The message can carry the URL; the type is enough.
-            log.warn("[ASSISTANT] the model call failed: {}", e.getClass().getSimpleName());
-            return Optional.empty();
-        } catch (RuntimeException e) {
-            log.warn("[ASSISTANT] the model call failed: {}", e.getClass().getSimpleName());
-            return Optional.empty();
+            log.warn("[ASSISTANT] could not list the available models: {}", e.getClass().getSimpleName());
         }
     }
 }

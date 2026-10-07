@@ -4,6 +4,7 @@ import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router
 import { AppHeaderComponent } from './components/users/shared/app-header/app-header.component';
 import { SidebarComponent } from './components/users/shared/sidebar/sidebar.component';
 import { MascotDockComponent } from './components/users/shared/mascot-dock/mascot-dock.component';
+import { ChatLauncherComponent } from './components/users/shared/chat-launcher/chat-launcher.component';
 import { NotificationWatcher } from './core/ui/notification-watcher.service';
 import { MascotService } from './core/mascot/mascot.service';
 import { AccountContextService } from './core/services/account-context.service';
@@ -15,7 +16,7 @@ import { filter, map, startWith } from 'rxjs/operators';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [AppHeaderComponent, SidebarComponent, MascotDockComponent, RouterOutlet, RouterLink],
+  imports: [AppHeaderComponent, SidebarComponent, MascotDockComponent, ChatLauncherComponent, RouterOutlet, RouterLink],
   templateUrl: './app.html',
   styleUrl: './app.css',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -45,6 +46,11 @@ export class App implements OnInit {
 
   /** The companion is on every page except the landing page, which has its own big scene. */
   protected readonly showDock = computed(() => this.currentUrl().split("?")[0] !== "/");
+
+  /** The chat bubble: for signed-in customers, on every page except the chat page itself. */
+  protected readonly showLauncher = computed(
+    () => this.showHeader() && !this.auth.isAdmin() && this.currentUrl().split('?')[0] !== '/assistant'
+  );
 
   protected readonly showHeader = computed(() => {
     const path = this.currentUrl().split('?')[0];

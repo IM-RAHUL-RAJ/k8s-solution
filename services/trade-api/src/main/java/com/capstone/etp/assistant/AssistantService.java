@@ -70,6 +70,12 @@ public class AssistantService {
             return refusal(AssistantIntent.ADVISORY, AssistantPolicy.ADVISORY_REFUSAL, true, conversationId);
         }
 
+        // Small talk: a welcome and the questions on offer, with no data read and no model call.
+        String smallTalk = AssistantPolicy.smallTalkReply(message);
+        if (smallTalk != null) {
+            return refusal(AssistantIntent.GREETING, smallTalk, false, conversationId);
+        }
+
         // 2. What is it about?
         AssistantIntent intent = AssistantPolicy.classify(message, request.selectedQuickAction());
         if (intent == AssistantIntent.OFF_TOPIC) {

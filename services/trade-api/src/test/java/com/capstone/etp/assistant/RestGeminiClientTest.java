@@ -31,7 +31,7 @@ class RestGeminiClientTest {
     private void build(String key) {
         RestClient.Builder builder = RestClient.builder().baseUrl("http://gemini.test");
         server = MockRestServiceServer.bindTo(builder).build();
-        client = new RestGeminiClient(builder.build(), key, "gemini-test", 400);
+        client = new RestGeminiClient(builder.build(), key, "gemini-test", java.util.List.of("gemini-backup"), 400);
     }
 
     @Test
@@ -49,6 +49,33 @@ class RestGeminiClientTest {
 
         server.verify();
         assertEquals(Optional.of("Hi there."), answer);
+    }
+
+    @Test
+    void aModelThatIsNotFoundFallsBackToTheNextAndRemembersTheOneThatWorks() {
+        build("k");
+        server.expect(requestTo(URL)).andRespond(withStatus(HttpStatus.NOT_FOUND));
+        server.expect(requestTo("http://gemini.test/v1beta/models?pageSize=200")).andRespond(withSuccess("{\"models\":[{\"name\":\"models/gemini-backup\",\"supportedGenerationMethods\":[\"generateContent\"]}]}", MediaType.APPLICATION_JSON));
+        server.expect(requestTo("http://gemini.test/v1beta/models/gemini-backup:generateContent"))
+                .andRespond(withSuccess("{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"ok\"}]}}]}", MediaType.APPLICATION_JSON));
+        // the next question goes straight to the model that worked
+        server.expect(requestTo("http://gemini.test/v1beta/models/gemini-backup:generateContent"))
+                .andRespond(withSuccess("{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"again\"}]}}]}", MediaType.APPLICATION_JSON));
+
+        assertEquals(Optional.of("ok"), client.generate("s", "u"));
+        assertEquals(Optional.of("again"), client.generate("s", "u"));
+        server.verify();
+    }
+
+    @Test
+    void ifEveryModelIsNotFoundItIsNoAnswer() {
+        build("k");
+        server.expect(requestTo(URL)).andRespond(withStatus(HttpStatus.NOT_FOUND));
+        server.expect(requestTo("http://gemini.test/v1beta/models?pageSize=200")).andRespond(withStatus(HttpStatus.FORBIDDEN));
+        server.expect(requestTo("http://gemini.test/v1beta/models/gemini-backup:generateContent")).andRespond(withStatus(HttpStatus.NOT_FOUND));
+
+        assertTrue(client.generate("s", "u").isEmpty());
+        server.verify();
     }
 
     @Test

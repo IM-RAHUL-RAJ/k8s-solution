@@ -146,6 +146,18 @@ class AssistantServiceTest {
     // ----------------------------------------------------------------------- domain only
 
     @Test
+    void sayingHiGetsAWelcomeThatAsksWhatTheyWouldLikeToKnowWithoutTouchingDataOrTheModel() {
+        ChatResponse response = service.chat(1L, ask("Hi"));
+
+        assertEquals(AssistantIntent.GREETING, response.intent());
+        assertTrue(response.answer().contains("What would you like to know?"));
+        assertFalse(response.advisoryBlocked());
+        assertEquals(8, response.quickActions().size());
+        verify(gemini, never()).generate(anyString(), anyString());
+        verifyNoInteractions(portfolio);
+    }
+
+    @Test
     void somethingNotAboutTheAppIsDeclinedWithoutTouchingDataOrTheModel() {
         ChatResponse response = service.chat(1L, ask("tell me a joke about cats"));
 

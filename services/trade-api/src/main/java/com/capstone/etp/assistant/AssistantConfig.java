@@ -20,7 +20,7 @@ class AssistantConfig {
         factory.setConnectTimeout(Duration.ofMillis(gemini.getConnectTimeoutMs()));
         factory.setReadTimeout(Duration.ofMillis(gemini.getReadTimeoutMs()));
         RestClient restClient = RestClient.builder().baseUrl(gemini.getBaseUrl()).requestFactory(factory).build();
-        return new RestGeminiClient(restClient, gemini.getApiKey(), gemini.getModel(), gemini.getMaxOutputTokens());
+        return new RestGeminiClient(restClient, gemini.getApiKey(), gemini.getModel(), gemini.getFallbackModels(), gemini.getMaxOutputTokens());
     }
 
     @Bean

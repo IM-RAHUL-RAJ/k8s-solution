@@ -14,6 +14,8 @@ public enum AssistantIntent {
     ALERTS,
     /** Something about the app or the account that has no dedicated answer: the overview is given to the model. */
     GENERAL,
+    /** Hello, thanks, goodbye, "what can you do": answered with a welcome and the questions on offer. */
+    GREETING,
     /** Investment advice or a recommendation: refused, with a pointer to the Advice page. */
     ADVISORY,
     /** An attempt to change the rules, or to get at the prompt, keys or tokens. */
