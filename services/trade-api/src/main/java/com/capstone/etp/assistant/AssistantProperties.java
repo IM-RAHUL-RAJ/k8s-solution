@@ -1,0 +1,27 @@
+package com.capstone.etp.assistant;
+
+import lombok.Getter;
+import lombok.Setter;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+
+/** app.assistant.*. The key comes from the environment (GEMINI_API_KEY) and is never logged, returned or committed. */
+@Getter
+@Setter
+@ConfigurationProperties(prefix = "app.assistant")
+public class AssistantProperties {
+
+    private final Gemini gemini = new Gemini();
+    /** Questions one account may ask per minute. */
+    private int ratePerMinute = 20;
+
+    @Getter
+    @Setter
+    public static class Gemini {
+        private String apiKey = "";
+        private String model = "gemini-2.0-flash";
+        private String baseUrl = "https://generativelanguage.googleapis.com";
+        private int connectTimeoutMs = 2000;
+        private int readTimeoutMs = 8000;
+        private int maxOutputTokens = 400;
+    }
+}

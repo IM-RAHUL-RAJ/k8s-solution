@@ -38,6 +38,7 @@ export const ICONS = {
   monitor: 'M3 5h18v11H3z M8 20h8 M12 16v4',
   mail: 'M3 6h18v12H3z M3 7l9 7 9-7',
   candles: 'M7 4v3 M7 15v4 M5 7h4v8H5z M17 3v4 M17 17v4 M15 7h4v10h-4z',
+  chat: 'M4 5h16v11H11l-5 4v-4H4z M8 10h8',
   clock: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z M12 7v5l3 2'
 } as const;
 

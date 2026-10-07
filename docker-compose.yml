@@ -115,6 +115,10 @@ services:
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASS: ${SMTP_PASS:-}
       SMTP_FROM: ${SMTP_FROM:-}
+      # The in-app assistant. The Gemini key lives only in this container's environment (set it in .env, which is
+      # git-ignored); the browser never sees it. Without it the assistant still answers from account data.
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.0-flash}
     ports:
       - "${TRADE_API_PORT:-8084}:8084"
     depends_on:

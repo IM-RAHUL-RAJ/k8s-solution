@@ -93,6 +93,13 @@ export const routes: Routes = [
       )
   },
   {
+    path: 'assistant',
+    title: 'Ask your companion',
+    canActivate: [authGuard, customerGuard],
+    loadComponent: () =>
+      import('./components/users/assistant/assistant.component').then((m) => m.AssistantComponent)
+  },
+  {
     path: 'advice',
     title: 'Trade advice',
     canActivate: [authGuard, customerGuard],
