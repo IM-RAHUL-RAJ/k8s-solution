@@ -1,0 +1,194 @@
+:host {
+  display: contents;
+}
+
+.sidebar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100dvh;
+  width: var(--sidebar-w);
+  padding: 16px 12px;
+  background: var(--surface);
+  border-right: 1px solid var(--line);
+  transition: width 0.3s ease-in-out;
+}
+
+.sidebar--collapsed {
+  width: var(--sidebar-w-collapsed);
+}
+
+.sidebar__brand {
+  display: flex;
+  align-items: center;
+  height: 44px;
+  padding: 0 7px;
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+
+.sidebar__nav {
+  display: grid;
+  gap: 4px;
+  align-content: start;
+  flex: 1;
+}
+
+.nav-item,
+.sidebar__toggle {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 44px;
+  padding: 0 10px;
+  border: none;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-weight: 500;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color var(--fast) ease-out,
+    color var(--fast) ease-out;
+}
+
+.nav-item:hover,
+.sidebar__toggle:hover {
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+  color: var(--text);
+  text-decoration: none;
+}
+
+/* The page you are on: a bar on the left edge plus a tint, so it never relies on colour alone. */
+.nav-item.active {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: -12px;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--accent);
+}
+
+.nav-item app-icon,
+.sidebar__toggle app-icon {
+  flex: none;
+}
+
+.nav-item__label {
+  overflow: hidden;
+  opacity: 1;
+  transition: opacity var(--fast) ease-out;
+}
+
+.sidebar--collapsed .nav-item__label {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.nav-count {
+  margin-left: auto;
+  min-width: 20px;
+  padding: 1px 6px;
+  border-radius: 99px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.sidebar--collapsed .nav-count {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  margin: 0;
+  min-width: 16px;
+  padding: 0 4px;
+  font-size: 10px;
+}
+
+.sidebar__chevron {
+  transition: transform 0.3s ease-in-out;
+}
+
+.sidebar--collapsed .sidebar__chevron {
+  transform: rotate(180deg);
+}
+
+.scrim {
+  display: none;
+}
+
+/* On a phone the sidebar is a drawer: hidden off-screen, slid over the page on request. */
+@media (max-width: 800px) {
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: min(280px, 82vw);
+    transform: translateX(-100%);
+    transition: transform 0.3s ease-in-out;
+    box-shadow: var(--shadow-md);
+  }
+
+  .sidebar--collapsed {
+    width: min(280px, 82vw);
+  }
+
+  .sidebar--collapsed .nav-item__label {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .sidebar--open {
+    transform: translateX(0);
+  }
+
+  .sidebar__toggle {
+    display: none;
+  }
+
+  .scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 39;
+    background: rgba(10, 10, 14, 0.5);
+    animation: fadeIn var(--enter) ease-out;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar,
+  .sidebar__chevron {
+    transition: none;
+  }
+}
+
+/* Hover labels for the icon-only state sit beside the icon, not above it. */
+.sidebar [data-tip]::after {
+  left: calc(100% + 12px);
+  right: auto;
+  bottom: auto;
+  top: 50%;
+  transform: translateY(-50%) translateX(-4px);
+}
+
+.sidebar [data-tip]:hover::after,
+.sidebar [data-tip]:focus-visible::after {
+  transform: translateY(-50%) translateX(0);
+}

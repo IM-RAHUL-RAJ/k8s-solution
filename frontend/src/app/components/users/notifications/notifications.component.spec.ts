@@ -10,6 +10,7 @@ import { NotificationsComponent } from './notifications.component';
 describe('NotificationsComponent', () => {
   let fixture: ComponentFixture<NotificationsComponent>;
   const list = vi.fn();
+  const counts = vi.fn();
   const markRead = vi.fn();
 
   const item = (overrides: Partial<NotificationItem> = {}): NotificationItem => ({
@@ -19,7 +20,7 @@ describe('NotificationsComponent', () => {
     body: 'Your BUY order for 100 AAPL was filled at 232.71.',
     status: 'SENT',
     statusReason: null,
-    channel: 'SMS',
+    channel: 'EMAIL',
     channelSource: 'STORED',
     createdAt: '2026-10-06T09:14:24Z',
     sentAt: '2026-10-06T09:14:30Z',
@@ -29,110 +30,198 @@ describe('NotificationsComponent', () => {
 
   const text = () => (fixture.nativeElement as HTMLElement).textContent ?? '';
   const el = (testId: string): HTMLElement | null => fixture.nativeElement.querySelector(`[data-testid="${testId}"]`);
+  const settle = async () => {
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+  };
 
   async function create(): Promise<void> {
     await TestBed.configureTestingModule({
       imports: [NotificationsComponent],
       providers: [
-        { provide: NotificationService, useValue: { list, markRead } },
+        { provide: NotificationService, useValue: { list, counts, markRead } },
         { provide: AccountContextService, useValue: { getCurrentAccount: () => ({ accountNumericId: 1 }) } }
       ]
     }).compileComponents();
     fixture = TestBed.createComponent(NotificationsComponent);
-    fixture.detectChanges();
-    await fixture.whenStable();
-    fixture.detectChanges();
+    await settle();
   }
 
   beforeEach(() => {
     list.mockReset().mockReturnValue(of([item()]));
+    counts.mockReset().mockReturnValue(of({ all: 5, priceAlert: 3, order: 2, funds: 0 }));
     markRead.mockReset();
   });
 
-  it('shows a fill, and the channel it was sent on', async () => {
-    await create();
+  describe('filter tabs', () => {
+    it('shows All, Price Alerts, Orders and Funds with a count on each', async () => {
+      await create();
 
-    expect(text()).toContain('Order filled: BUY 100 AAPL');
-    expect(el('notification-delivery')?.textContent).toContain('Sent by text message');
+      expect(el('tab-all')?.textContent).toContain('All');
+      expect(el('tab-price_alert')?.textContent).toContain('Price Alerts');
+      expect(el('tab-order')?.textContent).toContain('Orders');
+      expect(el('count-all')?.textContent).toBe('5');
+      expect(el('count-price_alert')?.textContent).toBe('3');
+      expect(el('count-order')?.textContent).toBe('2');
+    });
+
+    it('asks the service for the type when a tab is clicked', async () => {
+      await create();
+      expect(list).toHaveBeenLastCalledWith(1, false, 50, 'all');
+
+      el('tab-price_alert')!.click();
+      await settle();
+      expect(list).toHaveBeenLastCalledWith(1, false, 50, 'price_alert');
+
+      el('tab-order')!.click();
+      await settle();
+      expect(list).toHaveBeenLastCalledWith(1, false, 50, 'order');
+      expect(el('tab-order')?.getAttribute('aria-selected')).toBe('true');
+      expect(el('tab-price_alert')?.getAttribute('aria-selected')).toBe('false');
+    });
+
+    it('lists what the service returned for the chosen type', async () => {
+      list.mockImplementation((_a: number, _u: boolean, _l: number, type: string) =>
+        of(type === 'price_alert'
+          ? [item({ id: 2, kind: 'PRICE_ALERT', subject: 'Price alert: AAPL is at or above 230.50', body: 'AAPL is at or above 230.50. The latest price is 231.20.' })]
+          : [item()]));
+      await create();
+
+      el('tab-price_alert')!.click();
+      await settle();
+
+      expect(text()).toContain('Price alert: AAPL is at or above 230.50');
+      expect(text()).not.toContain('Order filled: BUY 100 AAPL');
+    });
+
+    it('keeps the numbers on the tabs when the counts cannot be read', async () => {
+      counts.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 500 })));
+      await create();
+
+      expect(el('tab-all')).not.toBeNull();
+      expect(el('count-all')?.textContent).toBe('0');
+      expect(text()).toContain('Order filled: BUY 100 AAPL');
+    });
   });
 
-  it('shows a rejection: a customer who only hears about successes does not know their order failed', async () => {
-    list.mockReturnValue(of([item({ id: 2, kind: 'ORDER_REJECTED', subject: 'Order rejected: BUY 100 AAPL',
-      body: 'Your BUY order for 100 AAPL was not carried out because there was not enough cash in your account.' })]));
-    await create();
+  describe('wording and type badge', () => {
+    it('labels a fill "Order placed" and shows the order icon, never an internal code', async () => {
+      await create();
 
-    expect(text()).toContain('Order rejected');
-    expect(text()).toContain('not enough cash');
+      expect(el('notification-type')?.textContent).toContain('Order placed');
+      expect(text()).not.toContain('ORDER_FILLED');
+    });
+
+    it('labels an alert "Alert triggered" and its condition reads with the operator', async () => {
+      list.mockReturnValue(of([item({ id: 2, kind: 'PRICE_ALERT', subject: 'Price alert: AAPL is at or above 230.50', body: 'AAPL is at or above 230.50. The latest price is 231.20.' })]));
+      await create();
+
+      expect(el('notification-type')?.textContent).toContain('Alert triggered');
+      expect(text()).toContain('AAPL is at or above 230.50');
+    });
+
+    it('says an equality alert "equals"', async () => {
+      list.mockReturnValue(of([item({ id: 3, kind: 'PRICE_ALERT', subject: 'Price alert: AAPL equals 123.45', body: 'AAPL equals 123.45. The latest price is 123.45.' })]));
+      await create();
+
+      expect(text()).toContain('AAPL equals 123.45');
+    });
+
+    it('shows a rejection in plain words', async () => {
+      list.mockReturnValue(of([item({ id: 2, kind: 'ORDER_REJECTED', subject: 'Order rejected: BUY 100 AAPL',
+        body: 'Your BUY order for 100 AAPL was not carried out because there was not enough cash in your account.' })]));
+      await create();
+
+      expect(el('notification-type')?.textContent).toContain('Order rejected');
+      expect(text()).toContain('not enough cash');
+    });
+
+    it('shows funds messages with their own label', async () => {
+      list.mockReturnValue(of([item({ id: 4, kind: 'FUNDS', subject: 'Funds added: 250.00 USD', body: '250.00 USD was added to your account.' })]));
+      await create();
+
+      expect(el('notification-type')?.textContent).toContain('Funds');
+    });
   });
 
-  it('says when a message went out on the default channel because none was chosen', async () => {
-    list.mockReturnValue(of([item({ channel: 'EMAIL', channelSource: 'DEFAULT' })]));
-    await create();
+  describe('delivery', () => {
+    it('says which channel a message went on', async () => {
+      await create();
+      expect(el('notification-delivery')?.textContent).toContain('Sent by e-mail');
+    });
 
-    expect(el('notification-delivery')?.textContent).toContain('your default');
+    it('says when the default channel was used', async () => {
+      list.mockReturnValue(of([item({ channel: 'EMAIL', channelSource: 'DEFAULT' })]));
+      await create();
+      expect(el('notification-delivery')?.textContent).toContain('your default');
+    });
+
+    it('is honest that a stub channel only recorded the message', async () => {
+      list.mockReturnValue(of([item({ statusReason: 'STUB_DELIVERY' })]));
+      await create();
+      expect(el('notification-delivery')?.textContent).toContain('No e-mail provider is connected');
+    });
+
+    it('explains a message the customer switched off', async () => {
+      list.mockReturnValue(of([item({ status: 'SKIPPED', statusReason: 'OPTED_OUT', channel: null })]));
+      await create();
+      expect(el('notification-delivery')?.textContent).toContain('you switched this kind of message off');
+    });
+
+    it('explains a held message', async () => {
+      list.mockReturnValue(of([item({ status: 'HELD', channel: null })]));
+      await create();
+      expect(el('notification-delivery')?.textContent).toContain('no contact detail');
+    });
   });
 
-  it('is honest that a stub channel only recorded the message', async () => {
-    list.mockReturnValue(of([item({ statusReason: 'STUB_DELIVERY' })]));
-    await create();
+  describe('states', () => {
+    it('shows the companion and a next step when there are no messages', async () => {
+      list.mockReturnValue(of([]));
+      await create();
 
-    expect(el('notification-delivery')?.textContent).toContain('No text message provider is connected');
-  });
+      expect(el('notifications-empty')).not.toBeNull();
+      expect(el('mascot')).not.toBeNull();
+    });
 
-  it('explains a message held for want of a contact detail', async () => {
-    list.mockReturnValue(of([item({ status: 'HELD', statusReason: 'NO_CONTACT', channel: null, sentAt: null })]));
-    await create();
+    it('shows an error with a retry when the inbox cannot be read', async () => {
+      list.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 500 })));
+      await create();
 
-    expect(el('notification-delivery')?.textContent).toContain('On hold');
-    expect(el('notification-delivery')?.textContent).toContain('Settings');
-  });
+      expect(el('notifications-error')).not.toBeNull();
+    });
 
-  it('explains a message still waiting and one that gave up', async () => {
-    list.mockReturnValue(of([
-      item({ id: 3, status: 'QUEUED', channel: null, sentAt: null }),
-      item({ id: 4, status: 'FAILED', statusReason: 'PROVIDER_ERROR', channel: 'EMAIL' })
-    ]));
-    await create();
+    it('filters to unread only', async () => {
+      list.mockReturnValue(of([item({ id: 1, read: true, subject: 'Old one' }), item({ id: 2, read: false, subject: 'New one' })]));
+      await create();
 
-    const text = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('[data-testid="notification-delivery"]'))
-      .map((node) => node.textContent);
-    expect(text[0]).toContain('Waiting to be sent');
-    expect(text[1]).toContain('could not send');
-  });
+      el('filter-unread')!.click();
+      await settle();
 
-  it('marks a message read', async () => {
-    await create();
-    markRead.mockReturnValue(of(item({ read: true })));
+      expect(text()).toContain('New one');
+      expect(text()).not.toContain('Old one');
+    });
 
-    (el('mark-read') as HTMLButtonElement).click();
-    fixture.detectChanges();
+    it('marking a message read updates it in place', async () => {
+      markRead.mockReturnValue(of(item({ read: true })));
+      await create();
 
-    expect(markRead).toHaveBeenCalledWith(1, 1);
-    expect(el('mark-read')).toBeNull();
-  });
+      el('mark-read')!.click();
+      await settle();
 
-  it('filters to what is unread', async () => {
-    list.mockReturnValue(of([item({ id: 1, read: true, subject: 'Old news' }), item({ id: 2, subject: 'Fresh news' })]));
-    await create();
+      expect(markRead).toHaveBeenCalledWith(1, 1);
+      expect(el('mark-read')).toBeNull();
+    });
 
-    (el('filter-unread') as HTMLButtonElement).click();
-    fixture.detectChanges();
+    it('says so when marking read fails', async () => {
+      markRead.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 500 })));
+      await create();
 
-    expect(text()).toContain('Fresh news');
-    expect(text()).not.toContain('Old news');
-  });
+      el('mark-read')!.click();
+      await settle();
 
-  it('welcomes a customer with no messages', async () => {
-    list.mockReturnValue(of([]));
-    await create();
-
-    expect(el('notifications-empty')?.textContent).toContain('No messages yet');
-  });
-
-  it('shows a plain message when the inbox cannot be loaded', async () => {
-    list.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 0 })));
-    await create();
-
-    expect(el('notifications-error')?.textContent).toContain('unavailable');
+      expect(el('notifications-action-error')).not.toBeNull();
+    });
   });
 });

@@ -1,66 +1,79 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { RouterLink, RouterLinkActive } from '@angular/router';
-import { switchMap, timer } from 'rxjs';
+import { ChangeDetectionStrategy, Component, ElementRef, HostListener, computed, inject, signal } from '@angular/core';
+import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../../core/auth/auth.service';
-import { NotificationService } from '../../../../core/services/notification.service';
-import { BrandLogoComponent } from '../brand-logo/brand-logo.component';
-import { ThemeToggleComponent } from '../theme-toggle/theme-toggle.component';
+import { MascotService } from '../../../../core/mascot/mascot.service';
+import { ShellStateService } from '../../../../core/ui/shell-state.service';
+import { IconComponent } from '../icon/icon.component';
+import { MascotComponent } from '../mascot/mascot.component';
 
-interface NavigationItem {
-  label: string;
-  path: string;
-  /** Show the unread-message count beside this item. */
-  unread?: boolean;
+/** "jane.doe" or "Jane Doe" becomes "JD"; one word gives one letter. */
+export function initialsOf(name: string): string {
+  const parts = name.split(/[\s._-]+/).filter(Boolean);
+  if (parts.length === 0) {
+    return '?';
+  }
+  return (parts.length === 1 ? parts[0].slice(0, 1) : parts[0].slice(0, 1) + parts[parts.length - 1].slice(0, 1)).toUpperCase();
 }
 
-/** How often the unread badge looks for new messages. */
-export const UNREAD_REFRESH_MS = 30_000;
+/** A calm colour from the name, so the same person always gets the same avatar. White text stays readable on all of them. */
+export function avatarColorOf(name: string): string {
+  let hash = 0;
+  for (const char of name) {
+    hash = (hash * 31 + char.charCodeAt(0)) % 360;
+  }
+  return `hsl(${hash} 42% 38%)`;
+}
 
+/**
+ * The bar above the page: the menu button on a phone, a small companion, the settings gear and the
+ * avatar with its menu (Profile, Sign out). The theme choice is not here; it lives in Settings.
+ */
 @Component({
   selector: 'app-app-header',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, ThemeToggleComponent, BrandLogoComponent],
+  imports: [RouterLink, IconComponent, MascotComponent],
   templateUrl: './app-header.component.html',
   styleUrl: './app-header.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AppHeaderComponent {
   private readonly auth = inject(AuthService);
-  private readonly notifications = inject(NotificationService);
+  private readonly router = inject(Router);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  protected readonly shell = inject(ShellStateService);
+  protected readonly mascot = inject(MascotService);
 
   protected readonly mustChangePassword = this.auth.mustChangePassword;
-  protected readonly unread = this.notifications.unread;
+  protected readonly isAdmin = this.auth.isAdmin;
+  protected readonly menuOpen = signal(false);
 
-  private readonly customerItems: NavigationItem[] = [
-    { label: 'Dashboard', path: '/dashboard' },
-    { label: 'Portfolio', path: '/portfolio' },
-    { label: 'Order ticket', path: '/order-ticket' },
-    { label: 'Watchlist', path: '/watchlist' },
-    { label: 'Alerts', path: '/alerts' },
-    { label: 'Blotter', path: '/blotter' },
-    { label: 'Inbox', path: '/notifications', unread: true },
-    { label: 'Account', path: '/account' },
-    { label: 'Settings', path: '/settings' }
-  ];
+  protected readonly displayName = computed(() => this.auth.user()?.username ?? 'Account');
+  protected readonly initials = computed(() => initialsOf(this.displayName()));
+  protected readonly avatarColor = computed(() => avatarColorOf(this.displayName()));
 
-  private readonly adminItems: NavigationItem[] = [{ label: 'Admin', path: '/admin' }];
+  protected toggleMenu(): void {
+    this.menuOpen.update((open) => !open);
+  }
 
-  protected readonly navigationItems = computed(() => (this.auth.isAdmin() ? this.adminItems : this.customerItems));
-
-  constructor() {
-    // Keep the inbox badge fresh while the customer works. An admin has no inbox.
-    if (!this.auth.isAdmin()) {
-      timer(0, UNREAD_REFRESH_MS)
-        .pipe(
-          switchMap(() => this.notifications.refreshUnread()),
-          takeUntilDestroyed()
-        )
-        .subscribe();
-    }
+  protected openProfile(): void {
+    this.menuOpen.set(false);
+    void this.router.navigate(['/profile']);
   }
 
   protected signOut(): void {
+    this.menuOpen.set(false);
     this.auth.logout();
+  }
+
+  @HostListener('document:click', ['$event'])
+  protected onDocumentClick(event: MouseEvent): void {
+    if (this.menuOpen() && !this.host.nativeElement.querySelector('.avatar')?.contains(event.target as Node)) {
+      this.menuOpen.set(false);
+    }
+  }
+
+  @HostListener('keydown.escape')
+  protected onEscape(): void {
+    this.menuOpen.set(false);
   }
 }

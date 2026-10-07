@@ -111,11 +111,7 @@
           <span class="muted">By cost</span>
         </div>
         @if (slices().length === 0) {
-          <div class="empty">
-            <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6.5" /><path d="M10 3.5V10h6.5" /></svg>
-            <p>Nothing to chart yet.</p>
-            <p class="muted">Holdings appear once a buy order fills.</p>
-          </div>
+          <app-empty-state title="Nothing to chart yet" message="Holdings appear once a buy order fills." [size]="110"></app-empty-state>
         } @else {
           <app-donut-chart [slices]="slices()" [unit]="balance()?.currency ?? ''" centreLabel="Invested" />
         }
@@ -134,15 +130,11 @@
       <article class="card table-card" style="--i: 5">
         <div class="table-card__header">
           <h2>Holdings</h2>
-          <a routerLink="/account">All positions &rarr;</a>
+          <a routerLink="/portfolio">All positions &rarr;</a>
         </div>
 
         @if (holdingRows().length === 0) {
-          <div class="empty">
-            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3l7 3.5-7 3.5-7-3.5zM3 10l7 3.5 7-3.5" /></svg>
-            <p>No holdings yet.</p>
-            <p class="muted">Filled buy orders show up here.</p>
-          </div>
+          <app-empty-state title="No holdings yet" message="Filled buy orders show up here." [size]="110"><a class="button" routerLink="/order-ticket">Place an order</a></app-empty-state>
         } @else {
           <table>
             <thead>
@@ -177,11 +169,7 @@
         </div>
 
         @if (recentOrders().length === 0) {
-          <div class="empty">
-            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 5h12M4 10h12M4 15h7" /></svg>
-            <p>No orders yet.</p>
-            <p class="muted">Place your first order from the Order ticket.</p>
-          </div>
+          <app-empty-state title="No orders yet" message="Place your first order from the order ticket." [size]="110"><a class="button" routerLink="/order-ticket">Place an order</a></app-empty-state>
         } @else {
           <ul class="orders">
             @for (order of recentOrders(); track order.orderId; let i = $index) {

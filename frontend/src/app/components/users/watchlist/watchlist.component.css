@@ -612,3 +612,39 @@
   .wl-cols { grid-template-columns: minmax(0, 2fr) minmax(96px, 1.2fr) minmax(96px, 1fr) 44px; }
 }
 @media (prefers-reduced-motion: reduce) { .wl-row { animation: none; transition: none; } }
+
+/* ---------- Instruments on the left, the chart panel on the right (wide screens) ---------- */
+@media (min-width: 1000px) {
+  .page--detail {
+    padding-right: min(580px, 46vw);
+  }
+
+  .page--detail .hide-sm {
+    display: none;
+  }
+
+  .page--detail .wl-cols {
+    grid-template-columns: minmax(0, 2fr) minmax(96px, 1.2fr) minmax(96px, 1fr) 44px;
+  }
+
+  /* The panel docks to the right edge under the top bar; the list stays usable beside it. */
+  .overlay {
+    inset: 60px 0 0 auto;
+    width: min(580px, 46vw);
+    padding: 16px;
+    background: transparent;
+    place-items: start end;
+    pointer-events: none;
+    animation: slideInRight var(--enter) var(--ease);
+  }
+
+  .overlay__panel {
+    width: 100%;
+    max-height: 100%;
+    pointer-events: auto;
+  }
+}
+
+.detail-chart {
+  margin: 12px 0;
+}

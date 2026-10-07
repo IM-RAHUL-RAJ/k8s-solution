@@ -4,7 +4,11 @@ package com.capstone.etp.notifications;
  * One message on its way out. {@code destination} is personal data, so {@link #toString()} masks it
  * and the subject/body are not printed at all.
  */
-record OutboundMessage(String destination, String subject, String body) {
+record OutboundMessage(String destination, String subject, String body, NotificationKind kind, String mascot) {
+
+    OutboundMessage(String destination, String subject, String body) {
+        this(destination, subject, body, null, null);
+    }
 
     @Override
     public String toString() {

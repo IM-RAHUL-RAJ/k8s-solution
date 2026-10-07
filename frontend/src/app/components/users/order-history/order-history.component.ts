@@ -55,6 +55,9 @@ function localDayFromDate(date: Date): string {
   return `${date.getFullYear()}-${month}-${day}`;
 }
 import { StatusBadgeComponent } from '../shared/status-badge/status-badge.component';
+import { EmptyStateComponent } from '../shared/empty-state/empty-state.component';
+import { DownloadMenuComponent, DownloadRequest } from '../shared/download-menu/download-menu.component';
+import { ExportDocument, ExportService } from '../../../core/export/export.service';
 
 // An order at NEW is the working state: the executor has not resolved it yet. The blotter
 // re-reads order history while anything is working, and stops. Ten reads three seconds apart
@@ -68,7 +71,7 @@ type DatePresetId = 'today' | 'last7' | 'last30' | 'thisMonth';
 @Component({
   selector: 'app-order-history',
   standalone: true,
-  imports: [CommonModule, RouterLink, StatusBadgeComponent],
+  imports: [CommonModule, RouterLink, StatusBadgeComponent, DownloadMenuComponent, EmptyStateComponent],
   templateUrl: './order-history.component.html',
   styleUrl: './order-history.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -77,6 +80,7 @@ export class OrderHistoryComponent implements OnDestroy {
   private readonly orderService = inject(OrderService);
   private readonly accountContext = inject(AccountContextService);
   private readonly errorMessageService = inject(ApiErrorMessageService);
+  private readonly exporter = inject(ExportService);
   protected readonly home = inject(HomeCurrencyService);
 
   private pollTimer: ReturnType<typeof setTimeout> | null = null;
@@ -96,6 +100,7 @@ export class OrderHistoryComponent implements OnDestroy {
   private noticeTimer: ReturnType<typeof setTimeout> | null = null;
 
   readonly filter = signal<OrderFilter>('ALL');
+  readonly exporting = signal(false);
 
   readonly filters = computed(() => {
     const orders = this.orders();
@@ -266,6 +271,67 @@ export class OrderHistoryComponent implements OnDestroy {
         this.toDateFilter.set(today);
         return;
     }
+  }
+
+  /** Downloads the blotter. "filtered" is exactly the rows on screen; "all" ignores every filter. */
+  async download(request: DownloadRequest): Promise<void> {
+    if (this.exporting()) {
+      return;
+    }
+    this.exporting.set(true);
+    try {
+      await this.exporter.export(request.format, this.buildExport(request), 'order-blotter');
+    } catch (error) {
+      console.error('[Blotter] export failed', error);
+      this.actionError.set('The file could not be created. Please try again.');
+    } finally {
+      this.exporting.set(false);
+    }
+  }
+
+  private buildExport(request: DownloadRequest): ExportDocument {
+    const rows = request.scope === 'filtered' ? this.visibleOrders() : this.orders();
+    const currency = this.home.homeCurrency();
+    const filterLines =
+      request.scope === 'filtered' && this.hasActiveFilters()
+        ? [`Filters: status ${this.filter()}, dates ${this.dateRangeLabel()}${this.symbolFilter().trim() ? `, symbol ${this.symbolFilter().trim()}` : ''}${this.sideFilter() ? `, side ${this.sideFilter()}` : ''}`]
+        : ['Filters: none (all orders)'];
+    const counts = new Map<string, number>();
+    for (const order of rows) {
+      counts.set(order.status, (counts.get(order.status) ?? 0) + 1);
+    }
+    return {
+      title: 'Order blotter',
+      subtitle: [`${rows.length} order(s). Generated ${new Date().toLocaleString()}`, ...filterLines],
+      tables: [
+        {
+          title: 'Orders',
+          columns: [
+            { header: 'Placed' },
+            { header: 'Order ID' },
+            { header: 'Symbol' },
+            { header: 'Side' },
+            { header: 'Qty', numeric: true },
+            { header: currency ? `Limit price (${currency})` : 'Limit price', numeric: true },
+            { header: currency ? `Executed at (${currency})` : 'Executed at', numeric: true },
+            { header: 'Status' }
+          ],
+          rows: rows.map((order) => [
+            new Date(order.createdOn).toLocaleString(),
+            order.orderId,
+            order.symbol,
+            order.side,
+            order.quantity,
+            order.price ?? 'Market',
+            order.executedPrice,
+            order.status
+          ])
+        }
+      ],
+      charts: request.includeCharts
+        ? [{ title: 'Orders by status', bars: [...counts].map(([label, value]) => ({ label, value })) }]
+        : []
+    };
   }
 
   askCancel(orderId: string): void {

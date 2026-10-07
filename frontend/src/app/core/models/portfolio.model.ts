@@ -46,3 +46,25 @@ export interface PnlResponse {
   bySymbol?: SymbolPnl[];
   asOf: string;
 }
+
+export type HistoryRange = '30d' | '3m' | '1y';
+
+export interface PortfolioHistoryPoint {
+  at: string;
+  totalValue: number;
+}
+
+/** What the last day did, with cash added or taken out removed. Null until there is a point a day old. */
+export interface DayChange {
+  amount: number;
+  percent: number;
+  since: string;
+}
+
+export interface PortfolioHistory {
+  accountId: number;
+  baseCurrency: string | null;
+  range: HistoryRange;
+  points: PortfolioHistoryPoint[];
+  dayChange: DayChange | null;
+}

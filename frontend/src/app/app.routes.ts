@@ -55,7 +55,12 @@ export const routes: Routes = [
   },
   {
     path: 'account',
-    title: 'Account',
+    pathMatch: 'full',
+    redirectTo: 'profile'
+  },
+  {
+    path: 'profile',
+    title: 'Profile',
     canActivate: [authGuard, customerGuard],
     loadComponent: () =>
       import('./components/users/account/account.component').then(

@@ -4,7 +4,7 @@ import { Observable, of } from 'rxjs';
 import { catchError, map, tap } from 'rxjs/operators';
 import { AuthService } from '../auth/auth.service';
 import { API_ENDPOINTS } from '../config/api-endpoints';
-import { NotificationItem } from '../models/notification.model';
+import { NotificationCounts, NotificationItem, NotificationType } from '../models/notification.model';
 import { AccountContextService } from './account-context.service';
 
 /** The customer's notification history, shown as an inbox. Read-only apart from marking a message read. */
@@ -31,15 +31,25 @@ export class NotificationService {
     return `${API_ENDPOINTS.tradeApiBase}/api/v1/accounts/${accountId}/notifications`;
   }
 
-  list(accountId: number, unreadOnly = false, limit = 50): Observable<NotificationItem[]> {
+  /** type narrows the inbox to one group; 'all' (or leaving it out) sends no filter. */
+  list(accountId: number, unreadOnly = false, limit = 50, type: NotificationType = 'all'): Observable<NotificationItem[]> {
+    const params: Record<string, string | number | boolean> = { unreadOnly, limit };
+    if (type !== 'all') {
+      params['type'] = type;
+    }
     return this.http
-      .get<NotificationItem[]>(this.base(accountId), { params: { unreadOnly, limit } })
+      .get<NotificationItem[]>(this.base(accountId), { params })
       .pipe(tap((items) => {
         // Only the unfiltered list tells us the whole unread count.
-        if (!unreadOnly && items.length < limit) {
+        if (!unreadOnly && type === 'all' && items.length < limit) {
           this.unreadSignal.set(items.filter((item) => !item.read).length);
         }
       }));
+  }
+
+  /** How many messages each tab holds, for the badges. */
+  counts(accountId: number): Observable<NotificationCounts> {
+    return this.http.get<NotificationCounts>(`${this.base(accountId)}/counts`);
   }
 
   markRead(accountId: number, notificationId: number): Observable<NotificationItem> {

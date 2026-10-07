@@ -1,27 +1,40 @@
-<header class="header">
-  <a class="header__brand" routerLink="/dashboard" aria-label="Quorum home">
-    <app-brand-logo [size]="30" />
+<header class="topbar">
+  <button type="button" class="icon-btn topbar__menu" (click)="shell.openDrawer()" aria-label="Open menu" data-tip="Menu" data-testid="open-menu">
+    <app-icon name="menu" [size]="22" />
+  </button>
+
+  <span class="topbar__spacer"></span>
+
+  @if (!isAdmin()) {
+    <app-mascot class="topbar__mascot" [size]="36" [interactive]="false" />
+  }
+
+  <a class="icon-btn" routerLink="/settings" aria-label="Settings" data-tip="Settings" data-tip-below data-testid="settings-link">
+    <app-icon name="settings" [size]="22" />
   </a>
 
-  <nav class="header__nav" aria-label="Primary">
-    @for (item of navigationItems(); track item.path) {
-      <a [routerLink]="item.path" routerLinkActive="active" #link="routerLinkActive"
-         [attr.aria-current]="link.isActive ? 'page' : null">
-        {{ item.label }}
-        @if (item.path === '/account' && mustChangePassword()) {
-          <span class="nav-dot" title="Change your temporary password" aria-label="Action needed"></span>
-        }
-        @if (item.unread && unread() > 0) {
-          <span class="nav-count" [attr.aria-label]="unread() + ' unread messages'" data-testid="unread-badge">{{ unread() > 99 ? '99+' : unread() }}</span>
-        }
-      </a>
-    }
-  </nav>
-
-  <div class="header__user">
-    <app-theme-toggle />
-    <button type="button" class="header__signout" (click)="signOut()" data-testid="sign-out">
-      Sign out
+  <div class="avatar">
+    <button type="button" class="avatar__button" (click)="toggleMenu()" [attr.aria-expanded]="menuOpen()"
+            aria-haspopup="menu" [attr.aria-label]="'Account menu for ' + displayName()" [attr.data-tip]="displayName()"
+            data-tip-below data-tip-end data-testid="avatar-button">
+      <span class="avatar__circle" [style.background-color]="avatarColor()">{{ initials() }}</span>
+      @if (mustChangePassword()) {
+        <span class="nav-dot" title="Change your temporary password" aria-label="Action needed"></span>
+      }
     </button>
+
+    @if (menuOpen()) {
+      <div class="menu" role="menu" data-testid="avatar-menu">
+        <p class="menu__who">{{ displayName() }}</p>
+        @if (!isAdmin()) {
+          <button type="button" role="menuitem" class="menu__item" (click)="openProfile()" data-testid="menu-profile">
+            <app-icon name="user" [size]="18" /> Profile
+          </button>
+        }
+        <button type="button" role="menuitem" class="menu__item" (click)="signOut()" data-testid="sign-out">
+          <app-icon name="logout" [size]="18" /> Sign out
+        </button>
+      </div>
+    }
   </div>
 </header>

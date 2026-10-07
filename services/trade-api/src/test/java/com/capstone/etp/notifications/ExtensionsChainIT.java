@@ -119,11 +119,14 @@ class ExtensionsChainIT {
     @Autowired
     AlertMapper alertMapper;
 
+    @Autowired
+    com.capstone.etp.portfolio.PortfolioSnapshotMapper snapshotMapper;
+
     private final HttpClient http = HttpClient.newHttpClient();
 
     @BeforeEach
     void cleanModuleTables() {
-        jdbc.execute("TRUNCATE notifications, price_alerts, portfolio_realised_pnl, customer_preferences RESTART IDENTITY");
+        jdbc.execute("TRUNCATE notifications, cash_movements, price_alert_triggers, price_alerts, portfolio_realised_pnl, customer_preferences RESTART IDENTITY");
         quoteCalls.set(0);
         quotesBody = "{\"data\":{\"quotes\":[]}}";
         // the pricing cache is the one piece of state that outlives a test: start each with it empty
@@ -328,7 +331,7 @@ class ExtensionsChainIT {
     void aCrossedAlertIsDeliveredThroughNotificationsOnThePreferredChannelAndFiresOnce() throws Exception {
         call("PUT", "/api/v1/accounts/1/preferences", 1L, "{\"defaultAccountId\":1,\"alertChannel\":\"PUSH\"}");
         Reply created = call("POST", "/api/v1/accounts/1/alerts", 1L,
-                "{\"symbol\":\"AAPL\",\"direction\":\"ABOVE\",\"threshold\":200.00}");
+                "{\"symbol\":\"AAPL\",\"condition\":\">=\",\"price\":200.00}");
         assertEquals(201, created.status(), created.body().toString());
         long alertId = created.body().path("id").asLong();
 
@@ -350,33 +353,165 @@ class ExtensionsChainIT {
         JsonNode inbox = notificationsOf(1L);
         assertEquals("PRICE_ALERT", inbox.get(0).path("kind").asText());
         assertEquals("PUSH", inbox.get(0).path("channel").asText(), "the alert went out on the stored channel");
-        assertTrue(inbox.get(0).path("body").asText().contains("AAPL rose above 200.00"));
+        assertTrue(inbox.get(0).path("body").asText().contains("AAPL is at or above 200.00"));
     }
 
     @Test
     void alertsAreCappedPerAccountAndScopedToTheAccount() throws Exception {
         for (int i = 1; i <= 3; i++) {
             assertEquals(201, call("POST", "/api/v1/accounts/1/alerts", 1L,
-                    "{\"symbol\":\"AAPL\",\"direction\":\"ABOVE\",\"threshold\":" + (300 + i) + "}").status());
+                    "{\"symbol\":\"AAPL\",\"condition\":\">=\",\"price\":" + (300 + i) + "}").status());
         }
-        Reply over = call("POST", "/api/v1/accounts/1/alerts", 1L, "{\"symbol\":\"AAPL\",\"direction\":\"ABOVE\",\"threshold\":400}");
+        Reply over = call("POST", "/api/v1/accounts/1/alerts", 1L, "{\"symbol\":\"AAPL\",\"condition\":\">=\",\"price\":400}");
         assertEquals(409, over.status());
         assertEquals("ALR-409", over.body().path("errorCode").asText());
 
         // another account is not blocked, and cannot see or remove the first account's alerts
-        assertEquals(201, call("POST", "/api/v1/accounts/5/alerts", 5L, "{\"symbol\":\"AAPL\",\"direction\":\"BELOW\",\"threshold\":1}").status());
+        assertEquals(201, call("POST", "/api/v1/accounts/5/alerts", 5L, "{\"symbol\":\"AAPL\",\"condition\":\"<=\",\"price\":1}").status());
         long theirs = jdbc.queryForObject("SELECT id FROM price_alerts WHERE account_id = 1 LIMIT 1", Long.class);
         assertEquals(404, call("DELETE", "/api/v1/accounts/5/alerts/" + theirs, 5L, null).status());
         assertEquals(1, call("GET", "/api/v1/accounts/5/alerts", 5L, null).body().size());
+    }
+
+
+    @Test
+    void anAlertCanBeSwitchedOffEditedRearmedAndKeepsOneHistoryRowPerFiring() throws Exception {
+        Reply created = call("POST", "/api/v1/accounts/1/alerts", 1L, "{\"symbol\":\"AAPL\",\"condition\":\">\",\"price\":200.00}");
+        assertEquals(201, created.status(), created.body().toString());
+        long id = created.body().path("id").asLong();
+        assertEquals(">", created.body().path("condition").asText());
+        assertTrue(created.body().path("enabled").asBoolean());
+
+        // switched off: a quote past the level does nothing
+        assertEquals(200, call("PUT", "/api/v1/accounts/1/alerts/" + id + "/enabled", 1L, "{\"enabled\":false}").status());
+        publishQuote("AAPL", "210.00");
+        assertEquals(0, call("GET", "/api/v1/accounts/1/alerts/" + id + "/triggers", 1L, null).body().path("triggers").size());
+
+        // switched on: it fires, once
+        assertEquals(200, call("PUT", "/api/v1/accounts/1/alerts/" + id + "/enabled", 1L, "{\"enabled\":true}").status());
+        publishQuote("AAPL", "211.00");
+        publishQuote("AAPL", "212.00");
+        JsonNode first = call("GET", "/api/v1/accounts/1/alerts/" + id + "/triggers", 1L, null).body();
+        assertEquals(1, first.path("triggers").size(), "one firing, one history row");
+        assertEquals(211.0, first.path("triggers").get(0).path("triggerPrice").asDouble());
+        assertEquals("TRIGGERED", call("GET", "/api/v1/accounts/1/alerts", 1L, null).body().get(0).path("status").asText());
+
+        // an edit arms it again, with the history kept; the second firing is a second row and a second message
+        assertEquals(200, call("PUT", "/api/v1/accounts/1/alerts/" + id, 1L, "{\"condition\":\">=\",\"price\":300.00}").status());
+        assertEquals("ACTIVE", call("GET", "/api/v1/accounts/1/alerts", 1L, null).body().get(0).path("status").asText());
+        publishQuote("AAPL", "301.00");
+        assertEquals(2, call("GET", "/api/v1/accounts/1/alerts/" + id + "/triggers", 1L, null).body().path("triggers").size());
+        assertEquals(2, jdbc.queryForObject("SELECT COUNT(*) FROM notifications WHERE kind = 'PRICE_ALERT'", Integer.class));
+
+        // another account cannot read the history or flip the switch
+        assertEquals(404, call("GET", "/api/v1/accounts/5/alerts/" + id + "/triggers", 5L, null).status());
+        assertEquals(404, call("PUT", "/api/v1/accounts/5/alerts/" + id + "/enabled", 5L, "{\"enabled\":false}").status());
+
+        // deleting removes the alert and its history
+        assertEquals(200, call("DELETE", "/api/v1/accounts/1/alerts/" + id, 1L, null).status());
+        assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM price_alert_triggers", Integer.class));
+    }
+
+    @Test
+    void theInboxCanBeFilteredByTypeAndCounted() throws Exception {
+        call("POST", "/api/v1/accounts/1/alerts", 1L, "{\"symbol\":\"AAPL\",\"condition\":\"==\",\"price\":150.00}");
+        publishQuote("AAPL", "150.00");
+
+        JsonNode alerts = call("GET", "/api/v1/accounts/1/notifications?type=price_alert", 1L, null).body();
+        assertEquals(1, alerts.size());
+        assertTrue(alerts.get(0).path("body").asText().contains("AAPL equals 150.00"));
+        assertEquals(0, call("GET", "/api/v1/accounts/1/notifications?type=order", 1L, null).body().size());
+        assertEquals(1, call("GET", "/api/v1/accounts/1/notifications/counts", 1L, null).body().path("priceAlert").asInt());
+        assertEquals(422, call("GET", "/api/v1/accounts/1/notifications?type=bogus", 1L, null).status());
+    }
+
+
+    @Test
+    void fundsCanBeAddedAndWithdrawnTheBalanceFollowsAndTheInboxIsTold() throws Exception {
+        java.math.BigDecimal seeded = jdbc.queryForObject("SELECT cash_balance FROM accounts WHERE id = 1", java.math.BigDecimal.class);
+        try {
+            fundsScenario();
+        } finally {
+            // The other tests read the seeded balance, so leave it as it was found.
+            jdbc.update("UPDATE accounts SET cash_balance = ? WHERE id = 1", seeded);
+        }
+    }
+
+    private void fundsScenario() throws Exception {
+        double before = call("GET", "/api/v1/accounts/1/balance", 1L, null).body().path("cashBalance").asDouble();
+
+        Reply added = call("POST", "/api/v1/accounts/1/funds/deposit", 1L, "{\"amount\":250.00,\"method\":\"UPI\"}");
+        assertEquals(201, added.status(), added.body().toString());
+        assertEquals(before + 250.0, added.body().path("balanceAfter").asDouble(), 0.001);
+        assertEquals(200, call("GET", "/api/v1/accounts/1/balance", 1L, null).status());
+        assertEquals(before + 250.0, call("GET", "/api/v1/accounts/1/balance", 1L, null).body().path("cashBalance").asDouble(), 0.001);
+
+        assertEquals(201, call("POST", "/api/v1/accounts/1/funds/withdraw", 1L, "{\"amount\":50.00,\"method\":\"BANK_TRANSFER\"}").status());
+        assertEquals(before + 200.0, call("GET", "/api/v1/accounts/1/balance", 1L, null).body().path("cashBalance").asDouble(), 0.001);
+
+        // more than the balance, a negative amount and an unknown method are refused; nothing is recorded for them
+        assertEquals(422, call("POST", "/api/v1/accounts/1/funds/withdraw", 1L, "{\"amount\":999999.00,\"method\":\"UPI\"}").status());
+        assertEquals(422, call("POST", "/api/v1/accounts/1/funds/deposit", 1L, "{\"amount\":-5,\"method\":\"UPI\"}").status());
+        assertEquals(422, call("POST", "/api/v1/accounts/1/funds/deposit", 1L, "{\"amount\":5,\"method\":\"CASH\"}").status());
+        assertEquals(2, jdbc.queryForObject("SELECT COUNT(*) FROM cash_movements WHERE account_id = 1", Integer.class));
+        assertEquals(2, call("GET", "/api/v1/accounts/1/funds", 1L, null).body().size());
+        assertEquals(2, call("GET", "/api/v1/accounts/1/notifications?type=funds", 1L, null).body().size());
+
+        // someone else's account is out of reach
+        assertEquals(403, call("POST", "/api/v1/accounts/1/funds/deposit", 5L, "{\"amount\":5,\"method\":\"UPI\"}").status());
+    }
+
+    @Test
+    void theMascotAndNotificationChoicesAreSavedAndAKindSwitchedOffIsNotSent() throws Exception {
+        assertEquals("OWL", call("GET", "/api/v1/accounts/1/preferences", 1L, null).body().path("mascot").asText());
+
+        Reply saved = call("PUT", "/api/v1/accounts/1/preferences", 1L,
+                "{\"defaultAccountId\":1,\"alertChannel\":\"PUSH\",\"mascot\":\"CAT\",\"notificationKinds\":[\"ORDER_FILLED\"]}");
+        assertEquals(200, saved.status(), saved.body().toString());
+        assertEquals("CAT", saved.body().path("mascot").asText());
+        assertEquals(1, saved.body().path("notificationKinds").size());
+        assertTrue(saved.body().path("notificationsEnabled").asBoolean());
+        assertEquals("CAT", jdbc.queryForObject("SELECT mascot FROM customer_preferences WHERE client_id = 1", String.class));
+
+        assertEquals(422, call("PUT", "/api/v1/accounts/1/preferences", 1L,
+                "{\"defaultAccountId\":1,\"alertChannel\":\"PUSH\",\"notificationKinds\":[\"NOT_A_KIND\"]}").status());
+        assertEquals(422, call("PUT", "/api/v1/accounts/1/preferences", 1L,
+                "{\"defaultAccountId\":1,\"alertChannel\":\"PUSH\",\"mascot\":\"DRAGON\"}").status());
+
+        // a price alert fires, but the customer only wants order messages: it is kept and marked skipped
+        call("POST", "/api/v1/accounts/1/alerts", 1L, "{\"symbol\":\"AAPL\",\"condition\":\">=\",\"price\":200.00}");
+        publishQuote("AAPL", "201.00");
+        dispatcher.dispatchDue();
+        JsonNode inbox = call("GET", "/api/v1/accounts/1/notifications?type=price_alert", 1L, null).body();
+        assertEquals(1, inbox.size());
+        assertEquals("SKIPPED", inbox.get(0).path("status").asText());
+
+        // the master switch silences everything
+        assertEquals(200, call("PUT", "/api/v1/accounts/1/preferences", 1L,
+                "{\"defaultAccountId\":1,\"alertChannel\":\"PUSH\",\"notificationsEnabled\":false}").status());
+        assertFalse(call("GET", "/api/v1/accounts/1/preferences", 1L, null).body().path("notificationsEnabled").asBoolean());
+    }
+
+    @Test
+    void theValueHistoryQueriesRunAndAPointIsRecordedOnlyOncePerWindow() {
+        jdbc.update("TRUNCATE portfolio_value_snapshots");
+
+        assertEquals(1, snapshotMapper.recordIfDue(1L, new java.math.BigDecimal("1000.00"), "USD"));
+        assertEquals(0, snapshotMapper.recordIfDue(1L, new java.math.BigDecimal("1001.00"), "USD"), "one point per ten minutes");
+
+        assertEquals(1, snapshotMapper.findSince(1L, java.time.Instant.now().minusSeconds(3600)).size());
+        assertEquals(0, snapshotMapper.findSince(2L, java.time.Instant.now().minusSeconds(3600)).size(), "another account has none");
+        assertEquals(null, snapshotMapper.findAtOrBefore(1L, java.time.Instant.now().minusSeconds(86400)));
+        assertEquals(0, snapshotMapper.netFundsSince(1L, java.time.Instant.now().minusSeconds(86400)).signum());
     }
 
     @Test
     void everyAlertQueryRunsOnARealDatabase() {
         // The unit tests use an in-memory mapper, so only this proves the SQL itself. The pending hand-over
         // query once lost the space before FROM (a text block strips it) and only failed when its timer fired.
-        jdbc.update("INSERT INTO price_alerts (account_id, symbol, direction, threshold, status, delivery_state, triggered_price, triggered_at) "
-                + "VALUES (1, 'AAPL', 'ABOVE', 200, 'TRIGGERED', 'PENDING_HANDOVER', 201, CURRENT_TIMESTAMP - interval '60 seconds')");
-        jdbc.update("INSERT INTO price_alerts (account_id, symbol, direction, threshold) VALUES (1, 'MSFT', 'BELOW', 100)");
+        jdbc.update("INSERT INTO price_alerts (account_id, symbol, direction, operator, threshold, status, delivery_state, triggered_price, triggered_at) "
+                + "VALUES (1, 'AAPL', 'ABOVE', 'GTE', 200, 'TRIGGERED', 'PENDING_HANDOVER', 201, CURRENT_TIMESTAMP - interval '60 seconds')");
+        jdbc.update("INSERT INTO price_alerts (account_id, symbol, direction, operator, threshold) VALUES (1, 'MSFT', 'BELOW', 'LTE', 100)");
 
         assertEquals(1, alertMapper.findPendingHandover(5, 10).size(), "the fired alert awaiting hand-over");
         assertEquals(1, alertMapper.findAllActive().size());
@@ -387,11 +522,11 @@ class ExtensionsChainIT {
     @Test
     void anAlertOnAnUnknownSymbolOrWithABadThresholdIsRefused() throws Exception {
         assertEquals(404, call("POST", "/api/v1/accounts/1/alerts", 1L,
-                "{\"symbol\":\"NOSUCH\",\"direction\":\"ABOVE\",\"threshold\":5}").status());
+                "{\"symbol\":\"NOSUCH\",\"condition\":\">=\",\"price\":5}").status());
         assertEquals(422, call("POST", "/api/v1/accounts/1/alerts", 1L,
-                "{\"symbol\":\"AAPL\",\"direction\":\"ABOVE\",\"threshold\":-5}").status());
+                "{\"symbol\":\"AAPL\",\"condition\":\">=\",\"price\":-5}").status());
         assertEquals(422, call("POST", "/api/v1/accounts/1/alerts", 1L,
-                "{\"accountId\":2,\"symbol\":\"AAPL\",\"direction\":\"ABOVE\",\"threshold\":5}").status());
+                "{\"accountId\":2,\"symbol\":\"AAPL\",\"condition\":\">=\",\"price\":5}").status());
     }
 
     // ================================================================ 4. portfolio

@@ -448,3 +448,16 @@ dd {
     grid-template-columns: 1fr;
   }
 }
+
+.balance__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.with-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}

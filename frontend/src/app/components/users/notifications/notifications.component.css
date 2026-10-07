@@ -18,29 +18,8 @@
   margin: 0;
 }
 
-.tabs {
-  display: inline-flex;
-  gap: 4px;
-  padding: 3px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background-color: var(--bg);
-}
 
-.tab {
-  padding: 6px 12px;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--muted);
-  font-weight: 600;
-}
 
-.tab--on {
-  background-color: var(--surface);
-  color: var(--text);
-  box-shadow: var(--shadow-sm);
-}
 
 .list {
   display: grid;
@@ -140,4 +119,10 @@
 
 .empty p {
   margin: 0;
+}
+
+.kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }

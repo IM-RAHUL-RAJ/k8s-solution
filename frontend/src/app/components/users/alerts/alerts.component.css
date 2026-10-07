@@ -2,77 +2,73 @@
   display: block;
 }
 
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
 .head h1 {
-  margin: 0 0 2px;
+  margin-bottom: 4px;
 }
 
-.head p {
-  margin: 0;
+.with-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.create {
-  display: grid;
-  gap: 10px;
+.list {
+  padding: 8px 8px 4px;
 }
 
-.create__row {
-  display: grid;
-  grid-template-columns: minmax(180px, 2fr) minmax(150px, 1.2fr) minmax(110px, 1fr) auto;
-  gap: 10px;
-  align-items: end;
+.scroll {
+  overflow-x: auto;
 }
 
-.field {
-  display: grid;
-  gap: 6px;
-}
-
-.end {
+.num {
   text-align: right;
 }
 
-.state {
-  display: inline-block;
-  padding: 2px 10px;
-  border-radius: 99px;
-  font-size: 12px;
-  font-weight: 600;
-  background-color: var(--new-bg);
-  color: var(--new);
+th.num .sort {
+  margin-left: auto;
 }
 
-.state[data-status='CANCELLED'] {
-  background-color: var(--cancel-bg);
-  color: var(--cancel);
+.act {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
 }
 
-.state[data-status='TRIGGERED'] {
-  background-color: var(--ok-bg);
-  color: var(--ok);
+.sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
 }
 
-.state[data-delivery='HANDOVER_FAILED'] {
-  background-color: var(--reject-bg);
-  color: var(--reject);
+.sort:hover {
+  color: var(--text);
 }
 
-.fired {
-  display: block;
-  margin-top: 2px;
-  font-size: 12px;
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
 }
 
-.empty {
-  text-align: center;
-  padding: 28px 16px;
+.row--off td:not(.act) {
+  opacity: 0.6;
 }
 
-.empty p {
-  margin: 0;
-}
-
-@media (max-width: 760px) {
-  .create__row {
-    grid-template-columns: 1fr;
-  }
+.pill-ccy {
+  margin-left: 6px;
 }

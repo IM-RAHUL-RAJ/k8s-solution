@@ -14,13 +14,14 @@ import { activityByDay, allocation, executionQuality } from '../../../core/stats
 import { ActivityChartComponent } from '../shared/activity-chart/activity-chart.component';
 import { AnimatedNumberComponent } from '../shared/animated-number/animated-number.component';
 import { DonutChartComponent } from '../shared/donut-chart/donut-chart.component';
+import { EmptyStateComponent } from '../shared/empty-state/empty-state.component';
 import { ExecutionQualityComponent } from '../shared/execution-quality/execution-quality.component';
 import { StatusBadgeComponent } from '../shared/status-badge/status-badge.component';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [
+  imports: [EmptyStateComponent, 
     CommonModule,
     RouterLink,
     StatusBadgeComponent,

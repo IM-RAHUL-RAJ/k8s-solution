@@ -1,4 +1,4 @@
-<section class="page" data-testid="watchlist" (document:keydown.escape)="close()">
+<section class="page" [class.page--detail]="selectedCard()" data-testid="watchlist" (document:keydown.escape)="close()">
   <header class="head">
     <div>
       <h1>Watchlist</h1>
@@ -72,13 +72,10 @@
   } @else if (!error()) {
 
     @if (cards().length === 0) {
-      <article class="card empty" data-testid="watchlist-empty">
-        <svg viewBox="0 0 20 20" aria-hidden="true">
-          <path d="M10 3l2.2 4.6 5 .7-3.6 3.5.9 5-4.5-2.4-4.5 2.4.9-5L2.8 8.3l5-.7z" />
-        </svg>
-
-        <p>Your watchlist is empty.</p>
-        <p class="muted">Pick an instrument above to start following it.</p>
+      <article class="card" data-testid="watchlist-empty">
+        <app-empty-state title="Your watchlist is empty" message="Pick an instrument above to start following it. Its chart and price show up here.">
+          <a class="button" routerLink="/order-ticket">Browse instruments</a>
+        </app-empty-state>
       </article>
     } @else {
 
@@ -436,6 +433,9 @@
             </p>
 
           }
+
+          <app-candle-chart class="detail-chart" [symbol]="card.symbol" [currency]="card.currency" />
+
 
           <dl class="facts">
 

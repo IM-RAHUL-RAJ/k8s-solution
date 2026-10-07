@@ -120,4 +120,40 @@ class InMemoryNotificationMapper implements NotificationMapper {
         }
         return 1;
     }
+
+    @Override
+    public List<Notification> findByAccountAndType(Long accountId, boolean unreadOnly, String type, int limit) {
+        return findByAccount(accountId, unreadOnly, Integer.MAX_VALUE).stream()
+                .filter(n -> switch (type) {
+                    case "price_alert" -> n.getKind() == NotificationKind.PRICE_ALERT;
+                    case "order" -> n.getKind().isOrder();
+                    case "funds" -> n.getKind() == NotificationKind.FUNDS;
+                    default -> true;
+                })
+                .limit(limit).toList();
+    }
+
+    @Override
+    public Map<String, Long> countByGroup(Long accountId) {
+        List<Notification> mine = findByAccount(accountId, false, Integer.MAX_VALUE);
+        Map<String, Long> counts = new LinkedHashMap<>();
+        counts.put("total", (long) mine.size());
+        counts.put("price_alert", mine.stream().filter(n -> n.getKind() == NotificationKind.PRICE_ALERT).count());
+        counts.put("orders", mine.stream().filter(n -> n.getKind().isOrder()).count());
+        counts.put("funds", mine.stream().filter(n -> n.getKind() == NotificationKind.FUNDS).count());
+        return counts;
+    }
+
+    @Override
+    public List<Notification> findStatusesByIds(java.util.Collection<Long> ids) {
+        return ids.stream().map(rows::get).filter(java.util.Objects::nonNull).toList();
+    }
+
+    @Override
+    public int markSkipped(Long id, String reason) {
+        Notification n = rows.get(id);
+        n.setStatus(NotificationStatus.SKIPPED);
+        n.setStatusReason(reason);
+        return 1;
+    }
 }

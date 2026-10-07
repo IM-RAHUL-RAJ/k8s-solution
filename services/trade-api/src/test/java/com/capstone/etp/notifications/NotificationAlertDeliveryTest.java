@@ -31,7 +31,7 @@ class NotificationAlertDeliveryTest {
     }
 
     private static AlertDeliveryRequest request(long alertId) {
-        return new AlertDeliveryRequest(1L, alertId, "AAPL", AlertDeliveryRequest.Direction.ABOVE,
+        return new AlertDeliveryRequest(1L, alertId, 1L, "AAPL", AlertDeliveryRequest.Operator.GTE,
                 new BigDecimal("235.00"), new BigDecimal("235.40"), Instant.parse("2026-10-06T09:15:00Z"));
     }
 
@@ -44,7 +44,7 @@ class NotificationAlertDeliveryTest {
         assertEquals(NotificationKind.PRICE_ALERT, n.getKind());
         assertEquals(1L, n.getAccountId());
         assertEquals(NotificationStatus.QUEUED, n.getStatus(), "durably recorded for delivery");
-        assertTrue(n.getBody().contains("AAPL rose above 235.00"));
+        assertTrue(n.getBody().contains("AAPL is at or above 235.00"));
         assertTrue(n.getBody().contains("235.40"));
     }
 
@@ -64,17 +64,17 @@ class NotificationAlertDeliveryTest {
         delivery.deliver(request(8L));
 
         assertEquals(2, ledger.rows.size());
-        assertNotEquals(NotificationAlertDelivery.eventIdFor(7L), NotificationAlertDelivery.eventIdFor(8L));
+        assertNotEquals(NotificationAlertDelivery.eventIdFor(7L, 1L), NotificationAlertDelivery.eventIdFor(8L, 1L));
     }
 
     @Test
-    void aBelowAlertReadsAsFallingBelow() {
-        AlertDeliveryRequest below = new AlertDeliveryRequest(1L, 9L, "MSFT", AlertDeliveryRequest.Direction.BELOW,
+    void aLessThanAlertReadsAsBelow() {
+        AlertDeliveryRequest below = new AlertDeliveryRequest(1L, 9L, 1L, "MSFT", AlertDeliveryRequest.Operator.LT,
                 new BigDecimal("300"), new BigDecimal("299.5"), Instant.now());
 
         Notification n = ledger.rows.get(delivery.deliver(below).notificationId());
 
-        assertTrue(n.getBody().contains("MSFT fell below 300.00"));
+        assertTrue(n.getBody().contains("MSFT is below 300.00"));
     }
 
     @Test

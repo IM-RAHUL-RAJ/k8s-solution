@@ -1,7 +1,7 @@
-<section class="page" data-testid="settings-page">
+<section class="page settings" data-testid="settings-page">
   <header class="head">
     <h1>Settings</h1>
-    <p class="muted">Choose how we reach you about your orders and price alerts, and which account to open on.</p>
+    <p class="muted">Everything here saves as you change it.</p>
   </header>
 
   @if (loading()) {
@@ -10,68 +10,125 @@
     </article>
   } @else if (loadError()) {
     <div class="banner error" role="alert" data-testid="settings-load-error">{{ loadError() }}</div>
-    <div><button type="button" class="secondary" (click)="load()">Try again</button></div>
+    <div><button type="button" class="secondary" (click)="retry()">Try again</button></div>
   } @else {
-    <form class="card settings" [formGroup]="form" (ngSubmit)="save()" novalidate data-testid="settings-form">
+    <!-- 1. Account: read-only -->
+    <article class="card section" data-testid="section-account">
+      <h2>Account</h2>
+      <dl class="rows">
+        <div><dt>Account ID</dt><dd class="mono" data-testid="account-id">{{ maskedAccountId() }}</dd></div>
+        <div>
+          <dt>Account reference</dt>
+          <dd class="mono locked" data-testid="account-ref">
+            {{ accountRef() ?? 'Unavailable' }}
+            <app-icon name="shield" [size]="16" />
+            <span class="sr-only">Locked: this cannot be changed</span>
+          </dd>
+        </div>
+      </dl>
+    </article>
 
-      @if (saved()) {
-        <div class="banner success" role="status" data-testid="settings-saved">
-          Saved. Your default account opens the next time you sign in.
+    <!-- 2. Theme -->
+    <article class="card section" data-testid="section-theme">
+      <h2>Theme</h2>
+      <p class="muted">Auto follows your device.</p>
+      <div class="tabs" role="radiogroup" aria-label="Theme">
+        @for (option of themes; track option.value) {
+          <button type="button" role="radio" [class.active]="themeMode() === option.value"
+                  [attr.aria-checked]="themeMode() === option.value" (click)="setTheme(option.value)"
+                  [attr.data-testid]="'theme-' + option.value">
+            <app-icon [name]="option.icon" [size]="16" /> {{ option.label }}
+          </button>
+        }
+      </div>
+    </article>
+
+    <!-- 3. Notification preferences -->
+    <article class="card section" data-testid="section-notifications">
+      <div class="row-between">
+        <div>
+          <h2>Notifications</h2>
+          <p class="muted">Choose which messages we send you. Everything is kept in your Inbox either way.</p>
+        </div>
+        <button type="button" class="switch" role="switch" [attr.aria-checked]="notificationsEnabled()"
+                aria-label="Receive notifications" (click)="toggleNotifications()" data-testid="notifications-master"></button>
+      </div>
+
+      @if (notificationsEnabled()) {
+        <ul class="kinds stagger" data-testid="notification-kinds">
+          @for (option of kindOptions; track option.key) {
+            <li>
+              <label class="check">
+                <input type="checkbox" [checked]="kinds().includes(option.key)" (change)="toggleKind(option.key)"
+                       [attr.data-testid]="'kind-' + option.key" />
+                <span><strong>{{ option.label }}</strong><span class="muted"> {{ option.hint }}</span></span>
+              </label>
+            </li>
+          }
+        </ul>
+      }
+    </article>
+
+    <!-- 4. Channel -->
+    <article class="card section" data-testid="section-channel">
+      <h2>Where messages go</h2>
+      @if (legacySms()) {
+        <div class="banner info" role="status" data-testid="sms-removed">
+          Text message alerts are no longer offered. Your messages will go to e-mail, or to your Inbox, from the next change you make here.
         </div>
       }
-      @if (saveError()) {
-        <div class="banner error" role="alert" data-testid="settings-error">{{ saveError() }}</div>
-      }
+      <div class="row-between channel">
+        <div>
+          <strong>E-mail</strong>
+          <p class="muted" data-testid="email-hint">{{ email()?.hint ?? 'No e-mail address on your profile' }}</p>
+          <p class="muted small">Taken from your profile. It cannot be changed here.</p>
+        </div>
+        <span class="pill-ccy" data-testid="email-primary">Primary</span>
+      </div>
+      <div class="row-between channel">
+        <div>
+          <strong>In-app notifications only</strong>
+          <p class="muted">Keep messages in your Inbox and do not send e-mail.</p>
+        </div>
+        <button type="button" class="switch" role="switch" [attr.aria-checked]="inAppOnly()"
+                aria-label="In-app notifications only" [disabled]="!emailAvailable()" (click)="setInAppOnly(!inAppOnly())"
+                data-testid="channel-push"></button>
+      </div>
+    </article>
 
-      <fieldset class="group">
-        <legend>Alert channel</legend>
-        @if (preferences()?.source === 'DEFAULT') {
-          <p class="muted" data-testid="settings-default-note">
-            You have not chosen yet, so we use the {{ label(preferences()!.alertChannel) }} option below.
-          </p>
+    <!-- 5. Mascot -->
+    <article class="card section" data-testid="section-mascot">
+      <h2>Your companion</h2>
+      <p class="muted">Shown on empty screens and in your e-mails. Tap one to choose it.</p>
+      <div class="mascots stagger" role="radiogroup" aria-label="Companion">
+        @for (type of mascots; track type) {
+          <button type="button" role="radio" class="mascot-card" [class.mascot-card--on]="mascot().toLowerCase() === type"
+                  [attr.aria-checked]="mascot().toLowerCase() === type" (click)="pickMascot(type)" [attr.data-testid]="'mascot-' + type">
+            <app-mascot [type]="type" [state]="happyPick() === type ? 'happy' : 'idle'" [size]="96" [interactive]="false" />
+            <span>{{ mascotLabel[type] }}</span>
+          </button>
         }
+      </div>
+    </article>
 
-        @for (option of preferences()?.channels ?? []; track option.channel) {
-          <label class="choice" [class.choice--off]="!option.available">
-            <input
-              type="radio"
-              formControlName="alertChannel"
-              [value]="option.channel"
-              [attr.disabled]="option.available ? null : ''"
-              [attr.data-testid]="'channel-' + option.channel"
-            />
-            <span class="choice__text">
-              <span class="choice__name">{{ label(option.channel) }}</span>
-              <span class="choice__hint muted">{{ option.hint }}</span>
-            </span>
-          </label>
-        }
-
-        <p class="field-hint">
-          We use the contact details already on your profile. They are not copied or stored here, and
-          you cannot enter a different address on this page.
-        </p>
-      </fieldset>
-
+    <!-- 6. Other -->
+    <article class="card section" data-testid="section-other">
+      <h2>Other</h2>
       <div class="field">
         <label for="default-account">Default account</label>
-        <select id="default-account" formControlName="defaultAccountId" data-testid="default-account">
+        <select id="default-account" [value]="defaultAccountId()" (change)="setDefaultAccount($any($event.target).value)" data-testid="default-account">
           @for (id of accounts(); track id) {
-            <option [ngValue]="id">Account {{ id }}</option>
+            <option [value]="id" [selected]="id === defaultAccountId()">Account {{ id }}</option>
           }
         </select>
-        @if (accounts().length < 2) {
-          <span class="field-hint">This sign-in works on one account, so there is nothing else to choose yet.</span>
-        } @else {
-          <span class="field-hint">The account the application opens on when you sign in.</span>
-        }
+        <span class="field-hint">
+          @if (accounts().length < 2) { This sign-in works on one account, so there is nothing else to choose yet. }
+          @else { The account the application opens on when you sign in. }
+        </span>
       </div>
-
-      <div class="actions">
-        <button type="submit" class="primary" [disabled]="saving() || form.pristine" data-testid="settings-save">
-          @if (saving()) { Saving... } @else { Save settings }
-        </button>
-      </div>
-    </form>
+      <dl class="rows">
+        <div><dt>Time zone</dt><dd data-testid="timezone">{{ timezone }}</dd></div>
+      </dl>
+    </article>
   }
 </section>

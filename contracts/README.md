@@ -16,6 +16,7 @@ which is what you will be asked about in review.
 | `kafka-topics.md` | The topic catalogue: three topics with their keys, partition counts, retention and cleanup policy, the message envelope, the payload schema for each topic, and the producer and consumer matrix. | Sprint 7 |
 | `analytics-schema.sql` | The analytical star schema: one fact table and its dimensions, in portable ANSI SQL. The target your extract, transform, load pipeline writes into. | Sprint 4 for the dashboard, loaded in full in Sprint 7 |
 | `portfolio-api.yaml` | OpenAPI 3.1 description of the Portfolio and P&L service: priced holdings, cost basis, and realised and unrealised profit and loss. | Sprint 10 |
+| `sprint10-ui-enhancements-api.yaml` | Additions made by the Sprint 10 UI work: alert operators, switch and trigger history; inbox type filter and counts; mascot and notification choices; funds; candles; portfolio value history. Supersedes `alerts-api.yaml` where they differ (decisions 0014 to 0018). | Sprint 10 |
 
 There is no contract for the transactional database. The operational schema is
 the Sprint 3 deliverable, and your team designs it from the domain and the

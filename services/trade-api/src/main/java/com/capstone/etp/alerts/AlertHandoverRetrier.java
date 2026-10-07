@@ -36,7 +36,7 @@ class AlertHandoverRetrier {
             return;
         }
         for (PriceAlert alert : pending) {
-            handover.handOver(alert.getId(), alert.getAccountId(), alert.getSymbol(), alert.getDirection(),
+            handover.handOver(alert.getId(), alert.getAccountId(), alert.getSymbol(), alert.getOperator(),
                     alert.getThreshold(), alert.getTriggeredPrice(),
                     alert.getTriggeredAt() != null ? alert.getTriggeredAt() : Instant.now());
         }

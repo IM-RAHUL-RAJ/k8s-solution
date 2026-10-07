@@ -1,7 +1,11 @@
-import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, OnInit } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
 import { AppHeaderComponent } from './components/users/shared/app-header/app-header.component';
+import { SidebarComponent } from './components/users/shared/sidebar/sidebar.component';
+import { ToastHostComponent } from './components/users/shared/toast-host/toast-host.component';
+import { MascotService } from './core/mascot/mascot.service';
+import { AccountContextService } from './core/services/account-context.service';
 import { AuthService } from './core/auth/auth.service';
 import { ThemeService } from './core/theme/theme.service';
 import { SessionSocketService } from './core/auth/session-socket.service';
@@ -10,7 +14,7 @@ import { filter, map, startWith } from 'rxjs/operators';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [AppHeaderComponent, RouterOutlet, RouterLink],
+  imports: [AppHeaderComponent, SidebarComponent, ToastHostComponent, RouterOutlet, RouterLink],
   templateUrl: './app.html',
   styleUrl: './app.css',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -20,6 +24,8 @@ export class App implements OnInit {
   protected readonly auth = inject(AuthService);
   private readonly sessionSocket = inject(SessionSocketService);
   private readonly router = inject(Router);
+  private readonly mascot = inject(MascotService);
+  private readonly accountContext = inject(AccountContextService);
   private readonly currentUrl = toSignal(
     this.router.events.pipe(
       filter((event): event is NavigationEnd => event instanceof NavigationEnd),
@@ -32,7 +38,7 @@ export class App implements OnInit {
   /** Shown to a customer who is still on the emailed password, on every page except the one that fixes it. */
   protected readonly showPasswordBanner = computed(() => {
     const path = this.currentUrl().split('?')[0];
-    return this.auth.isAuthenticated() && !this.auth.isAdmin() && this.auth.mustChangePassword() && path !== '/account';
+    return this.auth.isAuthenticated() && !this.auth.isAdmin() && this.auth.mustChangePassword() && path !== '/profile';
   });
 
   protected readonly showHeader = computed(() => {
@@ -42,6 +48,12 @@ export class App implements OnInit {
   });
 
   constructor() {
+    // Once a customer is signed in, learn which companion they chose, so empty screens show it.
+    effect(() => {
+      if (this.auth.isAuthenticated() && !this.auth.isAdmin()) {
+        this.mascot.refresh(this.accountContext.getTokenAccountId());
+      }
+    });
     // Ensure theme preference is applied on every app startup/refresh,
     // regardless of which route loads first.
     this.themeService.getCurrentTheme();

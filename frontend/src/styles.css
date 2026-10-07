@@ -935,3 +935,655 @@ input[type='password']::-ms-reveal,
 input[type='password']::-ms-clear {
   display: none;
 }
+
+/* Dot-matrix display face (Doto). Headline figures and page titles only, never body text or dense tables. */
+:root {
+  --font-dot: 'Doto', 'Segoe UI', Helvetica, Arial, sans-serif;
+}
+
+.dot {
+  font-family: var(--font-dot);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+/* =====================================================================
+   Sprint 10 design system. Neutral surfaces, one brand blue, an orange accent used sparingly.
+   Token names follow Zardui (--zd-*) and map onto the tokens every component already uses,
+   so one block re-themes the whole app. This block is last on purpose: it wins the cascade.
+   Principles: Groww (spacious, few colours), Stripe (whitespace, trust), Vercel (dark first-class).
+   ===================================================================== */
+:root {
+  color-scheme: light;
+  --bg: #f5f5f7;
+  --surface: #ffffff;
+  --surface-2: #fafafb;
+  --line: #e5e5ea;
+  --text: #1a1a1a;
+  --muted: #6b7078;
+  --accent: #1f5fd6;
+  --accent-light: #4f86e8;
+  --accent-hover: #184cae;
+  --accent-rgb: 31, 95, 214;
+  --accent-2: #e8650a;
+  --on-accent: #ffffff;
+  --brand-panel: #1f5fd6;
+  --on-brand: #ffffff;
+  --ok: #1b7a52;
+  --ok-bg: #e2f3ea;
+  --new: #2a5db0;
+  --new-bg: #e6eefb;
+  --reject: #c0392b;
+  --reject-bg: #fbe9e6;
+  --cancel: #5b6068;
+  --cancel-bg: #ececef;
+  --blue: #2a5db0;
+  --blue-bg: #e6eefb;
+  --teal: #1b7f7a;
+  --teal-bg: #dff1ef;
+  --amber: #a86400;
+  --amber-bg: #fbeed3;
+  --violet: #6b4bb3;
+  --violet-bg: #ece7f7;
+  --slate: #848a94;
+  --shadow-sm: 0 1px 2px rgba(20, 20, 30, 0.05), 0 2px 8px -2px rgba(20, 20, 30, 0.06);
+  --shadow-md: 0 2px 4px rgba(20, 20, 30, 0.05), 0 14px 28px -12px rgba(20, 20, 30, 0.2);
+  --ring: rgba(31, 95, 214, 0.18);
+  --glow: 0 8px 22px -10px rgba(31, 95, 214, 0.5);
+
+  /* Spacing (8px base), radii, type, motion. */
+  --sp-1: 8px;
+  --sp-2: 16px;
+  --sp-3: 24px;
+  --sp-4: 32px;
+  --sp-5: 40px;
+  --sp-6: 48px;
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --fast: 200ms;
+  --enter: 300ms;
+  --bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --font-mono: ui-monospace, 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  --sidebar-w: 240px;
+  --sidebar-w-collapsed: 64px;
+
+  /* Zardui names. */
+  --zd-background: var(--bg);
+  --zd-foreground: var(--text);
+  --zd-card: var(--surface);
+  --zd-border: var(--line);
+  --zd-primary: var(--accent);
+  --zd-primary-foreground: var(--on-accent);
+  --zd-muted-foreground: var(--muted);
+  --zd-destructive: var(--reject);
+  --zd-radius: var(--r-md);
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #0f0f10;
+  --surface: #1a1a1c;
+  --surface-2: #151517;
+  --line: #2c2c31;
+  --text: #f5f5f7;
+  --muted: #9b9ca4;
+  --accent: #5aa2ff;
+  --accent-light: #7ab6ff;
+  --accent-hover: #86bbff;
+  --accent-rgb: 90, 162, 255;
+  --accent-2: #ff9933;
+  --on-accent: #06121f;
+  --brand-panel: #16263f;
+  --on-brand: #f5f5f7;
+  --ok: #5cc48f;
+  --ok-bg: #12301f;
+  --new: #86b4ff;
+  --new-bg: #16263f;
+  --reject: #f2887a;
+  --reject-bg: #3a1d19;
+  --cancel: #a2a4ab;
+  --cancel-bg: #26272b;
+  --blue: #86b4ff;
+  --blue-bg: #16263f;
+  --teal: #55c2bc;
+  --teal-bg: #112f2d;
+  --amber: #efb958;
+  --amber-bg: #33290f;
+  --violet: #b7a0f0;
+  --violet-bg: #251f3d;
+  --slate: #80838b;
+  --shadow-sm: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 6px 16px -8px rgba(0, 0, 0, 0.7);
+  --shadow-md: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 18px 32px -14px rgba(0, 0, 0, 0.85);
+  --ring: rgba(90, 162, 255, 0.28);
+  --glow: 0 8px 22px -10px rgba(90, 162, 255, 0.55);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --bg: #0f0f10;
+    --surface: #1a1a1c;
+    --surface-2: #151517;
+    --line: #2c2c31;
+    --text: #f5f5f7;
+    --muted: #9b9ca4;
+    --accent: #5aa2ff;
+    --accent-light: #7ab6ff;
+    --accent-hover: #86bbff;
+    --accent-rgb: 90, 162, 255;
+    --accent-2: #ff9933;
+    --on-accent: #06121f;
+    --brand-panel: #16263f;
+    --on-brand: #f5f5f7;
+    --ok: #5cc48f;
+    --ok-bg: #12301f;
+    --new: #86b4ff;
+    --new-bg: #16263f;
+    --reject: #f2887a;
+    --reject-bg: #3a1d19;
+    --cancel: #a2a4ab;
+    --cancel-bg: #26272b;
+    --blue: #86b4ff;
+    --blue-bg: #16263f;
+    --teal: #55c2bc;
+    --teal-bg: #112f2d;
+    --amber: #efb958;
+    --amber-bg: #33290f;
+    --violet: #b7a0f0;
+    --violet-bg: #251f3d;
+    --slate: #80838b;
+    --shadow-sm: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 6px 16px -8px rgba(0, 0, 0, 0.7);
+    --shadow-md: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 18px 32px -14px rgba(0, 0, 0, 0.85);
+    --ring: rgba(90, 162, 255, 0.28);
+    --glow: 0 8px 22px -10px rgba(90, 162, 255, 0.55);
+  }
+}
+
+body {
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+h1 {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+h2 {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+h3 {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.mono,
+.price {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Cards: quiet, one hairline, a soft shadow. */
+.card {
+  border-radius: var(--r-md);
+  padding: var(--sp-2);
+}
+
+.card.lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Buttons: brand for the main action, muted for the rest; a press shrinks to 0.95. */
+button {
+  border-radius: var(--r-sm);
+  transition:
+    background-color var(--fast) ease-out,
+    border-color var(--fast) ease-out,
+    color var(--fast) ease-out,
+    opacity var(--fast) ease-out,
+    box-shadow var(--fast) ease-out,
+    transform var(--fast) ease-out;
+}
+
+button:active:not(:disabled),
+a.button:active {
+  transform: scale(0.95);
+}
+
+button.primary,
+a.button {
+  box-shadow: none;
+}
+
+button.primary:hover:not(:disabled),
+a.button:hover {
+  background-color: var(--accent-hover);
+  transform: none;
+  box-shadow: var(--glow);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+button.secondary {
+  border-color: var(--line);
+}
+
+button.secondary:hover:not(:disabled) {
+  background-color: color-mix(in srgb, var(--text) 5%, var(--surface));
+  border-color: color-mix(in srgb, var(--text) 25%, var(--line));
+  color: var(--text);
+}
+
+button.danger {
+  background-color: transparent;
+  color: var(--reject);
+  border-color: color-mix(in srgb, var(--reject) 40%, var(--line));
+}
+
+button.danger:hover:not(:disabled) {
+  background-color: var(--reject-bg);
+}
+
+button.ghost {
+  background: transparent;
+  color: var(--muted);
+}
+
+button.ghost:hover:not(:disabled) {
+  color: var(--text);
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+}
+
+/* Inputs and dropdowns: hairline border, a soft focus ring, no Material-style blue slab. */
+input,
+select,
+textarea {
+  border-radius: var(--r-sm);
+  background-color: var(--surface);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--ring);
+}
+
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 34px;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%239b9ca4' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 8 5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 16px;
+}
+
+select option {
+  background-color: var(--surface);
+  color: var(--text);
+}
+
+/* Tables: air instead of lines; a hover that barely shows. */
+th {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  border-bottom-color: var(--line);
+}
+
+td {
+  border-bottom-color: color-mix(in srgb, var(--line) 55%, transparent);
+}
+
+table tbody tr:hover {
+  background-color: color-mix(in srgb, var(--text) 4%, transparent);
+}
+
+.banner {
+  border-radius: var(--r-md);
+}
+
+/* ---- Icons and their hover labels. A label is text in data-tip; aria-label stays on the control. ---- */
+.icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid transparent;
+  position: relative;
+}
+
+.icon-btn:hover:not(:disabled),
+.icon-btn:focus-visible {
+  color: var(--text);
+  background: color-mix(in srgb, var(--text) 7%, transparent);
+}
+
+.icon-btn.danger:hover:not(:disabled) {
+  color: var(--reject);
+  background: var(--reject-bg);
+}
+
+.icon-btn svg,
+svg.i {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex: none;
+}
+
+[data-tip] {
+  position: relative;
+}
+
+[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  z-index: 60;
+  left: 50%;
+  bottom: calc(100% + 6px);
+  transform: translateX(-50%) translateY(2px);
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: var(--text);
+  color: var(--bg);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.3;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition:
+    opacity var(--fast) ease-out,
+    transform var(--fast) ease-out;
+}
+
+[data-tip]:hover::after,
+[data-tip]:focus-visible::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+[data-tip-below]::after {
+  bottom: auto;
+  top: calc(100% + 6px);
+}
+
+[data-tip-end]::after {
+  left: auto;
+  right: 0;
+  transform: translateY(2px);
+}
+
+[data-tip-end]:hover::after,
+[data-tip-end]:focus-visible::after {
+  transform: translateY(0);
+}
+
+/* ---- Filter tabs ---- */
+.tabs {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--text) 5%, transparent);
+  flex-wrap: wrap;
+}
+
+.tabs button {
+  padding: 7px 14px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 500;
+  border: none;
+}
+
+.tabs button:hover:not(.active) {
+  color: var(--text);
+}
+
+.tabs button.active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+}
+
+.tabs .count {
+  margin-left: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* ---- Pills and freshness dots ---- */
+.dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--slate);
+  flex: none;
+}
+
+.dot.live {
+  background: var(--ok);
+}
+
+.dot.delayed {
+  background: var(--amber);
+}
+
+.dot.stale {
+  background: var(--reject);
+}
+
+.pill-ccy {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--blue);
+  background: var(--blue-bg);
+}
+
+.pill-ccy[data-ccy='INR'] {
+  color: var(--reject);
+  background: var(--reject-bg);
+}
+
+.pill-ccy[data-ccy='EUR'] {
+  color: var(--violet);
+  background: var(--violet-bg);
+}
+
+.pill-ccy[data-ccy='GBP'] {
+  color: var(--teal);
+  background: var(--teal-bg);
+}
+
+/* ---- Switch ---- */
+.switch {
+  position: relative;
+  width: 40px;
+  height: 24px;
+  padding: 0;
+  border-radius: 99px;
+  border: none;
+  background: color-mix(in srgb, var(--text) 18%, transparent);
+  flex: none;
+}
+
+.switch::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: transform var(--fast) var(--bounce);
+}
+
+.switch[aria-checked='true'] {
+  background: var(--accent);
+}
+
+.switch[aria-checked='true']::after {
+  transform: translateX(16px);
+}
+
+.switch:active:not(:disabled) {
+  transform: none;
+}
+
+/* ---- Dialog ---- */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: var(--sp-2);
+  background: rgba(10, 10, 14, 0.5);
+  backdrop-filter: blur(4px);
+  animation: fadeIn var(--enter) ease-out;
+}
+
+.modal {
+  width: min(480px, 100%);
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  padding: var(--sp-3);
+  border-radius: var(--r-lg);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+  animation: scaleIn var(--enter) var(--ease);
+}
+
+.modal h2 {
+  margin-bottom: var(--sp-1);
+}
+
+.modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sp-1);
+  margin-top: var(--sp-3);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+}
+
+/* ---- Lists enter one after another (50ms apart, capped so a long list never lags). ---- */
+.stagger > * {
+  animation: riseIn var(--enter) var(--ease) both;
+}
+
+.stagger > *:nth-child(2) { animation-delay: 50ms; }
+.stagger > *:nth-child(3) { animation-delay: 100ms; }
+.stagger > *:nth-child(4) { animation-delay: 150ms; }
+.stagger > *:nth-child(5) { animation-delay: 200ms; }
+.stagger > *:nth-child(6) { animation-delay: 250ms; }
+.stagger > *:nth-child(n + 7) { animation-delay: 300ms; }
+
+/* Gain and loss: colour plus a sign, never colour alone. */
+[data-dir='gain'] {
+  color: var(--ok);
+}
+
+[data-dir='loss'] {
+  color: var(--reject);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Entrance animations must not keep a transform alive afterwards: a filling transform makes the element the
+   containing block of position:fixed children (dialogs, side panels), and they collapse into it. */
+.page > *,
+.stagger > * {
+  animation-fill-mode: backwards;
+}
+
+/* Chart series: distinct hues, in the order they are used. */
+:root {
+  --c1: var(--accent);
+  --c2: var(--teal);
+  --c3: var(--amber);
+  --c4: var(--violet);
+  --c5: var(--slate);
+  --c6: var(--reject);
+}
+
+/* Overlays are not part of the page's entrance sequence: a moving ancestor would trap their fixed backdrop. */
+.page > :is(app-modal, app-alert-dialog, app-funds-dialog, app-trigger-history-panel) {
+  animation: none;
+}
+
+/* A page is one column that may shrink to the screen; without this a wide table inside a card stretches the whole page on a phone. */
+.page {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* A control that opens a menu does not also show its hover label on top of it. */
+[data-tip][aria-expanded='true']::after {
+  display: none;
+}

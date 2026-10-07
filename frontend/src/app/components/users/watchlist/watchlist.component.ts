@@ -14,6 +14,8 @@ import { ApiErrorMessageService } from '../../../core/services/api-error-message
 import { HomeCurrencyService } from '../../../core/services/home-currency.service';
 import { InstrumentService } from '../../../core/services/instrument.service';
 import { OrderService } from '../../../core/services/order.service';
+import { EmptyStateComponent } from '../shared/empty-state/empty-state.component';
+import { CandleChartComponent } from './candle-chart.component';
 
 /** How often the quotes are re-read. The executor publishes about once a minute, so this only shortens the wait. */
 export const QUOTE_REFRESH_MS = 10_000;
@@ -22,7 +24,7 @@ export const QUOTE_REFRESH_MS = 10_000;
 @Component({
   selector: 'app-watchlist',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, CandleChartComponent, EmptyStateComponent],
   templateUrl: './watchlist.component.html',
   styleUrl: './watchlist.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush

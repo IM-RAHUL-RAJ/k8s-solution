@@ -59,6 +59,9 @@ class NotificationDispatcherTest {
     void setUp() {
         ledger = new InMemoryNotificationMapper();
         resolver = mock(ChannelResolver.class);
+        // A mock answers false to everything; the customer wants every message unless a test says otherwise.
+        when(resolver.wants(anyLong(), org.mockito.ArgumentMatchers.anyString())).thenReturn(true);
+        when(resolver.mascotOf(anyLong())).thenReturn("OWL");
         email = new RecordingSender(AlertChannel.EMAIL);
         sms = new RecordingSender(AlertChannel.SMS);
         push = new RecordingSender(AlertChannel.PUSH);
@@ -216,5 +219,18 @@ class NotificationDispatcherTest {
         dispatcher.dispatchDue();
 
         assertEquals(NotificationStatus.SENT, second.getStatus(), "one failing row must not stop the rest");
+    }
+
+    @Test
+    void aKindTheCustomerSwitchedOffIsKeptInTheInboxButNotSent() {
+        when(resolver.wants(1L, "PRICE_ALERT")).thenReturn(false);
+        Notification n = queued(1L);
+        n.setKind(NotificationKind.PRICE_ALERT);
+
+        dispatcher.dispatch(n);
+
+        assertEquals(NotificationStatus.SKIPPED, ledger.rows.get(n.getId()).getStatus());
+        assertEquals("OPTED_OUT", ledger.rows.get(n.getId()).getStatusReason());
+        assertEquals(0, email.sent.size() + sms.sent.size() + push.sent.size());
     }
 }

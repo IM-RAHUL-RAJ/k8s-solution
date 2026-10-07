@@ -63,7 +63,14 @@
         @if (balance()?.asOf; as asOf) {
           <p class="muted fine">As of {{ asOf | date: 'd MMM y, HH:mm' }}</p>
         }
-        <a class="button" routerLink="/order-ticket">Place an order</a>
+        <div class="balance__actions">
+          <button type="button" class="primary with-icon" (click)="openFunds('deposit')" data-testid="add-funds">
+            <app-icon name="arrowDownLeft" [size]="18" /> Add Funds
+          </button>
+          <button type="button" class="secondary with-icon" (click)="openFunds('withdraw')" data-testid="withdraw-funds">
+            <app-icon name="arrowUpRight" [size]="18" /> Withdraw Funds
+          </button>
+        </div>
       </article>
     </div>
 
@@ -74,11 +81,9 @@
           <span class="muted">By asset class (invested cost)</span>
         </div>
         @if (rows().length === 0) {
-          <div class="empty">
-            <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6.5" /><path d="M10 3.5V10h6.5" /></svg>
-            <p>No asset mix yet.</p>
-            <p class="muted">The chart appears once holdings are created by filled buy orders.</p>
-          </div>
+          <app-empty-state title="No asset mix yet" message="The chart appears once your filled buy orders create holdings." [size]="100">
+            <a class="button" routerLink="/order-ticket">Place an order</a>
+          </app-empty-state>
         } @else {
           <app-donut-chart [slices]="assetClassSlices()" [unit]="balance()?.currency ?? ''" centreLabel="Exposure" />
           <div class="mix-meta">
@@ -125,11 +130,9 @@
         </div>
 
         @if (rows().length === 0) {
-          <div class="empty">
-            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3l7 3.5-7 3.5-7-3.5zM3 10l7 3.5 7-3.5" /></svg>
-            <p>No positions yet.</p>
-            <p class="muted">Filled buy orders create positions.</p>
-          </div>
+          <app-empty-state title="No positions yet" message="Filled buy orders create positions." [size]="100">
+            <a class="button" routerLink="/order-ticket">Place an order</a>
+          </app-empty-state>
         } @else {
           <table>
             <thead>
@@ -160,5 +163,8 @@
     </div>
   }
 
-  
+  @if (fundsDialog(); as kind) {
+    <app-funds-dialog [kind]="kind" [balance]="balance()?.cashBalance ?? 0" [currency]="balance()?.currency ?? ''"
+                      (done)="onFundsDone($event)" (closed)="fundsDialog.set(null)" />
+  }
 </section>

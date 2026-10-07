@@ -26,7 +26,10 @@ describe('PreferencesService', () => {
     contactDetail: '******3210',
     source: 'STORED',
     channels: [],
-    updatedAt: '2026-10-06T10:00:00Z'
+    updatedAt: '2026-10-06T10:00:00Z',
+    mascot: 'OWL',
+    notificationsEnabled: true,
+    notificationKinds: ['ORDER_FILLED']
   });
 
   beforeEach(() => {

@@ -5,7 +5,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.MailException;
-import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.MimeMessageHelper;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Component;
 
@@ -17,10 +19,13 @@ class EmailChannelSender implements ChannelSender {
     private final ObjectProvider<JavaMailSender> mailSender;
     private final String smtpHost;
     private final String from;
+    private final EmailTemplateRenderer renderer;
 
     EmailChannelSender(ObjectProvider<JavaMailSender> mailSender,
                        @Value("${spring.mail.host:}") String smtpHost,
-                       @Value("${app.notifications.mail.from:no-reply@quorum.local}") String from) {
+                       @Value("${app.notifications.mail.from:no-reply@quorum.local}") String from,
+                       EmailTemplateRenderer renderer) {
+        this.renderer = renderer;
         this.mailSender = mailSender;
         this.smtpHost = smtpHost;
         this.from = from;
@@ -39,15 +44,23 @@ class EmailChannelSender implements ChannelSender {
             return Mode.STUB;
         }
         try {
-            SimpleMailMessage mail = new SimpleMailMessage();
-            mail.setFrom(from);
-            mail.setTo(message.destination());
-            mail.setSubject(message.subject());
-            mail.setText(message.body());
-            sender.send(mail);
+            MimeMessage mime = sender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mime, true, "UTF-8");
+            helper.setFrom(from);
+            helper.setTo(message.destination());
+            helper.setSubject(message.subject());
+            if (message.kind() != null) {
+                // HTML with a plain-text alternative, for clients that show only text.
+                EmailTemplateRenderer.Rendered rendered = renderer.render(
+                        message.kind(), message.mascot(), message.subject(), message.body(), java.time.Instant.now());
+                helper.setText(rendered.text(), rendered.html());
+            } else {
+                helper.setText(message.body(), false);
+            }
+            sender.send(mime);
             log.info("[NOTIFY] e-mail sent to={}", message.masked());
             return Mode.LIVE;
-        } catch (MailException e) {
+        } catch (MailException | MessagingException e) {
             // The exception text can quote the address; keep only its type.
             throw new DeliveryException("E-mail provider failed: " + e.getClass().getSimpleName(), e);
         }

@@ -1,0 +1,74 @@
+.sentence {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 0 8px;
+  font-size: 16px;
+  line-height: 2;
+}
+
+.sentence select,
+.sentence input {
+  width: auto;
+}
+
+.combo {
+  position: relative;
+}
+
+.combo__input {
+  min-width: 180px;
+}
+
+.combo__list {
+  position: absolute;
+  z-index: 70;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 280px;
+  max-height: 240px;
+  overflow: auto;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+  animation: listIn 0.2s ease-out;
+  transform-origin: top left;
+}
+
+.combo__list li {
+  display: flex;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.combo__list li:hover,
+.combo__list li[aria-selected='true'] {
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+}
+
+.price-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.price-field input {
+  width: 120px;
+  font-family: var(--font-mono);
+}
+
+@keyframes listIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95, 0.9);
+  }
+}

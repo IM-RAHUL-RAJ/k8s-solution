@@ -1,0 +1,139 @@
+import { HttpErrorResponse } from '@angular/common/http';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { of, throwError } from 'rxjs';
+import { vi } from 'vitest';
+import { CandlesService } from '../../../core/services/candles.service';
+import { BARS_FOR, CandleChartComponent } from './candle-chart.component';
+
+// The chart library needs a real canvas. These tests care what the component asks for and shows, not the drawing.
+const setData = vi.fn();
+const createChart = vi.fn(() => ({
+  addSeries: vi.fn(() => ({ setData, applyOptions: vi.fn(), priceScale: () => ({ applyOptions: vi.fn() }) })),
+  subscribeCrosshairMove: vi.fn(),
+  applyOptions: vi.fn(),
+  timeScale: () => ({ fitContent: vi.fn() }),
+  remove: vi.fn()
+}));
+vi.mock('lightweight-charts', () => ({
+  createChart: (...args: unknown[]) => (createChart as (...a: unknown[]) => unknown)(...args),
+  CandlestickSeries: 'candles',
+  HistogramSeries: 'volume',
+  CrosshairMode: { Magnet: 1 }
+}));
+
+describe('CandleChartComponent', () => {
+  let fixture: ComponentFixture<CandleChartComponent>;
+  const getCandles = vi.fn();
+
+  const response = (symbol = 'AAPL') => ({
+    symbol,
+    currency: 'USD',
+    period: '1d',
+    asOf: '2026-10-07T14:05:11Z',
+    candles: [
+      { timestamp: '2026-10-05T00:00:00Z', open: 229, high: 232, low: 228, close: 231.2, volume: 1_000_000 },
+      { timestamp: '2026-10-06T00:00:00Z', open: 231, high: 233, low: 230, close: 230.5, volume: 900_000 }
+    ]
+  });
+
+  const el = <T extends HTMLElement = HTMLElement>(id: string): T | null => fixture.nativeElement.querySelector(`[data-testid="${id}"]`);
+  const settle = async () => {
+    fixture.detectChanges();
+    await fixture.whenStable();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    fixture.detectChanges();
+  };
+
+  async function build(symbol = 'AAPL'): Promise<void> {
+    await TestBed.configureTestingModule({
+      imports: [CandleChartComponent],
+      providers: [{ provide: CandlesService, useValue: { getCandles } }]
+    }).compileComponents();
+    fixture = TestBed.createComponent(CandleChartComponent);
+    fixture.componentRef.setInput('symbol', symbol);
+    fixture.componentRef.setInput('currency', 'USD');
+    await settle();
+  }
+
+  beforeEach(() => {
+    localStorage.clear();
+    getCandles.mockReset().mockReturnValue(of(response()));
+    setData.mockReset();
+    createChart.mockClear();
+  });
+
+  it('asks for daily candles first, as many as the period suggests', async () => {
+    await build();
+
+    expect(getCandles).toHaveBeenCalledWith('AAPL', '1d', BARS_FOR['1d']);
+  });
+
+  it('draws the candles and the volume once they arrive', async () => {
+    await build();
+
+    expect(createChart).toHaveBeenCalledTimes(1);
+    // one call for candles, one for volume
+    expect(setData).toHaveBeenCalledTimes(2);
+    expect(setData.mock.calls[0][0]).toEqual([
+      { time: Date.parse('2026-10-05T00:00:00Z') / 1000, open: 229, high: 232, low: 228, close: 231.2 },
+      { time: Date.parse('2026-10-06T00:00:00Z') / 1000, open: 231, high: 233, low: 230, close: 230.5 }
+    ]);
+  });
+
+  it('offers 1D, 4H, 1H and 15M, and re-fetches when one is chosen', async () => {
+    await build();
+    expect(Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('[role="radio"]')).map((b) => b.textContent!.trim())).toEqual(['1D', '4H', '1H', '15M']);
+
+    el('period-1h')!.click();
+    await settle();
+
+    expect(getCandles).toHaveBeenLastCalledWith('AAPL', '1h', BARS_FOR['1h']);
+    expect(el('period-1h')?.getAttribute('aria-checked')).toBe('true');
+    expect(el('period-1d')?.getAttribute('aria-checked')).toBe('false');
+  });
+
+  it('remembers the chosen period for next time', async () => {
+    await build();
+    el('period-4h')!.click();
+    await settle();
+
+    expect(localStorage.getItem('quorum-candle-period')).toBe('4h');
+
+    TestBed.resetTestingModule();
+    getCandles.mockClear();
+    await build();
+    expect(getCandles).toHaveBeenCalledWith('AAPL', '4h', BARS_FOR['4h']);
+  });
+
+  it('asks again for a different instrument', async () => {
+    await build();
+
+    fixture.componentRef.setInput('symbol', 'MSFT');
+    await settle();
+
+    expect(getCandles).toHaveBeenLastCalledWith('MSFT', '1d', BARS_FOR['1d']);
+  });
+
+  it('says so when there are no candles, and draws nothing', async () => {
+    getCandles.mockReturnValue(of({ ...response(), candles: [] }));
+    await build();
+
+    expect(el('candle-empty')).not.toBeNull();
+    expect(createChart).not.toHaveBeenCalled();
+  });
+
+  it('shows the reason with a retry when the data cannot be had, rather than an invented chart', async () => {
+    getCandles.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 503, error: { errorCode: 'MKT-503', message: 'Chart data is not available right now.' } })));
+    await build();
+
+    expect(el('candle-error')).not.toBeNull();
+    expect(createChart).not.toHaveBeenCalled();
+
+    getCandles.mockReturnValue(of(response()));
+    (el('candle-error')!.querySelector('button') as HTMLButtonElement).click();
+    await settle();
+
+    expect(el('candle-error')).toBeNull();
+    expect(createChart).toHaveBeenCalledTimes(1);
+  });
+});

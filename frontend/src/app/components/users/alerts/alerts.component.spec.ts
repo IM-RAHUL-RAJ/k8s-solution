@@ -13,37 +13,49 @@ import { AlertsComponent } from './alerts.component';
 describe('AlertsComponent', () => {
   let fixture: ComponentFixture<AlertsComponent>;
   const list = vi.fn();
-  const create = vi.fn();
-  const remove = vi.fn();
+  const createAlert = vi.fn();
+  const updateAlert = vi.fn();
+  const toggleAlert = vi.fn();
+  const deleteAlert = vi.fn();
+  const getTriggerHistory = vi.fn();
 
   const alert = (overrides: Partial<PriceAlert> = {}): PriceAlert => ({
     id: 7,
     symbol: 'AAPL',
-    direction: 'ABOVE',
-    threshold: 235,
+    condition: '>=',
+    price: 235,
+    enabled: true,
     status: 'ACTIVE',
     deliveryState: 'NONE',
     triggeredPrice: null,
     triggeredAt: null,
     createdAt: '2026-10-06T09:00:00Z',
+    triggerCount: 0,
     ...overrides
   });
 
   const text = () => (fixture.nativeElement as HTMLElement).textContent ?? '';
-  const el = (testId: string): HTMLElement | null => fixture.nativeElement.querySelector(`[data-testid="${testId}"]`);
+  const el = <T extends HTMLElement = HTMLElement>(testId: string): T | null => fixture.nativeElement.querySelector(`[data-testid="${testId}"]`);
+  const all = (testId: string): HTMLElement[] => Array.from(fixture.nativeElement.querySelectorAll(`[data-testid="${testId}"]`));
+  const settle = async () => {
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+  };
 
   async function build(query: Record<string, string> = {}): Promise<void> {
     await TestBed.configureTestingModule({
       imports: [AlertsComponent],
       providers: [
         provideRouter([]),
-        { provide: AlertService, useValue: { list, create, remove } },
+        { provide: AlertService, useValue: { list, createAlert, updateAlert, toggleAlert, deleteAlert, getTriggerHistory } },
         { provide: AccountContextService, useValue: { getCurrentAccount: () => ({ accountNumericId: 1 }) } },
         { provide: ActivatedRoute, useValue: { snapshot: { queryParamMap: convertToParamMap(query) } } },
         {
           provide: HomeCurrencyService,
           useValue: {
             ensureLoaded: vi.fn(),
+            currencyOf: (symbol: string) => (symbol === 'INFY' ? 'INR' : 'USD'),
             instrumentList: signal([
               { symbol: 'AAPL', name: 'Apple', exchange: 'NASDAQ', assetClass: 'US_EQUITY', currency: 'USD', tradable: true },
               { symbol: 'MSFT', name: 'Microsoft', exchange: 'NASDAQ', assetClass: 'US_EQUITY', currency: 'USD', tradable: true }
@@ -53,125 +65,170 @@ describe('AlertsComponent', () => {
       ]
     }).compileComponents();
     fixture = TestBed.createComponent(AlertsComponent);
-    fixture.detectChanges();
-    await fixture.whenStable();
-    fixture.detectChanges();
-  }
-
-  function fill(symbol: string, threshold: string): void {
-    const select = el('alert-symbol') as HTMLSelectElement;
-    select.value = symbol;
-    select.dispatchEvent(new Event('change'));
-    const input = el('alert-threshold') as HTMLInputElement;
-    input.value = threshold;
-    input.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
+    await settle();
   }
 
   beforeEach(() => {
     list.mockReset().mockReturnValue(of([alert()]));
-    create.mockReset();
-    remove.mockReset();
+    createAlert.mockReset();
+    updateAlert.mockReset();
+    toggleAlert.mockReset().mockReturnValue(of(false));
+    deleteAlert.mockReset();
+    getTriggerHistory.mockReset().mockReturnValue(of({ alertId: 7, triggers: [] }));
   });
 
-  it('lists the alerts with their state', async () => {
+  it('lists an alert as symbol, condition with its currency, and a switch', async () => {
     await build();
 
-    expect(el('alert-7')?.textContent).toContain('AAPL');
-    expect(el('alert-state')?.textContent).toContain('Watching');
+    expect(text()).toContain('AAPL');
+    expect(el('alert-condition-text')?.textContent).toContain('≥ 235.00');
+    expect(el('alert-condition-text')?.textContent).toContain('USD');
+    expect(el('alert-toggle')?.getAttribute('aria-checked')).toBe('true');
+    expect(el('alert-count')?.textContent).toContain('Total: 1 alert');
   });
 
-  it('tells the customer a fired alert was handed over', async () => {
-    list.mockReturnValue(of([alert({ status: 'TRIGGERED', deliveryState: 'HANDED_OVER', triggeredPrice: 235.4,
-      triggeredAt: '2026-10-06T09:15:00Z' })]));
+  it('shows the companion and a call to action when there are no alerts', async () => {
+    list.mockReturnValue(of([]));
     await build();
 
-    expect(el('alert-state')?.textContent).toContain('Fired');
-    expect(el('alert-state')?.textContent).toContain('Inbox');
-    expect(text()).toContain('235.40');
+    expect(el('alerts-empty')).not.toBeNull();
+    expect(el('mascot')).not.toBeNull();
+    expect(text()).toContain('Create your first alert');
   });
 
-  it('tells the customer when a fired alert could not be queued, instead of saying nothing', async () => {
-    list.mockReturnValue(of([alert({ status: 'TRIGGERED', deliveryState: 'HANDOVER_FAILED', triggeredPrice: 235.4,
-      triggeredAt: '2026-10-06T09:15:00Z' })]));
+  it('opens the dialog from the Create Alert button, with every operator on offer', async () => {
     await build();
 
-    expect(el('alert-state')?.textContent).toContain('could not be queued');
-    expect(el('alert-remove')).toBeNull();   // it cannot be removed while the customer may not have been told
+    el('alert-create-open')!.click();
+    await settle();
+
+    expect(el('alert-form')).not.toBeNull();
+    const options = Array.from((el('alert-condition') as HTMLSelectElement).options).map((option) => option.value);
+    expect(options).toEqual(['>', '>=', '<', '<=', '==']);
   });
 
-  it('creates an alert with the chosen symbol, direction and level', async () => {
-    await build();
-    create.mockReturnValue(of(alert({ id: 8, symbol: 'MSFT', threshold: 300 })));
-
-    fill('MSFT', '300');
-    (el('alert-create') as HTMLButtonElement).click();
-    fixture.detectChanges();
-
-    expect(create).toHaveBeenCalledWith(1, { symbol: 'MSFT', direction: 'ABOVE', threshold: 300 });
-    expect(el('alert-8')).not.toBeNull();
-  });
-
-  it('does not ask the server when the level is not a positive number', async () => {
-    await build();
-
-    fill('AAPL', '-5');
-    (el('alert-create') as HTMLButtonElement).click();
-    fixture.detectChanges();
-
-    expect(create).not.toHaveBeenCalled();
-    expect(text()).toContain('Enter a price above zero');
-  });
-
-  it('preselects the symbol that arrives from the watchlist link', async () => {
+  it('opens straight onto the dialog when arriving from the watchlist with a symbol', async () => {
     await build({ symbol: 'msft' });
 
-    expect((el('alert-symbol') as HTMLSelectElement).value).toBe('MSFT');
+    expect(el('alert-form')).not.toBeNull();
+    expect((el('alert-symbol') as HTMLInputElement).value).toBe('MSFT');
   });
 
-  it('ignores a symbol in the link that is not a plausible symbol', async () => {
-    await build({ symbol: '<script>alert(1)</script>' });
-
-    expect((el('alert-symbol') as HTMLSelectElement).value).toBe('');
-  });
-
-  it('explains the cap in plain words', async () => {
+  it('edit opens the dialog filled in, titled Edit Alert', async () => {
     await build();
-    create.mockReturnValue(throwError(() => new HttpErrorResponse({
-      status: 409,
-      error: { errorCode: 'ALR-409', message: 'You can keep at most 25 alerts' }
-    })));
 
-    fill('AAPL', '240');
-    (el('alert-create') as HTMLButtonElement).click();
+    el('alert-edit')!.click();
+    await settle();
+
+    expect(text()).toContain('Edit Alert');
+    expect((el('alert-symbol') as HTMLInputElement).value).toBe('AAPL');
+    expect((el('alert-price') as HTMLInputElement).value).toBe('235');
+    expect((el('alert-condition') as HTMLSelectElement).value).toBe('>=');
+    expect(el('alert-save')?.textContent).toContain('Update');
+  });
+
+  it('turning the switch updates the row at once and tells the server', async () => {
+    await build();
+    // After the call the page reads the list again; the server now holds the switch off.
+    list.mockReturnValue(of([alert({ enabled: false })]));
+
+    el('alert-toggle')!.click();
     fixture.detectChanges();
 
-    expect(el('alert-create-error')?.textContent).toContain('limit for price alerts');
+    expect(toggleAlert).toHaveBeenCalledWith(1, 7, false);
+    expect(el('alert-toggle')?.getAttribute('aria-checked')).toBe('false');
   });
 
-  it('shows the server\'s reason when the price has already crossed the level', async () => {
+  it('puts the switch back and says why when the server refuses', async () => {
+    toggleAlert.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 409, error: { errorCode: 'ALR-409' } })));
     await build();
-    create.mockReturnValue(throwError(() => new HttpErrorResponse({
-      status: 422,
-      error: { errorCode: 'VAL-422', message: 'The price of AAPL is already above that level. Choose a level the price has not reached yet' }
-    })));
 
-    fill('AAPL', '100');
-    (el('alert-create') as HTMLButtonElement).click();
-    fixture.detectChanges();
+    el('alert-toggle')!.click();
+    await settle();
 
-    expect(el('alert-create-error')?.textContent).toContain('already above that level');
+    expect(el('alert-toggle')?.getAttribute('aria-checked')).toBe('true');
+    expect(el('alert-action-error')).not.toBeNull();
   });
 
-  it('cancels an active alert and re-reads what the server says', async () => {
+  it('asks before deleting, and removes the row on confirm', async () => {
+    deleteAlert.mockReturnValue(of(alert()));
     await build();
-    remove.mockReturnValue(of(alert({ status: 'CANCELLED' })));
-    list.mockReturnValue(of([alert({ status: 'CANCELLED' })]));
 
-    (el('alert-remove') as HTMLButtonElement).click();
-    fixture.detectChanges();
+    el('alert-delete')!.click();
+    await settle();
+    expect(el('delete-confirm')?.textContent).toContain('AAPL');
+    expect(deleteAlert).not.toHaveBeenCalled();
 
-    expect(remove).toHaveBeenCalledWith(1, 7);
-    expect(el('alert-state')?.textContent).toContain('Cancelled');
+    el('delete-confirm-button')!.click();
+    await settle();
+
+    expect(deleteAlert).toHaveBeenCalledWith(1, 7);
+    expect(el('alerts-empty')).not.toBeNull();
+  });
+
+  it('keeping the alert on the confirmation changes nothing', async () => {
+    await build();
+
+    el('alert-delete')!.click();
+    await settle();
+    el('delete-cancel')!.click();
+    await settle();
+
+    expect(deleteAlert).not.toHaveBeenCalled();
+    expect(el('delete-confirm')).toBeNull();
+    expect(all('alert-toggle').length).toBe(1);
+  });
+
+  it('the history button opens the side panel with this alert\'s triggers', async () => {
+    getTriggerHistory.mockReturnValue(of({
+      alertId: 7,
+      triggers: [{ id: 1, triggeredAt: '2026-10-07T14:05:11Z', triggerPrice: 236.5, notificationStatus: 'SENT', notificationId: 4 }]
+    }));
+    await build();
+
+    el('alert-history')!.click();
+    await settle();
+
+    expect(getTriggerHistory).toHaveBeenCalledWith(1, 7);
+    expect(el('trigger-panel')?.textContent).toContain('Alert: AAPL');
+    expect(all('trigger-card').length).toBe(1);
+    expect(el('trigger-panel')?.textContent).toContain('236.50');
+    expect(el('trigger-panel')?.textContent).toContain('Sent');
+
+    el('trigger-close')!.click();
+    await settle();
+    expect(el('trigger-panel')).toBeNull();
+  });
+
+  describe('filters', () => {
+    const alerts = [
+      alert({ id: 1, symbol: 'AAPL', enabled: true }),
+      alert({ id: 2, symbol: 'MSFT', enabled: false }),
+      alert({ id: 3, symbol: 'NVDA', enabled: true, status: 'TRIGGERED', deliveryState: 'HANDED_OVER', triggerCount: 2 })
+    ];
+
+    it('counts each tab and narrows the list', async () => {
+      list.mockReturnValue(of(alerts));
+      await build();
+
+      expect(el('filter-all')?.textContent).toContain('3');
+      expect(el('filter-enabled')?.textContent).toContain('2');
+      expect(el('filter-disabled')?.textContent).toContain('1');
+      expect(el('filter-triggered')?.textContent).toContain('1');
+
+      el('filter-disabled')!.click();
+      await settle();
+      expect(all('alert-toggle').length).toBe(1);
+      expect(text()).toContain('MSFT');
+
+      el('filter-triggered')!.click();
+      await settle();
+      expect(text()).toContain('NVDA');
+      expect(text()).not.toContain('MSFT');
+
+      el('filter-enabled')!.click();
+      await settle();
+      expect(all('alert-toggle').length).toBe(2);
+    });
   });
 });

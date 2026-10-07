@@ -287,7 +287,7 @@ export class LoginComponent {
         const home = this.authService.isAdmin()
           ? '/admin'
           : this.authService.mustChangePassword()
-            ? '/account'
+            ? '/profile'
             : '/dashboard';
         const target = requested && requested.startsWith('/') && !requested.startsWith('//')
           ? requested

@@ -50,6 +50,7 @@ test.describe('sign in', () => {
     await signIn(page);
     await expect(page).toHaveURL(/\/dashboard$/);
 
+    await page.getByTestId('avatar-button').click();
     await page.getByTestId('sign-out').click();
     await expect(page).toHaveURL(/\/$|\/sign-in/);
 
