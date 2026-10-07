@@ -5,6 +5,7 @@ import com.capstone.etp.dto.PlaceOrderRequest;
 import com.capstone.etp.enums.OrderSide;
 import com.capstone.etp.kafka.consumer.QuoteObserver;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -18,6 +19,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.Executor;
@@ -41,33 +43,74 @@ public class AutomationService implements QuoteObserver {
     private record Active(StrategyDefinition definition, String symbol, TradingStrategy strategy) {
     }
 
+    private final AutomationProperties properties;
+    private final AutomationMapper store;
     private final TradeApiClient tradeApi;
     private final Executor executor;
     private final Clock clock;
     private final PriceHistory history;
-    private final Map<String, List<Active>> bySymbol = new HashMap<>();
+    private volatile Map<String, List<Active>> bySymbol = Map.of();
     private final Deque<AutomationResult> recent = new ConcurrentLinkedDeque<>();
 
-    public AutomationService(AutomationProperties properties, TradeApiClient tradeApi, Executor executor, Clock clock) {
+    public AutomationService(AutomationProperties properties, AutomationMapper store, TradeApiClient tradeApi,
+                             Executor executor, Clock clock) {
+        this.properties = properties;
+        this.store = store;
         this.tradeApi = tradeApi;
         this.executor = executor;
         this.clock = clock;
         this.history = new PriceHistory(Math.max(properties.getHistorySize(), 10));
-        for (StrategyDefinition definition : properties.getStrategies()) {
-            register(definition, properties.getHistorySize());
-        }
-        log.info("[AUTOMATION] started strategies={}", bySymbol.values().stream().mapToInt(List::size).sum());
+        reload();
     }
 
-    private void register(StrategyDefinition definition, int historySize) {
+    /**
+     * Loads the strategies that are switched on. Called at start, after every change a customer makes, and on a timer
+     * so a change made on another instance is picked up. A strategy that is invalid is left out; if the store cannot
+     * be read the strategies already running keep running.
+     */
+    @Scheduled(fixedDelayString = "${app.automation.reload-ms:30000}", initialDelay = 30_000)
+    public void reload() {
+        if (!properties.isEnabled()) {
+            bySymbol = Map.of();
+            log.warn("[AUTOMATION] switched off on the platform (app.automation.enabled=false): no strategy will trade");
+            return;
+        }
+        List<StrategyDefinition> definitions;
+        try {
+            definitions = store.findEnabled();
+        } catch (RuntimeException e) {
+            log.error("[AUTOMATION] could not read the strategies, keeping the ones running: {}", e.getClass().getSimpleName());
+            return;
+        }
+        Map<String, List<Active>> fresh = new HashMap<>();
+        for (StrategyDefinition definition : definitions) {
+            register(fresh, definition, properties.getHistorySize());
+        }
+        bySymbol = fresh;
+        log.info("[AUTOMATION] strategies running={}", fresh.values().stream().mapToInt(List::size).sum());
+    }
+
+    /** How many prices have been collected for a running strategy, and how many it needs before it can act. */
+    public Optional<Progress> progressOf(String strategyId) {
+        for (List<Active> actives : bySymbol.values()) {
+            for (Active active : actives) {
+                if (active.definition().getId().equals(strategyId)) {
+                    return Optional.of(new Progress(Math.min(history.size(active.symbol()), active.strategy().requiredObservations()),
+                            active.strategy().requiredObservations()));
+                }
+            }
+        }
+        return Optional.empty();
+    }
+
+    public record Progress(int collected, int required) {
+    }
+
+    private void register(Map<String, List<Active>> target, StrategyDefinition definition, int historySize) {
         String id = definition == null ? null : definition.getId();
         List<String> problems = StrategyDefinitionValidator.problems(definition);
         if (!problems.isEmpty()) {
             log.error("[AUTOMATION] strategy refused id={} problems={}", id, problems);
-            return;
-        }
-        if (!definition.isEnabled()) {
-            log.info("[AUTOMATION] strategy disabled id={}", id);
             return;
         }
         TradingStrategy strategy = StrategyFactory.create(definition);
@@ -77,7 +120,7 @@ public class AutomationService implements QuoteObserver {
             return;
         }
         String symbol = definition.getSymbol().trim().toUpperCase(Locale.ROOT);
-        bySymbol.computeIfAbsent(symbol, key -> new ArrayList<>()).add(new Active(definition, symbol, strategy));
+        target.computeIfAbsent(symbol, key -> new ArrayList<>()).add(new Active(definition, symbol, strategy));
         log.info("[AUTOMATION] strategy active id={} strategy={} symbol={} accountId={} quantity={}",
                 id, strategy.name(), symbol, definition.getAccountId(), definition.getQuantity());
     }

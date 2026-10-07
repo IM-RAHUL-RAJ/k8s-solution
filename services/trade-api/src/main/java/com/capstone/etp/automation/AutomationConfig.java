@@ -1,6 +1,5 @@
 package com.capstone.etp.automation;
 
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -9,20 +8,20 @@ import org.springframework.web.client.RestClient;
 
 import java.time.Clock;
 import java.time.Duration;
-import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * Wires automation, only when app.automation.enabled=true. Orders are submitted on one dedicated thread so a slow
- * Trade API cannot hold up the market-data consumer; one thread also keeps the submissions in the order they triggered.
+ * Wires automation. It is always present, but trades only for strategies a customer has switched on, and not at all
+ * if app.automation.enabled is false. Orders are submitted on one dedicated thread so a slow Trade API cannot hold up
+ * the market-data consumer; one thread also keeps the submissions in the order they triggered.
  */
 @Configuration
 @EnableConfigurationProperties(AutomationProperties.class)
-@ConditionalOnProperty(name = "app.automation.enabled", havingValue = "true")
 class AutomationConfig {
 
     @Bean
-    TradeApiClient automationTradeApiClient(AutomationProperties properties) {
+    TradeApiClient automationTradeApiClient(AutomationProperties properties, AutomationTokenIssuer tokens) {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(Duration.ofMillis(properties.getConnectTimeoutMs()));
         factory.setReadTimeout(Duration.ofMillis(properties.getReadTimeoutMs()));
@@ -30,11 +29,11 @@ class AutomationConfig {
                 .baseUrl(properties.getTradeApiBaseUrl())
                 .requestFactory(factory)
                 .build();
-        return new RestTradeApiClient(restClient, properties.getServiceToken());
+        return new RestTradeApiClient(restClient, tokens);
     }
 
     @Bean(destroyMethod = "shutdown")
-    java.util.concurrent.ExecutorService automationOrderExecutor() {
+    ExecutorService automationOrderExecutor() {
         return Executors.newSingleThreadExecutor(runnable -> {
             Thread thread = new Thread(runnable, "automation-orders");
             thread.setDaemon(true);
@@ -43,9 +42,8 @@ class AutomationConfig {
     }
 
     @Bean
-    AutomationService automationService(AutomationProperties properties, TradeApiClient tradeApi,
-                                        java.util.concurrent.ExecutorService automationOrderExecutor, Clock clock) {
-        Executor executor = automationOrderExecutor;
-        return new AutomationService(properties, tradeApi, executor, clock);
+    AutomationService automationService(AutomationProperties properties, AutomationMapper store, TradeApiClient tradeApi,
+                                        ExecutorService automationOrderExecutor, Clock clock) {
+        return new AutomationService(properties, store, tradeApi, automationOrderExecutor, clock);
     }
 }

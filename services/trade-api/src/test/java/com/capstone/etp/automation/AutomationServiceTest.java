@@ -56,10 +56,11 @@ class AutomationServiceTest {
 
     private AutomationService service(StrategyDefinition... definitions) {
         AutomationProperties properties = new AutomationProperties();
-        properties.setEnabled(true);
-        properties.setStrategies(List.of(definitions));
+        AutomationMapper store = mock(AutomationMapper.class);
+        // the store returns only strategies that are switched on, as the real query does
+        when(store.findEnabled()).thenReturn(java.util.Arrays.stream(definitions).filter(StrategyDefinition::isEnabled).toList());
         // A direct executor: the order is submitted before onQuote returns, so the tests can look straight away.
-        return new AutomationService(properties, tradeApi, Runnable::run, Clock.fixed(T0, ZoneOffset.UTC));
+        return new AutomationService(properties, store, tradeApi, Runnable::run, Clock.fixed(T0, ZoneOffset.UTC));
     }
 
     private MarketQuote quote(String symbol, double price) {
@@ -212,8 +213,9 @@ class AutomationServiceTest {
     void aStrategyThatNeedsMoreHistoryThanIsKeptIsRefused() {
         AutomationProperties properties = new AutomationProperties();
         properties.setHistorySize(3);
-        properties.setStrategies(List.of(ma("aapl-ma", "AAPL", 7, true)));
-        AutomationService service = new AutomationService(properties, tradeApi, Runnable::run, Clock.fixed(T0, ZoneOffset.UTC));
+        AutomationMapper store = mock(AutomationMapper.class);
+        when(store.findEnabled()).thenReturn(List.of(ma("aapl-ma", "AAPL", 7, true)));
+        AutomationService service = new AutomationService(properties, store, tradeApi, Runnable::run, Clock.fixed(T0, ZoneOffset.UTC));
 
         feed(service, "AAPL", 10, 10, 10, 10, 12);
 

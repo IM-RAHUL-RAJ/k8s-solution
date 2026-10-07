@@ -11,7 +11,7 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 
 /**
- * POST /api/v1/orders on the Trade REST API, with the automation token as a bearer token. Exactly one request
+ * POST /api/v1/orders on the Trade REST API, with a token for the order's own account as the bearer token. Exactly one request
  * per call: a failure is reported, not retried, so an uncertain outcome can never become a second order.
  */
 @Slf4j
@@ -20,22 +20,28 @@ public class RestTradeApiClient implements TradeApiClient {
     static final String ORDERS_PATH = "/api/v1/orders";
 
     private final RestClient restClient;
-    private final String serviceToken;
+    private final TokenSource tokens;
 
-    public RestTradeApiClient(RestClient restClient, String serviceToken) {
+    public RestTradeApiClient(RestClient restClient, TokenSource tokens) {
         this.restClient = restClient;
-        this.serviceToken = serviceToken == null ? "" : serviceToken.trim();
+        this.tokens = tokens;
     }
 
     @Override
     public SubmissionResult submit(PlaceOrderRequest request) {
-        if (serviceToken.isEmpty()) {
-            return SubmissionResult.failed("the automation service token is not configured");
+        String token;
+        try {
+            token = tokens.tokenFor(request.getAccountId());
+        } catch (RuntimeException e) {
+            return SubmissionResult.failed("no token could be made for the account");
+        }
+        if (token == null || token.isBlank()) {
+            return SubmissionResult.failed("no token could be made for the account");
         }
         try {
             OrderResponse response = restClient.post()
                     .uri(ORDERS_PATH)
-                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + serviceToken)
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(request)
                     .retrieve()

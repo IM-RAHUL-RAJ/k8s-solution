@@ -19,6 +19,20 @@ export interface AutomationStrategy {
   enabled: boolean;
   parameters: string;
   problems: string[];
+  /** Prices collected so far and prices needed before the rule can act (only while it is switched on). */
+  collected: number | null;
+  required: number | null;
+}
+
+export interface CreateStrategyRequest {
+  type: 'MA_CROSSOVER' | 'BOLLINGER_BANDS';
+  accountId: number;
+  symbol: string;
+  quantity: number;
+  shortPeriod?: number;
+  longPeriod?: number;
+  period?: number;
+  multiplier?: number;
 }
 
 export interface AutomationResult {

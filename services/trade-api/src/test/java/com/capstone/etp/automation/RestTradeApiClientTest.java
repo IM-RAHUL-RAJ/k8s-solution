@@ -38,7 +38,7 @@ class RestTradeApiClientTest {
     void setUp() {
         RestClient.Builder builder = RestClient.builder().baseUrl("http://trade-api.test");
         server = MockRestServiceServer.bindTo(builder).build();
-        client = new RestTradeApiClient(builder.build(), "service-jwt");
+        client = new RestTradeApiClient(builder.build(), accountId -> "jwt-for-" + accountId);
     }
 
     private static PlaceOrderRequest request() {
@@ -50,7 +50,7 @@ class RestTradeApiClientTest {
     void postsTheOrderToTheTradeApiWithTheBearerTokenAndTheRightBody() {
         server.expect(requestTo("http://trade-api.test/api/v1/orders"))
                 .andExpect(method(HttpMethod.POST))
-                .andExpect(header("Authorization", "Bearer service-jwt"))
+                .andExpect(header("Authorization", "Bearer jwt-for-7"))
                 .andExpect(header("Content-Type", "application/json"))
                 .andExpect(jsonPath("$.accountId").value(7))
                 .andExpect(jsonPath("$.symbol").value("AAPL"))
@@ -127,7 +127,7 @@ class RestTradeApiClientTest {
     void withoutATokenNothingIsSent() {
         RestClient.Builder builder = RestClient.builder().baseUrl("http://trade-api.test");
         MockRestServiceServer silent = MockRestServiceServer.bindTo(builder).build();
-        RestTradeApiClient noToken = new RestTradeApiClient(builder.build(), "  ");
+        RestTradeApiClient noToken = new RestTradeApiClient(builder.build(), accountId -> "  ");
 
         TradeApiClient.SubmissionResult result = noToken.submit(request());
 
