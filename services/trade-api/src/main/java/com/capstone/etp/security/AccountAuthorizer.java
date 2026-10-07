@@ -54,6 +54,12 @@ public class AccountAuthorizer {
         return accountIds.get(0);
     }
 
+    /** The accounts named in the token. Empty when it names none. */
+    public List<Long> ownAccountIds() {
+        List<Long> accountIds = getAuthenticatedUser().accountIds();
+        return accountIds == null ? List.of() : accountIds;
+    }
+
     private void logDenied(AuthenticatedUser user, Long requestedAccountId) {
         // The subject is the token's own identifier; nothing the caller typed is written to the log.
         log.warn("[ACCESS_DENIED] subject={} requestedAccountId={} tokenAccountIds={}",

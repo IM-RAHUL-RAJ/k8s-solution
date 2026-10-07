@@ -1,0 +1,71 @@
+:host {
+  display: block;
+}
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.head h1 {
+  margin-bottom: 4px;
+}
+
+.list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: grid;
+  gap: 12px;
+  padding: 18px 22px;
+}
+
+.item__head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.item__head h2 {
+  margin: 0;
+  flex: 1;
+}
+
+.signal {
+  padding: 4px 14px;
+  font-weight: 800;
+  color: var(--text);
+  background: var(--muted-bg);
+  border: 1px solid var(--line);
+}
+
+.signal[data-signal='BUY'] {
+  color: #fff;
+  background: var(--buy);
+  border-color: var(--buy);
+}
+
+.signal[data-signal='SELL'] {
+  color: #fff;
+  background: var(--sell);
+  border-color: var(--sell);
+}
+
+.why {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0 0 0 20px;
+  color: var(--text);
+}
+
+.fine {
+  font-size: 13px;
+}

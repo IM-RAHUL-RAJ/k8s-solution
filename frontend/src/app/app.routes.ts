@@ -93,6 +93,20 @@ export const routes: Routes = [
       )
   },
   {
+    path: 'advice',
+    title: 'Trade advice',
+    canActivate: [authGuard, customerGuard],
+    loadComponent: () =>
+      import('./components/users/advice/advice.component').then((m) => m.AdviceComponent)
+  },
+  {
+    path: 'automation',
+    title: 'Automated trading',
+    canActivate: [authGuard, customerGuard],
+    loadComponent: () =>
+      import('./components/users/automation/automation.component').then((m) => m.AutomationComponent)
+  },
+  {
     path: 'notifications',
     title: 'Inbox',
     canActivate: [authGuard, customerGuard],

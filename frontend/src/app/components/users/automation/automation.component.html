@@ -1,0 +1,76 @@
+<section class="page" data-testid="automation-page">
+  <header class="head">
+    <div>
+      <h1>Automated trading</h1>
+      <p class="muted">Rules that place orders for you when a price condition is met. Set by configuration; shown here read only.</p>
+    </div>
+    <button type="button" class="icon-btn" (click)="load()" [disabled]="loading()" aria-label="Refresh status" data-tip="Refresh" data-tip-end data-testid="automation-refresh">
+      <app-icon name="refresh" />
+    </button>
+  </header>
+
+  @if (loading()) {
+    <article class="card" aria-busy="true" aria-label="Loading automation">
+      <span class="skeleton short"></span><span class="skeleton"></span>
+    </article>
+  } @else if (error()) {
+    <div class="banner error" role="alert" data-testid="automation-error">{{ error() }}</div>
+    <div><button type="button" class="secondary" (click)="load()">Try again</button></div>
+  } @else {
+    <div class="banner" [class.success]="status()?.running" [class.warn]="!status()?.running" role="status" data-testid="automation-state">
+      <app-mascot [action]="status()?.running ? 'dance' : 'think'" [size]="48" [interactive]="false" />
+      <span>
+        @if (status()?.running) {
+          Automation is <strong>running</strong>. Orders go through the same checks as an order you place yourself.
+        } @else {
+          Automation is <strong>switched off</strong>. No order will be placed by a rule.
+        }
+      </span>
+    </div>
+
+    <article class="card">
+      <h2>Strategies</h2>
+      @if (strategies().length === 0) {
+        <app-empty-state title="No strategies for your accounts" message="Strategies are added in the platform configuration." [size]="90" />
+      } @else {
+        <ul class="rows" data-testid="automation-strategies">
+          @for (strategy of strategies(); track strategy.id) {
+            <li class="row" [attr.data-testid]="'strategy-' + strategy.id">
+              <div class="row__main">
+                <strong>{{ strategy.symbol }}</strong>
+                <span class="muted">{{ typeLabel(strategy.type) }}: {{ strategy.parameters }}</span>
+                <span class="muted">{{ strategy.quantity }} per order, account {{ strategy.accountId }}</span>
+                @for (problem of strategy.problems; track problem) {
+                  <span class="problem">{{ problem }}</span>
+                }
+              </div>
+              <span class="state" [attr.data-state]="stateOf(strategy)" data-testid="strategy-state">{{ stateOf(strategy) }}</span>
+            </li>
+          }
+        </ul>
+      }
+    </article>
+
+    <article class="card">
+      <h2>Recent activity</h2>
+      @if (results().length === 0) {
+        <p class="muted" data-testid="automation-no-results">Nothing has triggered since the service started.</p>
+      } @else {
+        <ul class="rows" data-testid="automation-results">
+          @for (result of results(); track $index) {
+            <li class="row">
+              <div class="row__main">
+                <strong>{{ result.trigger }} {{ result.symbol }}</strong>
+                <span class="muted">{{ result.strategyId }} &middot; {{ result.at | date: 'd MMM y, HH:mm:ss' }}</span>
+                @if (result.detail) { <span class="muted">{{ result.detail }}</span> }
+              </div>
+              <span class="outcome" [attr.data-outcome]="result.outcome" [attr.title]="outcome(result.outcome).hint" data-testid="result-outcome">{{ outcome(result.outcome).label }}</span>
+            </li>
+          }
+        </ul>
+      }
+    </article>
+
+    <p class="muted fine">A trigger is not a trade: only "Order sent" means the trading service accepted an order, and the executor still decides whether it fills.</p>
+  }
+</section>

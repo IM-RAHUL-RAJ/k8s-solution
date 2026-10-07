@@ -1,0 +1,81 @@
+:host {
+  display: block;
+}
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.head h1 {
+  margin-bottom: 4px;
+}
+
+.banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.card h2 {
+  margin-bottom: 12px;
+}
+
+.rows {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px dashed var(--line);
+}
+
+.row:last-child {
+  border-bottom: none;
+}
+
+.row__main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.problem {
+  color: var(--reject);
+  font-weight: 700;
+}
+
+.state,
+.outcome {
+  flex: none;
+  padding: 2px 12px;
+  font-weight: 800;
+  background: var(--muted-bg);
+  border: 1px solid var(--line);
+}
+
+.state[data-state='Active'],
+.outcome[data-outcome='ORDER_SUBMITTED'] {
+  color: var(--ok);
+  background: var(--ok-bg);
+}
+
+.state[data-state='Invalid'],
+.outcome[data-outcome='ORDER_REJECTED'],
+.outcome[data-outcome='ORDER_SUBMISSION_FAILED'] {
+  color: var(--reject);
+  background: var(--reject-bg);
+}
+
+.fine {
+  font-size: 13px;
+}
