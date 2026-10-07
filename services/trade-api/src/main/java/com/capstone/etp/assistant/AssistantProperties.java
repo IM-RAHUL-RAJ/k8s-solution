@@ -18,9 +18,9 @@ public class AssistantProperties {
     @Setter
     public static class Gemini {
         private String apiKey = "";
-        private String model = "gemini-2.5-flash";
+        private String model = "gemini-3.1-flash-lite";
         /** Tried in order when the model above is not found (404). */
-        private java.util.List<String> fallbackModels = java.util.List.of();
+        private java.util.List<String> fallbackModels = java.util.List.of("gemini-flash-lite-latest", "gemini-flash-latest");
         private String baseUrl = "https://generativelanguage.googleapis.com";
         private int connectTimeoutMs = 2000;
         private int readTimeoutMs = 8000;

@@ -70,11 +70,11 @@ public class RestGeminiClient implements GeminiClient {
                 return text;
             } catch (RestClientResponseException e) {
                 if (e.getStatusCode().value() == 404) {
-                    log.warn("[ASSISTANT] model {} was not found (404)", model);
+                    log.warn("[ASSISTANT] model {} was not found (404): {}", model, googleSays(e));
                     listModelsOnce();
                     continue;
                 }
-                log.warn("[ASSISTANT] the model call failed: status={} model={}", e.getStatusCode().value(), model);
+                log.warn("[ASSISTANT] the model call failed: status={} model={}: {}", e.getStatusCode().value(), model, googleSays(e));
                 return Optional.empty();
             } catch (RuntimeException e) {
                 // The key travels in a header, so neither the message nor the cause can carry it.
@@ -109,6 +109,12 @@ public class RestGeminiClient implements GeminiClient {
             log.warn("[ASSISTANT] the connection broke ({}), trying once more", first.getClass().getSimpleName());
             return call(model, body);
         }
+    }
+
+    /** What Google said about the failure (its error message; the key is in a header, never in the body). */
+    private static String googleSays(RestClientResponseException e) {
+        String body = e.getResponseBodyAsString();
+        return body == null ? "" : brief(new RuntimeException(body));
     }
 
     private static String brief(Throwable e) {
