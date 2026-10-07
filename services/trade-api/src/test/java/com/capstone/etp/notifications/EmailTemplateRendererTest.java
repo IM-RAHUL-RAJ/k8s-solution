@@ -59,4 +59,31 @@ class EmailTemplateRendererTest {
         assertTrue(html.contains("max-width: 600px"));
         assertTrue(html.contains("name=\"viewport\""));
     }
+
+    @Test
+    void anAutomatedTradeCarriesABannerInTheHtmlAndInTheTextVersion() {
+        EmailTemplateRenderer.Rendered rendered = renderer.render(NotificationKind.ORDER_FILLED, "OWL",
+                "Automated order filled: BUY 1 AAPL", "This trade was placed automatically by your strategy #5 on AAPL. Your BUY order was filled.", at);
+
+        assertTrue(rendered.html().contains("AUTOMATED TRADE TRIGGERED"));
+        assertTrue(rendered.html().contains("You did not place this order."));
+        assertTrue(rendered.text().startsWith("*** AUTOMATED TRADE TRIGGERED ***"));
+        assertFalse(rendered.html().contains("{{"), "no unfilled placeholder");
+    }
+
+    @Test
+    void anOrderYouPlacedYourselfHasNoBanner() {
+        EmailTemplateRenderer.Rendered rendered = renderer.render(NotificationKind.ORDER_FILLED, "OWL", "Order filled: BUY 1 AAPL", "Filled.", at);
+
+        assertFalse(rendered.html().contains("AUTOMATED TRADE TRIGGERED"));
+        assertFalse(rendered.text().contains("AUTOMATED"));
+        assertFalse(rendered.html().contains("{{"), "no unfilled placeholder");
+    }
+
+    @Test
+    void theBannerComesFromTheSubjectMarkerOnlyAndCannotBeFakedByTheMessageBody() {
+        EmailTemplateRenderer.Rendered rendered = renderer.render(NotificationKind.PRICE_ALERT, "OWL", "Price alert: AAPL", "Automated order filled", at);
+
+        assertFalse(rendered.html().contains("AUTOMATED TRADE TRIGGERED"));
+    }
 }

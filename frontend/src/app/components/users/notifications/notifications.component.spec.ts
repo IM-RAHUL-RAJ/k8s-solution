@@ -56,6 +56,20 @@ describe('NotificationsComponent', () => {
     markAllRead.mockReset().mockReturnValue(of(2));
   });
 
+  it('puts an "Automated trade triggered" banner on a message a strategy caused, and none on one you caused', async () => {
+    list.mockReturnValue(of([
+      item({ id: 1, subject: 'Automated order filled: BUY 1 AAPL', body: 'This trade was placed automatically by your strategy #5 on AAPL. Filled.' }),
+      item({ id: 2, subject: 'Order filled: BUY 2 MSFT' })
+    ]));
+    await create();
+
+    const banners = fixture.nativeElement.querySelectorAll('[data-testid="automated-banner"]');
+    expect(banners.length).toBe(1);
+    expect(banners[0].textContent).toContain('Automated trade triggered');
+    expect(banners[0].textContent).toContain('You did not place this order');
+    expect(banners[0].closest('li, article')?.textContent).toContain('BUY 1 AAPL');
+  });
+
   it('has a Read all button that marks the whole inbox read at once', async () => {
     list.mockReturnValue(of([item({ id: 1 }), item({ id: 2 })]));
     await create();

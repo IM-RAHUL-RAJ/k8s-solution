@@ -221,7 +221,7 @@ describe('AutomationComponent', () => {
     const fixture = await build(of(status(true, [running, strategy({ id: '2' })])));
 
     expect(el(fixture, 'strategy-extras-1')!.querySelector('[data-testid="chart-stub"]')).not.toBeNull();
-    expect(el(fixture, 'strategy-extras-2')).toBeNull();
+    expect(el(fixture, 'strategy-extras-2')!.querySelector('[data-testid="chart-stub"]')).toBeNull();
   });
 
   it('shows how far price collection has got as a bar', async () => {
@@ -261,29 +261,31 @@ describe('AutomationComponent', () => {
     expect(el(fixture, 'confirm-demo')).toBeNull();
   });
 
-  it('gives each strategy its own card with its number and kind, and shows its last automated trade', async () => {
+  it('tells strategies apart by number and kind', async () => {
     const fixture = await build(of(status(true, [strategy({ id: '5', enabled: true }), strategy({ id: '6', type: 'BOLLINGER_BANDS', parameters: 'period 20, multiplier 2' })])));
 
     expect(el(fixture, 'strategy-5')?.textContent).toContain('#5');
     expect(el(fixture, 'strategy-5')!.querySelector('[data-testid="strategy-type"]')!.textContent).toContain('MA crossover');
     expect(el(fixture, 'strategy-6')!.querySelector('[data-testid="strategy-type"]')!.textContent).toContain('Bollinger');
-    expect(el(fixture, 'strategy-5')!.querySelector('[data-testid="strategy-last"]')!.textContent).toContain('BUY 100 AAPL');
-    expect(el(fixture, 'strategy-6')!.querySelector('[data-testid="strategy-last"]')).toBeNull();
   });
 
-  it('keeps a history table of automated trades, which can be narrowed to one strategy', async () => {
+  it('shows each strategy its own automated trades under it, newest first, and none under a strategy that has not traded', async () => {
     const fixture = await build(of(status(true, [strategy({ id: '5' }), strategy({ id: '6' })])));
 
-    expect(all(fixture, 'history-row').length).toBe(2);
-    expect(all(fixture, 'history-row')[0].textContent).toContain('100.20');
+    const five = el(fixture, 'strategy-history-5')!;
+    expect(five.querySelectorAll('[data-testid="history-row"]').length).toBe(2);
+    expect(five.querySelectorAll('[data-testid="history-row"]')[0].textContent).toContain('100.20');
+    expect(five.querySelectorAll('[data-testid="history-row"]')[0].textContent).toContain('BUY');
+    expect(el(fixture, 'strategy-history-6')!.querySelectorAll('[data-testid="history-row"]').length).toBe(0);
+    expect(el(fixture, 'strategy-history-6')!.querySelector('[data-testid="strategy-no-trades"]')).not.toBeNull();
+  });
 
-    el(fixture, 'history-6')!.click();
-    fixture.detectChanges();
-    expect(all(fixture, 'history-row').length).toBe(0);
-    expect(el(fixture, 'automation-no-results')).not.toBeNull();
+  it('keeps the history and the chart together under the strategy they belong to', async () => {
+    const running = strategy({ id: '5', enabled: true, collected: 5, required: 5, chart: { prices: [10, 11, 12], lines: { shortAverage: [null, 10.5, 11.5], longAverage: [null, null, 11] } } });
+    const fixture = await build(of(status(true, [running])));
 
-    el(fixture, 'history-all')!.click();
-    fixture.detectChanges();
-    expect(all(fixture, 'history-row').length).toBe(2);
+    const extras = el(fixture, 'strategy-extras-5')!;
+    expect(extras.querySelector('[data-testid="chart-stub"]')).not.toBeNull();
+    expect(extras.querySelector('[data-testid="strategy-history-5"]')).not.toBeNull();
   });
 });

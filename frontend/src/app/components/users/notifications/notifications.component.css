@@ -144,3 +144,18 @@
   font-size: 12px;
   font-weight: 800;
 }
+
+.auto-banner {
+  display: grid;
+  gap: 2px;
+  margin-bottom: 8px;
+  padding: 8px 12px;
+  color: var(--on-accent);
+  background: var(--accent);
+  font-family: var(--font-body);
+}
+
+.auto-banner span {
+  font-size: 13px;
+  opacity: 0.9;
+}

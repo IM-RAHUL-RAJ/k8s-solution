@@ -176,76 +176,13 @@
   min-width: 220px;
 }
 
-/* Each strategy is its own card, with a coloured edge for its kind so they are easy to tell apart. */
-.section-title {
-  margin: 4px 0 0;
-}
-
-.strategies {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
-  gap: 14px;
-}
-
-.strategy {
-  display: grid;
-  align-content: start;
-  gap: 10px;
-  padding: 18px 20px;
-  border-left: 5px solid var(--blue);
-}
-
-.strategy[data-type='BOLLINGER_BANDS'] {
-  border-left-color: var(--amber);
-}
-
-.strategy[data-state='Off'] {
-  background: var(--surface-2);
-}
-
-.strategy__head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.strategy__name {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 6px 10px;
-}
-
-.strategy__name h3 {
-  margin: 0;
-  font-size: 22px;
-}
-
-.strategy__number {
-  color: var(--muted);
-  font-weight: 800;
-}
-
-.strategy__controls {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.strategy__rule {
-  margin: 0;
-}
-
 .type-badge {
   display: inline-block;
-  padding: 2px 8px;
+  padding: 1px 8px;
   font-size: 12px;
   font-weight: 800;
   color: var(--blue);
   background: var(--blue-bg);
-  white-space: nowrap;
 }
 
 .type-badge[data-type='BOLLINGER_BANDS'] {
@@ -253,40 +190,36 @@
   background: var(--amber-bg);
 }
 
-.last {
-  margin: 0;
-  padding: 8px 10px;
-  background: var(--muted-bg);
-  font-size: 14px;
+.trades h3 {
+  margin: 0 0 6px;
+  font-size: 15px;
 }
 
-.history__head {
+.trade-list {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.trade {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 12px;
-}
-
-.history__head h2 {
-  margin: 0;
-}
-
-.scroll {
-  overflow-x: auto;
-}
-
-table {
-  width: 100%;
+  gap: 4px 14px;
+  padding: 6px 10px;
+  background: var(--muted-bg);
   font-variant-numeric: tabular-nums;
 }
 
-.num {
-  text-align: right;
+.trade__when {
+  min-width: 130px;
+  color: var(--muted);
 }
 
 .side {
+  min-width: 40px;
   font-weight: 800;
 }
 
@@ -298,8 +231,13 @@ table {
   color: var(--reject);
 }
 
+.trade__what {
+  flex: 1;
+  min-width: 140px;
+}
+
 .detail {
-  display: block;
+  flex-basis: 100%;
   font-size: 12px;
 }
 

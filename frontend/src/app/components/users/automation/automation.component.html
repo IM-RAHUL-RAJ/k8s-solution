@@ -31,122 +31,74 @@
       </span>
     </div>
 
-    <h2 class="section-title">Your strategies</h2>
-    @if (strategies().length === 0) {
-      <article class="card">
+    <article class="card">
+      <h2>Strategies</h2>
+      @if (strategies().length === 0) {
         <app-empty-state title="No strategies yet" message="Create one, then switch it on when you are ready." [size]="90">
           <button type="button" class="primary" (click)="openCreate()"><app-icon name="plus" [size]="18" /> New strategy</button>
         </app-empty-state>
-      </article>
-    } @else {
-      <div class="strategies" data-testid="automation-strategies">
-        @for (strategy of strategies(); track strategy.id) {
-          <article class="card strategy" [attr.data-type]="strategy.type" [attr.data-state]="stateOf(strategy)" [attr.data-testid]="'strategy-' + strategy.id">
-            <header class="strategy__head">
-              <div class="strategy__name">
-                <span class="strategy__number">#{{ strategy.id }}</span>
-                <h3>{{ strategy.symbol }}</h3>
-                <span class="type-badge" [attr.data-type]="strategy.type" data-testid="strategy-type">{{ shortType(strategy.type) }} &middot; {{ strategy.parameters }}</span>
+      } @else {
+        <ul class="rows" data-testid="automation-strategies">
+          @for (strategy of strategies(); track strategy.id) {
+            <li class="row" [attr.data-testid]="'strategy-' + strategy.id">
+              <div class="row__main">
+                <strong>#{{ strategy.id }} {{ strategy.symbol }}</strong>
+                <span class="muted"><span class="type-badge" [attr.data-type]="strategy.type" data-testid="strategy-type">{{ shortType(strategy.type) }}</span> {{ strategy.parameters }}</span>
+                <span class="muted">{{ rule(strategy) }}</span>
+                @if (strategy.enabled && strategy.required) {
+                  @if ((strategy.collected ?? 0) < strategy.required) {
+                    <span class="progress" data-testid="strategy-progress">Collecting prices: {{ strategy.collected ?? 0 }} of {{ strategy.required }}. It cannot act until it has them all.</span>
+                    <span class="meter" role="img" [attr.aria-label]="progressPercent(strategy) + '% collected'"><span class="meter__fill" [style.width.%]="progressPercent(strategy)"></span></span>
+                  } @else {
+                    <span class="progress progress--ready" data-testid="strategy-progress">Watching the price: it trades by itself when the condition is met.</span>
+                  }
+                }
+                @for (problem of strategy.problems; track problem) {
+                  <span class="problem">{{ problem }}</span>
+                }
               </div>
-              <div class="strategy__controls">
-                <span class="state" [attr.data-state]="stateOf(strategy)" data-testid="strategy-state">{{ stateOf(strategy) }}</span>
+              <div class="row__side">
                 <button type="button" class="switch" role="switch" [attr.aria-checked]="strategy.enabled"
                         [attr.aria-label]="(strategy.enabled ? 'Switch off ' : 'Switch on ') + 'strategy ' + strategy.id + ' on ' + strategy.symbol"
                         [disabled]="busy() || strategy.problems.length > 0" (click)="toggle(strategy)" data-testid="strategy-toggle"></button>
+                <span class="state" [attr.data-state]="stateOf(strategy)" data-testid="strategy-state">{{ stateOf(strategy) }}</span>
                 <button type="button" class="icon-btn danger" (click)="askRemove(strategy)" [disabled]="busy()" aria-label="Remove strategy" data-tip="Remove" data-tip-end data-testid="strategy-remove">
                   <app-icon name="trash" />
                 </button>
               </div>
-            </header>
-
-            <p class="muted strategy__rule">{{ rule(strategy) }}</p>
-
-            @if (strategy.enabled && strategy.required) {
-              @if ((strategy.collected ?? 0) < strategy.required) {
-                <span class="progress" data-testid="strategy-progress">Collecting prices: {{ strategy.collected ?? 0 }} of {{ strategy.required }}. It cannot act until it has them all.</span>
-                <span class="meter" role="img" [attr.aria-label]="progressPercent(strategy) + '% collected'"><span class="meter__fill" [style.width.%]="progressPercent(strategy)"></span></span>
-              } @else {
-                <span class="progress progress--ready" data-testid="strategy-progress">Watching the price: it trades by itself when the condition is met.</span>
+            </li>
+            <li class="extras" [attr.data-testid]="'strategy-extras-' + strategy.id">
+              @if (strategy.enabled && charts()[strategy.id]) {
+                <app-echart [option]="charts()[strategy.id]" [height]="180" [label]="strategy.symbol + ' prices with the strategy lines'" data-testid="strategy-chart" />
               }
-            }
-            @for (problem of strategy.problems; track problem) {
-              <span class="problem">{{ problem }}</span>
-            }
-
-            @if (lastTrade(strategy.id); as last) {
-              <p class="last" data-testid="strategy-last">
-                Last automated trade: <strong>{{ last.trigger }} {{ last.quantity ?? '' }} {{ last.symbol }}</strong>
-                &middot; <span class="outcome" [attr.data-outcome]="last.outcome">{{ outcome(last.outcome).label }}</span>
-                &middot; {{ last.at | date: 'd MMM, HH:mm' }}
-              </p>
-            }
-
-            @if (strategy.enabled) {
-              <div class="extras" [attr.data-testid]="'strategy-extras-' + strategy.id">
-                @if (charts()[strategy.id]) {
-                  <app-echart [option]="charts()[strategy.id]" [height]="170" [label]="strategy.symbol + ' prices with the strategy lines'" data-testid="strategy-chart" />
-                }
-                @if (simulationEnabled()) {
-                  <div class="demo" data-testid="strategy-demo">
-                    <span class="muted">Demo: make this strategy trigger now (places a real order)</span>
-                    <button type="button" class="secondary small" [disabled]="busy()" (click)="askDemo(strategy, 'BUY')" data-testid="demo-buy">Trigger BUY</button>
-                    <button type="button" class="secondary small" [disabled]="busy()" (click)="askDemo(strategy, 'SELL')" data-testid="demo-sell">Trigger SELL</button>
-                  </div>
+              @if (strategy.enabled && simulationEnabled()) {
+                <div class="demo" data-testid="strategy-demo">
+                  <span class="muted">Demo: make this strategy trigger now (places a real order)</span>
+                  <button type="button" class="secondary small" [disabled]="busy()" (click)="askDemo(strategy, 'BUY')" data-testid="demo-buy">Trigger BUY</button>
+                  <button type="button" class="secondary small" [disabled]="busy()" (click)="askDemo(strategy, 'SELL')" data-testid="demo-sell">Trigger SELL</button>
+                </div>
+              }
+              <div class="trades" [attr.data-testid]="'strategy-history-' + strategy.id">
+                <h3>Automated trades</h3>
+                @if (tradesOf(strategy.id).length === 0) {
+                  <p class="muted" data-testid="strategy-no-trades">None yet. It trades by itself when its condition is met, and each trade shows here.</p>
+                } @else {
+                  <ul class="trade-list">
+                    @for (trade of tradesOf(strategy.id); track $index) {
+                      <li class="trade" data-testid="history-row">
+                        <span class="trade__when">{{ trade.at | date: 'd MMM, HH:mm:ss' }}</span>
+                        <span class="side" [attr.data-side]="trade.trigger">{{ trade.trigger }}</span>
+                        <span class="trade__what">{{ trade.quantity ?? '' }} {{ trade.symbol }}@if (trade.limitPrice !== null) { at {{ trade.limitPrice | number: '1.2-2' }} }</span>
+                        <span class="outcome" [attr.data-outcome]="trade.outcome" [attr.title]="outcome(trade.outcome).hint" data-testid="result-outcome">{{ outcome(trade.outcome).label }}</span>
+                        @if (trade.detail && trade.outcome !== 'ORDER_SUBMITTED') { <span class="muted detail">{{ trade.detail }}</span> }
+                      </li>
+                    }
+                  </ul>
                 }
               </div>
-            }
-          </article>
-        }
-      </div>
-    }
-
-    <article class="card">
-      <div class="history__head">
-        <h2>Automated trade history</h2>
-        @if (strategies().length > 1) {
-          <div class="tabs" role="tablist" aria-label="Filter by strategy">
-            <button type="button" role="tab" [class.active]="historyFilter() === 'all'" (click)="historyFilter.set('all')" data-testid="history-all">All</button>
-            @for (strategy of strategies(); track strategy.id) {
-              <button type="button" role="tab" [class.active]="historyFilter() === strategy.id" (click)="historyFilter.set(strategy.id)"
-                      [attr.data-testid]="'history-' + strategy.id">#{{ strategy.id }} {{ strategy.symbol }}</button>
-            }
-          </div>
-        }
-      </div>
-      @if (history().length === 0) {
-        <p class="muted" data-testid="automation-no-results">No automated trades yet. A strategy trades by itself when its condition is met; it shows here.</p>
-      } @else {
-        <div class="scroll">
-          <table data-testid="automation-results">
-            <thead>
-              <tr>
-                <th scope="col">When</th>
-                <th scope="col">Strategy</th>
-                <th scope="col">Symbol</th>
-                <th scope="col">Side</th>
-                <th scope="col" class="num">Qty</th>
-                <th scope="col" class="num">Limit</th>
-                <th scope="col">Outcome</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (result of history(); track $index) {
-                <tr data-testid="history-row">
-                  <td>{{ result.at | date: 'd MMM, HH:mm:ss' }}</td>
-                  <td><span class="type-badge" [attr.data-type]="result.strategyType">#{{ result.strategyId ?? '?' }} {{ shortType(result.strategyType) }}</span></td>
-                  <td><strong>{{ result.symbol }}</strong></td>
-                  <td><span class="side" [attr.data-side]="result.trigger">{{ result.trigger }}</span></td>
-                  <td class="num">{{ result.quantity ?? '' }}</td>
-                  <td class="num">{{ result.limitPrice === null ? '' : (result.limitPrice | number: '1.2-2') }}</td>
-                  <td>
-                    <span class="outcome" [attr.data-outcome]="result.outcome" [attr.title]="outcome(result.outcome).hint" data-testid="result-outcome">{{ outcome(result.outcome).label }}</span>
-                    @if (result.detail && result.outcome !== 'ORDER_SUBMITTED') { <span class="muted detail">{{ result.detail }}</span> }
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
+            </li>
+          }
+        </ul>
       }
     </article>
 

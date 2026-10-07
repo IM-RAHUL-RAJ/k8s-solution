@@ -1,6 +1,6 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { AutomationStatus, AutomationStrategy, CreateStrategyRequest, OrderOutcome } from '../../../core/models/advice.model';
+import { AutomationResult, AutomationStatus, AutomationStrategy, CreateStrategyRequest, OrderOutcome } from '../../../core/models/advice.model';
 import { AccountContextService } from '../../../core/services/account-context.service';
 import { AccountService } from '../../../core/services/account.service';
 import { AdviceService } from '../../../core/services/advice.service';
@@ -57,11 +57,14 @@ export class AutomationComponent {
   protected readonly results = computed(() => this.status()?.results ?? []);
   protected readonly simulationEnabled = computed(() => this.status()?.simulationEnabled ?? false);
 
-  /** The history, all strategies or one. */
-  protected readonly historyFilter = signal<string>('all');
-  protected readonly history = computed(() => {
-    const filter = this.historyFilter();
-    return this.results().filter((result) => filter === 'all' || result.strategyId === filter);
+  /** The trades each strategy has made, newest first, so every strategy shows its own history. */
+  private readonly tradesByStrategy = computed(() => {
+    const byStrategy = new Map<string, AutomationResult[]>();
+    for (const result of this.results()) {
+      const key = result.strategyId ?? '';
+      byStrategy.set(key, [...(byStrategy.get(key) ?? []), result]);
+    }
+    return byStrategy;
   });
 
   /** One chart per running strategy: the prices it has collected and the lines its rule compares them with. */
@@ -140,9 +143,9 @@ export class AutomationComponent {
     return OUTCOME[value];
   }
 
-  /** The most recent automated trade of one strategy, for its card. */
-  protected lastTrade(strategyId: string) {
-    return this.results().find((result) => result.strategyId === strategyId) ?? null;
+  /** What one strategy has traded, newest first (at most 20 shown). */
+  protected tradesOf(strategyId: string) {
+    return (this.tradesByStrategy().get(strategyId) ?? []).slice(0, 20);
   }
 
   protected shortType(type: string | null): string {

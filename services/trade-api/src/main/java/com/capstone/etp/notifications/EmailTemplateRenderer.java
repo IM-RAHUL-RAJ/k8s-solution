@@ -34,6 +34,22 @@ class EmailTemplateRenderer {
     private record Style(String template, String pose, String accent, String ctaLabel, String ctaPath) {
     }
 
+    /** The subject of a trade an automated strategy placed starts with this (see NotificationComposer). */
+    static final String AUTOMATED_PREFIX = "Automated ";
+
+    /** A strip across the top of the message: no one pressed a button, a strategy did. Our own markup, never customer text. */
+    private static final String AUTOMATED_BANNER = """
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 18px 0;">
+              <tr><td class="auto" style="background-color:#171717;padding:12px 16px;">
+                <div style="font-family:'Courier New',Courier,monospace;font-size:14px;font-weight:700;letter-spacing:0.08em;color:#fafafa;text-align:center;">AUTOMATED TRADE TRIGGERED</div>
+                <div style="font-family:'Courier New',Courier,monospace;font-size:12px;line-height:1.5;color:#fafafa;text-align:center;padding-top:4px;">Placed automatically by one of your strategies. You did not place this order.</div>
+              </td></tr>
+            </table>""";
+
+    static boolean isAutomated(String subject) {
+        return subject != null && subject.startsWith(AUTOMATED_PREFIX);
+    }
+
     private static final Pattern RAW = Pattern.compile("\\{\\{\\{(\\w+)}}}");
     private static final Pattern ESCAPED = Pattern.compile("\\{\\{(\\w+)}}");
     private static final DateTimeFormatter SENT = DateTimeFormatter.ofPattern("d MMM yyyy, HH:mm 'UTC'", Locale.ENGLISH);
@@ -69,9 +85,11 @@ class EmailTemplateRenderer {
         values.put("mascotName", mascotKey.substring(0, 1).toUpperCase(Locale.ROOT) + mascotKey.substring(1));
         values.put("sentAt", SENT.format((at == null ? Instant.now() : at).atOffset(ZoneOffset.UTC)));
 
+        boolean automated = isAutomated(subject);
         String content = fill(template(style.template()), values, Map.of());
-        String html = fill(template("layout"), values, Map.of("content", content));
-        String text = subject + "\n\n" + body + "\n\n" + style.ctaLabel() + ": " + values.get("ctaUrl") + "\n";
+        String html = fill(template("layout"), values, Map.of("content", content, "banner", automated ? AUTOMATED_BANNER : ""));
+        String text = (automated ? "*** AUTOMATED TRADE TRIGGERED ***\nPlaced automatically by one of your strategies. You did not place this order.\n\n" : "")
+                + subject + "\n\n" + body + "\n\n" + style.ctaLabel() + ": " + values.get("ctaUrl") + "\n";
         return new Rendered(html, text, "email/mascots/" + mascotKey + "-" + style.pose() + ".gif");
     }
 

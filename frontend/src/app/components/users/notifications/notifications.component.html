@@ -55,12 +55,13 @@
             </span>
             <time class="muted" [attr.datetime]="item.createdAt" [title]="item.createdAt | date: 'full'">{{ item.createdAt | timeAgo }}</time>
           </div>
-          <h2 class="message__subject">
-            @if (item.subject.startsWith('Automated ')) {
-              <span class="automated" data-testid="automated-tag" title="Placed by one of your automated strategies, not by you">Automated</span>
-            }
-            {{ item.subject }}
-          </h2>
+          @if (item.subject.startsWith('Automated ')) {
+            <div class="auto-banner" role="note" data-testid="automated-banner">
+              <strong>Automated trade triggered</strong>
+              <span>Placed automatically by one of your strategies. You did not place this order.</span>
+            </div>
+          }
+          <h2 class="message__subject">{{ item.subject }}</h2>
           <p class="message__body">{{ item.body }}</p>
           <p class="message__delivery muted" [attr.data-status]="item.status" data-testid="notification-delivery">
             <span class="dot" aria-hidden="true"></span>{{ delivery(item) }}
