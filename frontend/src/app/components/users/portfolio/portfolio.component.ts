@@ -21,7 +21,7 @@ import { PortfolioService } from '../../../core/services/portfolio.service';
 import { ExportDocument, ExportService, ExportTable } from '../../../core/export/export.service';
 import { ThemeService } from '../../../core/theme/theme.service';
 import { DownloadMenuComponent, DownloadRequest } from '../shared/download-menu/download-menu.component';
-import { ChartOption, EchartComponent, pixelText, pixelTooltip, token } from '../shared/echart/echart.component';
+import { ChartOption, EchartComponent, chartText, chartTooltip, token } from '../shared/echart/echart.component';
 import { EmptyStateComponent } from '../shared/empty-state/empty-state.component';
 import { IconComponent } from '../shared/icon/icon.component';
 
@@ -36,6 +36,27 @@ export type Freshness = 'live' | 'delayed' | 'stale' | 'none';
 
 const FILTER_KEY = 'quorum-portfolio-filter';
 const RANGE_KEY = 'quorum-portfolio-range';
+
+const RANGE_DAYS: Record<HistoryRange, number> = { '30d': 30, '3m': 92, '1y': 366 };
+
+/** What the axis prints at a tick: the day for short ranges, the month (and year) for a long one. */
+export function axisDate(value: number, range: HistoryRange): string {
+  const when = new Date(value);
+  return range === '1y'
+    ? when.toLocaleDateString(undefined, { month: 'short', year: '2-digit' })
+    : when.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+}
+
+/** The tooltip: the exact date and time of the reading, then the value. */
+function tooltipText(params: unknown, range: HistoryRange): string {
+  const first = (Array.isArray(params) ? params[0] : params) as { value?: [number | string, number] } | undefined;
+  if (!first?.value) {
+    return '';
+  }
+  const when = new Date(first.value[0]);
+  const stamp = when.toLocaleString(undefined, { day: 'numeric', month: 'short', year: range === '30d' ? undefined : 'numeric', hour: '2-digit', minute: '2-digit' });
+  return stamp + '<br/><b>' + first.value[1].toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</b>';
+}
 
 const CATEGORY_LABEL: Record<Category, string> = { ALL: 'All', EQUITY: 'Equity', CRYPTO: 'Crypto', FOREX: 'Forex', OTHER: 'Other' };
 
@@ -216,27 +237,45 @@ export class PortfolioComponent {
   protected readonly historyOption = computed<ChartOption>(() => {
     this.theme.changes();
     const points = this.history()?.points ?? [];
+    const range = this.range();
+    // The axis always spans the whole range asked for, ending now, so 30D, 3M and 1Y each look like what they say.
+    const end = Date.now();
+    const start = end - RANGE_DAYS[range] * 86_400_000;
     const line = token('--accent', '#1f5fd6');
     const muted = token('--muted', '#6b7078');
     const grid = token('--line', '#e5e5ea');
     return {
       grid: { left: 8, right: 16, top: 24, bottom: 8, containLabel: true },
-      tooltip: pixelTooltip({
+      tooltip: chartTooltip({
         trigger: 'axis',
-        axisPointer: { type: 'line', lineStyle: { color: muted, type: 'dashed', width: 2 } },
+        axisPointer: { type: 'line', lineStyle: { color: muted, type: 'dashed', width: 1 } },
+        formatter: (params: unknown) => tooltipText(params, range),
         valueFormatter: (value: number) => value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
       }),
-      xAxis: { type: 'time', axisLine: { lineStyle: { color: grid, width: 2 } }, axisTick: { show: false }, axisLabel: pixelText(muted, 16) },
-      yAxis: { type: 'value', scale: true, splitLine: { lineStyle: { color: grid, type: 'dotted', width: 2 } }, axisLabel: pixelText(muted, 16) },
+      xAxis: {
+        type: 'time',
+        min: start,
+        max: end,
+        axisLine: { lineStyle: { color: grid } },
+        axisTick: { show: false },
+        splitNumber: range === '30d' ? 6 : 5,
+        axisLabel: { ...chartText(muted, 12), hideOverlap: true, formatter: (value: number) => axisDate(value, range) }
+      },
+      yAxis: {
+        type: 'value',
+        scale: true,
+        splitLine: { lineStyle: { color: grid, type: 'dashed' } },
+        axisLabel: { ...chartText(muted, 12), formatter: (value: number) => value.toLocaleString(undefined, { maximumFractionDigits: 0 }) }
+      },
       series: [
         {
           type: 'line',
-          step: 'end',
-          symbol: 'rect',
-          symbolSize: 8,
-          showSymbol: points.length < 30,
-          lineStyle: { color: line, width: 3 },
-          itemStyle: { color: line, borderRadius: 0 },
+          smooth: false,
+          symbol: 'circle',
+          symbolSize: 6,
+          showSymbol: points.length < 40,
+          lineStyle: { color: line, width: 2 },
+          itemStyle: { color: line },
           areaStyle: { color: line, opacity: 0.08 },
           data: points.map((point) => [point.at, point.totalValue])
         }
@@ -254,15 +293,15 @@ export class PortfolioComponent {
       .sort((left, right) => (right.value ?? 0) - (left.value ?? 0))
       .map((row) => ({ name: row.position.symbol, value: row.value as number }));
     return {
-      tooltip: pixelTooltip({ trigger: 'item', formatter: '{b}<br/>{c} ({d}%)' }),
-      legend: { bottom: 0, icon: 'rect', itemWidth: 10, itemHeight: 10, textStyle: pixelText(token('--muted', '#737373'), 16) },
+      tooltip: chartTooltip({ trigger: 'item', formatter: '{b}<br/>{c} ({d}%)' }),
+      legend: { bottom: 0, icon: 'rect', itemWidth: 10, itemHeight: 10, textStyle: chartText(token('--muted', '#737373'), 12) },
       color: palette,
       series: [
         {
           type: 'pie',
           radius: ['52%', '74%'],
           center: ['50%', '44%'],
-          itemStyle: { borderColor: surface, borderWidth: 4, borderRadius: 0 },
+          itemStyle: { borderColor: surface, borderWidth: 3, borderRadius: 4 },
           label: { show: false },
           emphasis: { scale: true, scaleSize: 8 },
           data: slices

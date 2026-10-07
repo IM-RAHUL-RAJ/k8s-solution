@@ -97,7 +97,35 @@ export class SelectComponent implements ControlValueAccessor {
     this.open() ? this.close() : this.show();
   }
 
+  /** Where the list floats: fixed to the window, so a dialog or a scrolling card never clips it. */
+  protected readonly place = signal<{ left: number; width: number; top: number | null; bottom: number | null; list: number }>({ left: 0, width: 260, top: 0, bottom: null, list: 264 });
+
+  private position(): void {
+    const rect = this.trigger().nativeElement.getBoundingClientRect();
+    const below = window.innerHeight - rect.bottom - 16;
+    const above = rect.top - 16;
+    // Open upward only when there is clearly more room above than below.
+    const up = below < 260 && above > below;
+    const room = Math.max(160, (up ? above : below) - 56);
+    const width = Math.max(rect.width, 260);
+    this.place.set({
+      left: Math.max(8, Math.min(rect.left, window.innerWidth - width - 8)),
+      width,
+      top: up ? null : rect.bottom + 6,
+      bottom: up ? window.innerHeight - rect.top + 6 : null,
+      list: Math.min(264, room)
+    });
+  }
+
+  @HostListener('window:resize')
+  protected onResize(): void {
+    if (this.open()) {
+      this.position();
+    }
+  }
+
   private show(): void {
+    this.position();
     this.query.set('');
     const index = this.shown().findIndex((option) => option.value === this.selected());
     this.active.set(Math.max(index, 0));

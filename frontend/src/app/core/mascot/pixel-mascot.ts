@@ -7,7 +7,7 @@ export type MascotType = 'owl' | 'rabbit' | 'cat';
 export type AnimationName = 'idle' | 'happy' | 'dance' | 'wave' | 'cheer' | 'think' | 'sad';
 export type Eyes = 'open' | 'blink' | 'happy' | 'sad' | 'up';
 export type Mouth = 'smile' | 'open' | 'flat' | 'frown' | 'none';
-export type Arm = 'down' | 'out' | 'up' | 'thumb';
+export type Arm = 'down' | 'out' | 'up';
 export type ExtraKind = 'sparkle' | 'note' | 'tear' | 'dots' | 'question' | 'confetti' | 'heart';
 
 export interface Extra {
@@ -293,27 +293,12 @@ function drawArm(pen: Pen, type: MascotType, side: -1 | 1, arm: Arm): void {
         px.push([sx + s, sy - k], [sx + s * 2, sy - k]);
       }
       break;
-    case 'thumb':
-      for (let k = 0; k < 5; k++) {
-        px.push([sx + s, sy - k], [sx + s * 2, sy - k]);
-      }
-      // a fist, and a thumb standing on it
-      for (let k = 1; k <= 3; k++) {
-        px.push([sx + s * k, sy - 5], [sx + s * k, sy - 6]);
-      }
-      px.push([sx + s * 2, sy - 7], [sx + s * 2, sy - 8]);
-      break;
   }
-  const colour = arm === 'thumb' ? 'l' : 'b';
+  const colour = 'b';
   for (const [x, y] of px) {
     put(pen, x, y, colour);
   }
-  // hands are the lightest part
-  if (arm !== 'down' && arm !== 'thumb') {
-    const [hx, hy] = px[px.length - 1];
-    put(pen, hx, hy, 'l');
-    put(pen, hx - s, hy, 'l');
-  }
+  // No hands or fingers: the arms are plain little wings, so nothing can read as a gesture.
 }
 
 function outline(pen: Pen): void {
@@ -394,12 +379,12 @@ export const ANIMATIONS: Record<AnimationName, Frame[]> = {
   ],
   // Thumbs up, a grin, and a little jump with sparkles.
   happy: [
-    frame({ eyes: 'happy', mouth: 'open', armR: 'thumb', ms: 200, extras: [spark(5, 8), spark(29, 12)] }),
-    frame({ eyes: 'happy', mouth: 'open', armR: 'thumb', dy: -2, ms: 170, extras: [spark(4, 6), spark(30, 10)] }),
-    frame({ eyes: 'happy', mouth: 'open', armR: 'thumb', dy: -3, ms: 150, extras: [spark(5, 4)] }),
-    frame({ eyes: 'happy', mouth: 'open', armR: 'thumb', dy: -1, ms: 150, extras: [spark(29, 6), spark(5, 10)] }),
-    frame({ eyes: 'happy', mouth: 'open', armR: 'thumb', dy: 1, ms: 160, extras: [spark(4, 8), spark(30, 12)] }),
-    frame({ eyes: 'happy', mouth: 'smile', armR: 'thumb', ms: 260, extras: [spark(29, 10)] })
+    frame({ eyes: 'happy', mouth: 'open', armL: 'out', armR: 'out', ms: 200, extras: [spark(5, 8), spark(29, 12)] }),
+    frame({ eyes: 'happy', mouth: 'open', armL: 'out', armR: 'out', dy: -2, ms: 170, extras: [spark(4, 6), spark(30, 10)] }),
+    frame({ eyes: 'happy', mouth: 'open', armL: 'out', armR: 'out', dy: -3, ms: 150, extras: [spark(5, 4)] }),
+    frame({ eyes: 'happy', mouth: 'open', armL: 'out', armR: 'out', dy: -1, ms: 150, extras: [spark(29, 6), spark(5, 10)] }),
+    frame({ eyes: 'happy', mouth: 'open', armL: 'out', armR: 'out', dy: 1, ms: 160, extras: [spark(4, 8), spark(30, 12)] }),
+    frame({ eyes: 'happy', mouth: 'smile', armL: 'out', armR: 'out', ms: 260, extras: [spark(29, 10)] })
   ],
   // Arms swing, hips sway, notes float up.
   dance: [

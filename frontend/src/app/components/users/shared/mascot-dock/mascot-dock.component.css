@@ -1,27 +1,37 @@
 :host {
   position: fixed;
-  right: 12px;
-  bottom: 8px;
+  right: 16px;
+  bottom: 16px;
   z-index: 90;
   pointer-events: none;
 }
 
+/* Bubbles to the left of the companion, both along the bottom edge, so nothing sits on top of the page text for long. */
 .dock {
-  display: grid;
-  justify-items: end;
-  gap: 2px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 8px;
+  animation: dockIn 320ms steps(6, end);
 }
 
 .dock__mascot {
+  flex: none;
   pointer-events: auto;
-  filter: drop-shadow(0 4px 0 color-mix(in srgb, var(--text) 10%, transparent));
 }
 
 .dock__bubbles {
   display: grid;
   gap: 8px;
   justify-items: end;
-  max-width: min(320px, calc(100vw - 32px));
+  width: min(300px, calc(100vw - 112px));
+}
+
+@keyframes dockIn {
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
 }
 
 /* A speech bubble in pixel style: square, a hard border, a hard shadow. */

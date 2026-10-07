@@ -14,7 +14,7 @@
   --muted-bg: #f5f5f5;
   --line: #e5e5e5;
   --text: #0a0a0a;
-  --muted: #4a4a4a;
+  --muted: #525252;
   --accent: #171717;
   --accent-hover: #262626;
   --on-accent: #fafafa;
@@ -23,6 +23,12 @@
 
   /* Signal: the Nothing red. Small marks only. */
   --signal: #d71921;
+
+  /* Buy and sell: solid colours with white text, readable in both themes */
+  --buy: #15803d;
+  --buy-hover: #166534;
+  --sell: #dc2626;
+  --sell-hover: #b91c1c;
 
   /* Meaning */
   --ok: #15803d;
@@ -73,9 +79,11 @@
   --bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
 
   /* Type: Doto everywhere. */
-  --font-sans: 'Doto', ui-monospace, 'SFMono-Regular', Consolas, monospace;
-  --font-mono: var(--font-sans);
-  --font-dot: var(--font-sans);
+  /* Plain, readable text everywhere; the Doto dot face only for headings and the big figures. */
+  --font-body: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-sans: var(--font-body);
+  --font-mono: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  --font-dot: 'Doto', ui-monospace, Consolas, monospace;
 
   --sidebar-w: 232px;
   --sidebar-w-collapsed: 64px;
@@ -100,13 +108,17 @@
   --muted-bg: #1c1c1c;
   --line: #2a2a2a;
   --text: #fafafa;
-  --muted: #cfcfcf;
+  --muted: #b8b8b8;
   --accent: #fafafa;
   --accent-hover: #e5e5e5;
   --on-accent: #171717;
   --ring: rgba(250, 250, 250, 0.22);
   --dot-grid: rgba(250, 250, 250, 0.08);
   --signal: #ff4d4f;
+  --buy: #16a34a;
+  --buy-hover: #15803d;
+  --sell: #dc2626;
+  --sell-hover: #b91c1c;
   --ok: #4ade80;
   --ok-bg: #0f2a1a;
   --reject: #f87171;
@@ -143,13 +155,17 @@
     --muted-bg: #1c1c1c;
     --line: #2a2a2a;
     --text: #fafafa;
-    --muted: #cfcfcf;
+    --muted: #b8b8b8;
     --accent: #fafafa;
     --accent-hover: #e5e5e5;
     --on-accent: #171717;
     --ring: rgba(250, 250, 250, 0.22);
     --dot-grid: rgba(250, 250, 250, 0.08);
     --signal: #ff4d4f;
+    --buy: #16a34a;
+    --buy-hover: #15803d;
+    --sell: #dc2626;
+    --sell-hover: #b91c1c;
     --ok: #4ade80;
     --ok-bg: #0f2a1a;
     --reject: #f87171;
@@ -191,9 +207,9 @@ body {
 body {
   font-family: var(--font-sans);
   font-size: 15px;
-  font-weight: 500;
+  font-weight: 400;
   line-height: 1.5;
-  letter-spacing: 0.01em;
+  letter-spacing: 0;
   color: var(--text);
   background-color: var(--bg);
   /* The Nothing dot grid, very faint, behind everything. */
@@ -223,6 +239,29 @@ p {
   margin: 0;
 }
 
+/* The dot face: headings, and the main figures (net worth, cash, totals). */
+h1,
+h2,
+h3,
+.display,
+.balance__value,
+.hhi__value,
+.stat__value,
+.big,
+.alert__symbol,
+.alert__operator,
+.hero__value,
+.figure__value,
+.total strong,
+.balance__amount,
+.fx-result strong,
+.tile__value,
+.donut__value,
+.detail__price .display {
+  font-family: var(--font-dot);
+  font-weight: 900;
+}
+
 h1 {
   font-size: 30px;
   font-weight: 900;
@@ -232,13 +271,13 @@ h1 {
 
 h2 {
   font-size: 20px;
-  font-weight: 800;
+  font-weight: 900;
   line-height: 1.2;
 }
 
 h3 {
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 900;
 }
 
 a {
@@ -267,7 +306,6 @@ a.button:hover,
 
 .muted {
   color: var(--muted);
-  font-weight: 700;
 }
 
 .tabular,
@@ -999,9 +1037,6 @@ tbody tr:last-child td {
 }
 
 /* ---- Utilities ---- */
-canvas {
-  image-rendering: pixelated;
-}
 
 @media (prefers-reduced-motion: reduce) {
   *,

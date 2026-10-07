@@ -33,6 +33,18 @@ describe('mascot artwork', () => {
     }
   });
 
+  it('shows no hand gestures: arms are plain wings, there is no thumb or fingers', () => {
+    for (const type of MASCOT_TYPES) {
+      for (const name of ANIMATION_NAMES) {
+        for (const frame of ANIMATIONS[name]) {
+          expect(['down', 'out', 'up']).toContain(frame.armL);
+          expect(['down', 'out', 'up']).toContain(frame.armR);
+        }
+      }
+      expect(frameSvg(type, 'happy', 0)).not.toContain('thumb');
+    }
+  });
+
   it('moves: the frames of a dance are not all the same picture', () => {
     const frames = new Set(ANIMATIONS['dance'].map((_, index) => frameSvg('owl', 'dance', index)));
     expect(frames.size).toBeGreaterThan(1);

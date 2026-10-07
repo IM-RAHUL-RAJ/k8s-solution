@@ -115,6 +115,9 @@ dd {
 
 .mascot-card {
   display: grid;
+  /* A card holding a picture is taller than the 38px every button gets. */
+  height: auto;
+  white-space: normal;
   justify-items: center;
   gap: 8px;
   padding: 16px 8px 12px;

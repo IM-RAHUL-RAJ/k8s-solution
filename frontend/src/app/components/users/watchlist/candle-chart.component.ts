@@ -236,7 +236,7 @@ export class CandleChartComponent {
     const text = this.cssColor('--muted', '#737373');
     const line = this.cssColor('--line', '#e5e5e5');
     return {
-      layout: { background: { color: 'transparent' }, textColor: text, fontFamily: 'Doto, monospace', fontSize: 13 },
+      layout: { background: { color: 'transparent' }, textColor: text, fontSize: 13 },
       grid: { vertLines: { color: line, style: lib.LineStyle.Dotted }, horzLines: { color: line, style: lib.LineStyle.Dotted } }
     } as const;
   }

@@ -42,7 +42,7 @@ const MARK = [
         flex: none;
       }
       .name {
-        font-family: var(--font-sans);
+        font-family: var(--font-dot);
         font-weight: 900;
         font-size: 1.15em;
         letter-spacing: 0.08em;

@@ -127,17 +127,22 @@ describe('ToastService actions', () => {
 });
 
 describe('MascotDockComponent', () => {
-  it('stays on screen and acts out the latest message', () => {
+  it('is not on screen until there is something to say, then acts it out, then leaves', () => {
+    vi.useFakeTimers();
     const fixture = TestBed.createComponent(MascotDockComponent);
     fixture.detectChanges();
     const root = fixture.nativeElement as HTMLElement;
-    expect(root.querySelector('[data-testid="mascot"]')?.getAttribute('data-action')).toBe('idle');
+    expect(root.querySelector('[data-testid="mascot-dock"]')).toBeNull();
 
-    TestBed.inject(ToastService).notify('Order filled', 'BUY 10 AAPL', 'cheer');
+    TestBed.inject(ToastService).notify('Order filled', 'BUY 10 AAPL', 'cheer', 'info', 3000);
     fixture.detectChanges();
-
     expect(root.querySelector('[data-testid="mascot"]')?.getAttribute('data-action')).toBe('cheer');
     expect(root.querySelector('[data-testid="toast"]')?.textContent).toContain('BUY 10 AAPL');
+
+    vi.advanceTimersByTime(3100);
+    fixture.detectChanges();
+    expect(root.querySelector('[data-testid="mascot-dock"]')).toBeNull();
+    vi.useRealTimers();
   });
 });
 

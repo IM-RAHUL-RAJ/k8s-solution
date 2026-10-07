@@ -14,6 +14,8 @@ The platform also provides a browser-based interface through which users can int
 Four modules built as packages inside the Trade REST API (`services/trade-api`), with Angular screens for each:
 customer preferences, customer notifications, watchlists and price alerts, and portfolio and P&L.
 
+* [Trade Advice](services/trade-api/src/main/java/com/capstone/etp/advice/README.md): BUY/SELL/HOLD recommendations with reasoning (advisory only, places no orders)
+* [Automated Trading](services/trade-api/src/main/java/com/capstone/etp/automation/README.md): MA-crossover and Bollinger strategies that place orders through the Trade REST API (off by default)
 * [Trade REST API README](services/trade-api/README.md): run, configure, test, runbook
 * [Scope and backlog](docs/sprint-10/scope-and-backlog.md), [the two seams](docs/sprint-10/seams.md), [demonstration script](docs/sprint-10/demo.md)
 * [Decision log](decision-log/), [combined security review](security-review/Sprint10_Security_Review.md)

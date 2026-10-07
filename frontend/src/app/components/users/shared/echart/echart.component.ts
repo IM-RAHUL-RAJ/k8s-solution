@@ -60,8 +60,7 @@ export class EchartComponent {
     core.use([charts.LineChart, charts.PieChart, components.GridComponent, components.TooltipComponent, components.LegendComponent, renderers.CanvasRenderer]);
 
     const element = this.host().nativeElement;
-    // Half the pixels, shown at full size and never smoothed (canvas { image-rendering: pixelated }): pixel art.
-    this.instance = core.init(element, undefined, { devicePixelRatio: 0.5 });
+    this.instance = core.init(element);
     // The option may have changed while the library was loading: draw the latest one.
     this.instance.setOption(this.option(), true);
     this.ready.set(true);
@@ -74,22 +73,20 @@ export class EchartComponent {
 }
 
 /** Reads a design token from the page, so charts follow the theme. */
-/** The one text style for every chart: the pixel face, large enough to survive the pixelation. */
-export function pixelText(color: string, size = 18): Record<string, unknown> {
-  return { color, fontFamily: 'Doto, monospace', fontWeight: 700, fontSize: size };
+/** The one text style for every chart: the plain UI face, sized to read on both themes. */
+export function chartText(color: string, size = 12): Record<string, unknown> {
+  return { color, fontFamily: token('--font-body', 'system-ui, sans-serif'), fontWeight: 500, fontSize: size };
 }
 
-/** A tooltip that opens on a click and stays, with a hard pixel border. */
-export function pixelTooltip(base: Record<string, unknown>): Record<string, unknown> {
+/** A tooltip that opens on hover or tap and stays within the chart. */
+export function chartTooltip(base: Record<string, unknown>): Record<string, unknown> {
   return {
-    triggerOn: 'click',
     confine: true,
-    borderWidth: 4,
-    borderColor: token('--text', '#0a0a0a'),
-    backgroundColor: token('--bg', '#ffffff'),
+    borderWidth: 1,
+    borderColor: token('--line', '#e5e5e5'),
+    backgroundColor: token('--surface', '#ffffff'),
     padding: [8, 12],
-    textStyle: pixelText(token('--text', '#0a0a0a'), 18),
-    extraCssText: 'border-radius:0;box-shadow:none;',
+    textStyle: chartText(token('--text', '#0a0a0a'), 13),
     ...base
   };
 }

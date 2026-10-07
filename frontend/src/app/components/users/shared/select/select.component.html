@@ -14,11 +14,11 @@
   </button>
 
   @if (open()) {
-    <div class="select__panel" data-testid="select-panel">
+    <div class="select__panel" data-testid="select-panel" [style.left.px]="place().left" [style.width.px]="place().width" [style.top.px]="place().top" [style.bottom.px]="place().bottom">
       <input #search type="text" class="select__search" role="searchbox" [placeholder]="searchPlaceholder()" autocomplete="off"
              [value]="query()" (input)="onSearch($any($event.target).value)" (keydown)="onSearchKey($event)"
              [attr.aria-controls]="listId" aria-label="Search" data-testid="select-search" />
-      <ul class="select__list" role="listbox" [id]="listId">
+      <ul class="select__list" role="listbox" [id]="listId" [style.max-height.px]="place().list">
         @for (option of shown(); track option.value; let i = $index) {
           <li role="option" class="select__item" [class.select__item--active]="i === active()" [attr.aria-selected]="option.value === selected()"
               [attr.data-active]="i === active()" (mousedown)="$event.preventDefault(); choose(option)" (mousemove)="active.set(i)"
