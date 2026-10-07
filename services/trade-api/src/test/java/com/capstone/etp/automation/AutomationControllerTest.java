@@ -89,6 +89,25 @@ class AutomationControllerTest {
     }
 
     @Test
+    void creatingAStrategyPutsItsInstrumentOnTheWatchlistSoLivePricesFlow() {
+        when(store.insertWithinCap(any(), any(), any(), any(), any(), any(), any(), any(), anyInt())).thenReturn(5L);
+        when(store.findById(5L)).thenReturn(stored(5, 1, false));
+
+        controller.create(request(1, "aapl", 10));
+
+        verify(accounts).addToWatchlist(1L, "AAPL");
+    }
+
+    @Test
+    void aWatchlistProblemDoesNotStopTheStrategyBeingCreated() {
+        when(store.insertWithinCap(any(), any(), any(), any(), any(), any(), any(), any(), anyInt())).thenReturn(5L);
+        when(store.findById(5L)).thenReturn(stored(5, 1, false));
+        when(accounts.addToWatchlist(any(), any())).thenThrow(new IllegalStateException("db"));
+
+        assertEquals(201, controller.create(request(1, "AAPL", 10)).getStatusCode().value());
+    }
+
+    @Test
     void refusesAnotherCustomersAccount() {
         assertThrows(AccountAccessDeniedException.class, () -> controller.create(request(2, "AAPL", 10)));
 

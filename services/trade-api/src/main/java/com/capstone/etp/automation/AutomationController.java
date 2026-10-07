@@ -132,9 +132,22 @@ public class AutomationController {
             throw new ModuleException(HttpStatus.UNPROCESSABLE_ENTITY, "AUT-422",
                     "An account can hold up to " + properties.getMaxPerAccount() + " strategies. Remove one first");
         }
+        watchSoQuotesFlow(definition);
         log.info("[AUTOMATION] strategy created id={} accountId={} symbol={} type={} (off)", id, definition.getAccountId(),
                 definition.getSymbol(), definition.getType());
         return ResponseEntity.status(HttpStatus.CREATED).body(view(store.findById(id)));
+    }
+
+    /**
+     * Live prices only flow for instruments somebody holds, watches or has an order on, so a strategy puts its instrument on the
+     * customer's watchlist (it is a harmless, idempotent add). Without it a strategy could be on and never see a price.
+     */
+    private void watchSoQuotesFlow(StrategyDefinition definition) {
+        try {
+            accounts.addToWatchlist(definition.getAccountId(), definition.getSymbol());
+        } catch (RuntimeException e) {
+            log.warn("[AUTOMATION] could not add {} to the watchlist: {}", definition.getSymbol(), e.getClass().getSimpleName());
+        }
     }
 
     /** Switches a strategy on or off. Switching ON needs acknowledged=true. */

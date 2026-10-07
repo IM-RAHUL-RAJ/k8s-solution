@@ -48,6 +48,27 @@ public final class PriceHistory {
         }
     }
 
+    /**
+     * Fills the front of a short series with starting prices (older than what is already there), up to {@code wanted}
+     * prices in all. Live prices already collected are kept and stay the newest.
+     */
+    public void prependIfShort(String symbol, List<BigDecimal> starting, int wanted) {
+        if (starting == null || starting.isEmpty()) {
+            return;
+        }
+        Series series = bySymbol.computeIfAbsent(symbol, key -> new Series());
+        synchronized (series) {
+            int missing = Math.min(wanted, capacity) - series.prices.size();
+            if (missing <= 0) {
+                return;
+            }
+            List<BigDecimal> take = starting.subList(Math.max(0, starting.size() - missing), starting.size());
+            for (int i = take.size() - 1; i >= 0; i--) {
+                series.prices.addFirst(take.get(i));
+            }
+        }
+    }
+
     /** A copy, oldest first. */
     public List<BigDecimal> snapshot(String symbol) {
         Series series = bySymbol.get(symbol);

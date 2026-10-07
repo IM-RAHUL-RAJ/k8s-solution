@@ -47,6 +47,7 @@ public class AutomationService implements QuoteObserver {
 
     private final AutomationProperties properties;
     private final AutomationMapper store;
+    private final HistorySeeder seeder;
     private final TradeApiClient tradeApi;
     private final Executor executor;
     private final Clock clock;
@@ -56,8 +57,14 @@ public class AutomationService implements QuoteObserver {
 
     public AutomationService(AutomationProperties properties, AutomationMapper store, TradeApiClient tradeApi,
                              Executor executor, Clock clock) {
+        this(properties, store, (symbol, count) -> List.of(), tradeApi, executor, clock);
+    }
+
+    public AutomationService(AutomationProperties properties, AutomationMapper store, HistorySeeder seeder, TradeApiClient tradeApi,
+                             Executor executor, Clock clock) {
         this.properties = properties;
         this.store = store;
+        this.seeder = seeder;
         this.tradeApi = tradeApi;
         this.executor = executor;
         this.clock = clock;
@@ -90,6 +97,27 @@ public class AutomationService implements QuoteObserver {
         }
         bySymbol = fresh;
         log.info("[AUTOMATION] strategies running={}", fresh.values().stream().mapToInt(List::size).sum());
+        warmUp(fresh);
+    }
+
+    /**
+     * A strategy that has just been switched on starts from recent prices rather than from nothing, so it can act on the
+     * very next live tick instead of waiting minutes for a full window. Done off the caller's thread; a failure just
+     * means the strategy warms up from the live stream instead.
+     */
+    private void warmUp(Map<String, List<Active>> running) {
+        running.forEach((symbol, actives) -> {
+            int wanted = actives.stream().mapToInt(active -> active.strategy().requiredObservations()).max().orElse(0);
+            if (wanted > 0 && history.size(symbol) < wanted) {
+                executor.execute(() -> {
+                    List<BigDecimal> starting = seeder.recentCloses(symbol, wanted);
+                    if (!starting.isEmpty()) {
+                        history.prependIfShort(symbol, starting, wanted);
+                        log.info("[AUTOMATION] warmed up symbol={} with {} recent prices", symbol, Math.min(starting.size(), wanted));
+                    }
+                });
+            }
+        });
     }
 
     /** How many prices have been collected for a running strategy, and how many it needs before it can act. */

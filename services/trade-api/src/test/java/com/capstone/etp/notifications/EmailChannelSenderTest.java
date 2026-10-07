@@ -137,4 +137,77 @@ class EmailChannelSenderTest {
             }
         }
     }
+
+    // ----------------------------------------------------------------------- delivery that must not fail for small reasons
+
+    @SuppressWarnings("unchecked")
+    private EmailChannelSender senderWith(Capturing mail, String from, EmailTemplateRenderer renderer) {
+        ObjectProvider<org.springframework.mail.javamail.JavaMailSender> provider = mock(ObjectProvider.class);
+        when(provider.getIfAvailable()).thenReturn(mail);
+        return new EmailChannelSender(provider, "smtp.example.test", from, renderer);
+    }
+
+    @Test
+    void aBlankFromAddressFromAnEmptyEnvironmentVariableStillSends() throws Exception {
+        Capturing mail = new Capturing();
+        EmailChannelSender sender = senderWith(mail, "", new EmailTemplateRenderer("https://app.example"));
+
+        ChannelSender.Mode mode = sender.send(new OutboundMessage("jane@example.com", "Order filled", "Filled.", NotificationKind.ORDER_FILLED, "OWL"));
+
+        assertEquals(ChannelSender.Mode.LIVE, mode);
+        mail.sent.saveChanges();
+        assertEquals("no-reply@quorum.local", ((jakarta.mail.internet.InternetAddress) mail.sent.getFrom()[0]).getAddress());
+    }
+
+    @Test
+    void ifTheStyledVersionCannotBeBuiltThePlainTextMessageIsSentInstead() throws Exception {
+        Capturing mail = new Capturing();
+        EmailTemplateRenderer broken = mock(EmailTemplateRenderer.class);
+        when(broken.render(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any())).thenThrow(new IllegalStateException("template"));
+        EmailChannelSender sender = senderWith(mail, "no-reply@quorum.test", broken);
+
+        ChannelSender.Mode mode = sender.send(new OutboundMessage("jane@example.com", "Order filled", "Your order was filled.", NotificationKind.ORDER_FILLED, "OWL"));
+
+        assertEquals(ChannelSender.Mode.LIVE, mode);
+        mail.sent.saveChanges();
+        List<Part> parts = new ArrayList<>();
+        collect(mail.sent, parts);
+        boolean plainTextCarriesIt = false;
+        for (Part part : parts) {
+            if (part.isMimeType("text/plain") && new String(bytes(part), java.nio.charset.StandardCharsets.UTF_8).contains("Your order was filled.")) {
+                plainTextCarriesIt = true;
+            }
+        }
+        assertTrue(plainTextCarriesIt);
+        assertTrue(parts.stream().noneMatch(part -> {
+            try {
+                return part.isMimeType("text/html") || part.isMimeType("image/gif");
+            } catch (Exception e) {
+                return false;
+            }
+        }));
+    }
+
+    @Test
+    void aProviderFailureSaysWhatKindInTheDeliveryExceptionWithoutQuotingTheAddress() {
+        JavaMailSenderImpl failing = new JavaMailSenderImpl() {
+            @Override
+            public void send(MimeMessage message) {
+                throw new org.springframework.mail.MailSendException("Mail server connection failed",
+                        new java.net.SocketTimeoutException("connect to jane@example.com timed out"));
+            }
+        };
+        @SuppressWarnings("unchecked")
+        ObjectProvider<org.springframework.mail.javamail.JavaMailSender> provider = mock(ObjectProvider.class);
+        when(provider.getIfAvailable()).thenReturn(failing);
+        EmailChannelSender sender = new EmailChannelSender(provider, "smtp.example.test", "no-reply@quorum.test", new EmailTemplateRenderer("https://app.example"));
+
+        ChannelSender.DeliveryException refused = org.junit.jupiter.api.Assertions.assertThrows(ChannelSender.DeliveryException.class,
+                () -> sender.send(new OutboundMessage("jane@example.com", "s", "b", NotificationKind.ORDER_FILLED, "OWL")));
+
+        assertTrue(refused.getMessage().contains("MailSendException"), refused.getMessage());
+        assertTrue(refused.getMessage().contains("SocketTimeoutException"), refused.getMessage());
+        assertFalse(refused.getMessage().contains("jane@example.com"), refused.getMessage());
+    }
 }

@@ -232,4 +232,40 @@ class AutomationReloadTest {
         assertEquals(List.of("upper", "middle", "lower"), List.copyOf(chart.lines().keySet()));
         assertTrue(chart.lines().get("upper").get(5).compareTo(chart.lines().get("lower").get(5)) > 0);
     }
+
+    // ----------------------------------------------------------------------- starting on its own
+
+    @Test
+    void aStrategySwitchedOnStartsFromRecentPricesSoItCanActOnTheVeryNextLiveTick() {
+        when(store.findEnabled()).thenReturn(List.of(strategy()));
+        HistorySeeder seeder = (symbol, count) -> List.of(BigDecimal.TEN, BigDecimal.TEN, BigDecimal.TEN, BigDecimal.TEN);
+        when(tradeApi.submit(any())).thenReturn(TradeApiClient.SubmissionResult.submitted(UUID.randomUUID(), "NEW"));
+        AutomationService service = new AutomationService(properties, store, seeder, tradeApi, Runnable::run, Clock.fixed(T0, ZoneOffset.UTC));
+
+        // already ready: four recent prices plus none live would be 4 of 5, so one live tick completes the window and crosses
+        assertEquals(new AutomationService.Progress(4, 5), service.progressOf("5").orElseThrow());
+        feed(service, 12);
+
+        verify(tradeApi, times(1)).submit(any());
+    }
+
+    @Test
+    void aSeederThatFindsNothingJustMeansTheStrategyWarmsUpFromTheLiveStream() {
+        when(store.findEnabled()).thenReturn(List.of(strategy()));
+        when(tradeApi.submit(any())).thenReturn(TradeApiClient.SubmissionResult.submitted(UUID.randomUUID(), "NEW"));
+        AutomationService service = new AutomationService(properties, store, (symbol, count) -> List.of(), tradeApi, Runnable::run, Clock.fixed(T0, ZoneOffset.UTC));
+
+        assertEquals(new AutomationService.Progress(0, 5), service.progressOf("5").orElseThrow());
+        feed(service, 10, 10, 10, 10, 12);
+        verify(tradeApi, times(1)).submit(any());
+    }
+
+    @Test
+    void startingPricesNeverReplaceLivePricesAlreadyCollected() {
+        when(store.findEnabled()).thenReturn(List.of(strategy()));
+        AutomationService service = new AutomationService(properties, store, (symbol, count) -> List.of(), tradeApi, Runnable::run, Clock.fixed(T0, ZoneOffset.UTC));
+        feed(service, 10, 10, 10);
+
+        assertEquals(new AutomationService.Progress(3, 5), service.progressOf("5").orElseThrow());
+    }
 }

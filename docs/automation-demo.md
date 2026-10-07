@@ -20,7 +20,7 @@ Two ways to watch a strategy trade. The **demo** takes about a minute. The **liv
    - Short `2`, long `4` (small numbers so it needs few prices).
    - Press **Create**. It appears as **Off**.
 3. Press its switch. Read the confirmation (it names your account reference), tick **I understand**, press **Switch on**. The state becomes **On**.
-4. The row shows **Collecting prices: n of 5**, with a bar, and a chart starts to draw as quotes arrive. (For the demo you can skip waiting.)
+4. The strategy **starts on its own**: it loads recent prices (15-minute candles) for the instrument, so it is usually **ready to act at once**; the row says *Watching the price: ready to act* and the chart draws. If recent prices cannot be loaded it says *Collecting prices: n of 5* and warms up from live quotes instead. Creating the strategy also puts the instrument on your Watchlist, because live prices only flow for instruments you hold, watch or have an order on. (For the demo you can skip waiting.)
 5. In the strategy's panel under the row, press **Trigger BUY** (it is there because `AUTOMATION_SIMULATION=true`). Confirm the dialog: it states the real order it will place.
 6. Within a few seconds **Recent activity** shows, newest first:
    - `Triggered`: the rule fired (detail says *demo price path*, with the short and long averages crossing).
@@ -36,7 +36,7 @@ What the demo does and does not do: it feeds a scripted price path **only to you
 ## B. Live (the real thing)
 
 1. Create and switch on a strategy as above, on an instrument whose price moves (the executor polls the price provider).
-2. Let it collect prices (**Collecting prices: n of N**). A 20/50 strategy needs 51 quotes.
+2. It warms up from recent prices by itself (and live quotes then keep it current). The executor publishes a quote about once a minute, so the line moves slowly; a crossing needs the price to actually move. When the market is closed or the price is static, nothing crosses: use the demo.
 3. The chart shows the price and the two averages (or the three Bollinger bands). When the short line crosses the long line (or the price pierces a band), the rule fires once, and the page shows `Triggered` then `Order sent`.
 4. A crossover that is already in place does not fire again; the next trigger is the next crossing.
 

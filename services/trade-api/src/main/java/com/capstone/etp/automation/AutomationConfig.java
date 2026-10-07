@@ -42,8 +42,8 @@ class AutomationConfig {
     }
 
     @Bean
-    AutomationService automationService(AutomationProperties properties, AutomationMapper store, TradeApiClient tradeApi,
-                                        ExecutorService automationOrderExecutor, Clock clock) {
-        return new AutomationService(properties, store, tradeApi, automationOrderExecutor, clock);
+    AutomationService automationService(AutomationProperties properties, AutomationMapper store, HistorySeeder seeder,
+                                        TradeApiClient tradeApi, ExecutorService automationOrderExecutor, Clock clock) {
+        return new AutomationService(properties, store, seeder, tradeApi, automationOrderExecutor, clock);
     }
 }

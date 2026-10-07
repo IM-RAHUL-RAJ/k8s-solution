@@ -112,7 +112,8 @@ class NotificationDispatcher {
             int attempts = notification.getAttempts() + 1;
             if (attempts >= maxAttempts) {
                 mapper.markFailed(notification.getId(), REASON_PROVIDER_ERROR, channel.channel(), channel.source());
-                log.error("[NOTIFY] giving up notificationId={} after {} attempts", notification.getId(), attempts);
+                log.error("[NOTIFY] giving up notificationId={} after {} attempts ({})", notification.getId(), attempts,
+                        e instanceof ChannelSender.DeliveryException ? e.getMessage() : e.getClass().getSimpleName());
             } else {
                 mapper.reschedule(notification.getId(), NotificationStatus.QUEUED, REASON_PROVIDER_ERROR,
                         channel.channel(), channel.source(), backoff(attempts));

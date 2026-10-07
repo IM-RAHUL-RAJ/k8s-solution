@@ -252,4 +252,41 @@ class StrategiesTest {
         bands.setMultiplier(BigDecimal.valueOf(2));
         assertTrue(StrategyFactory.create(bands) instanceof BollingerBandStrategy);
     }
+
+    // ----------------------------------------------------------------------- starting prices
+
+    @Test
+    void startingPricesFillTheFrontOfAShortSeriesAndLivePricesStayNewest() {
+        PriceHistory history = new PriceHistory(10);
+        history.add("AAPL", new BigDecimal("50"), null);
+        history.add("AAPL", new BigDecimal("51"), null);
+
+        history.prependIfShort("AAPL", prices(1, 2, 3, 4, 5, 6, 7, 8), 5);
+
+        assertEquals(List.of(6, 7, 8, 50, 51), history.snapshot("AAPL").stream().map(BigDecimal::intValue).toList());
+    }
+
+    @Test
+    void startingPricesAreIgnoredOnceThereIsEnoughHistory() {
+        PriceHistory history = new PriceHistory(10);
+        for (int i = 0; i < 5; i++) {
+            history.add("AAPL", BigDecimal.TEN, null);
+        }
+
+        history.prependIfShort("AAPL", prices(1, 2, 3), 5);
+
+        assertEquals(5, history.size("AAPL"));
+        assertFalse(history.snapshot("AAPL").contains(BigDecimal.valueOf(1.0)));
+    }
+
+    @Test
+    void startingPricesNeverExceedTheCapacityAndEmptyOnesDoNothing() {
+        PriceHistory history = new PriceHistory(4);
+
+        history.prependIfShort("AAPL", prices(1, 2, 3, 4, 5, 6), 50);
+        history.prependIfShort("MSFT", List.of(), 5);
+
+        assertEquals(4, history.size("AAPL"));
+        assertEquals(0, history.size("MSFT"));
+    }
 }
