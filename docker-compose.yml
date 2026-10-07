@@ -117,6 +117,8 @@ services:
       SMTP_FROM: ${SMTP_FROM:-}
       # The in-app assistant. The Gemini key lives only in this container's environment (set it in .env, which is
       # git-ignored); the browser never sees it. Without it the assistant still answers from account data.
+      # Automated trading demo button (places a REAL order from a scripted price path). Off unless set to true.
+      AUTOMATION_SIMULATION: ${AUTOMATION_SIMULATION:-false}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.1-flash-lite}
     ports:

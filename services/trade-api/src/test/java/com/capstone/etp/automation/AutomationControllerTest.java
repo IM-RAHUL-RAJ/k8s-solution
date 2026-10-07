@@ -34,6 +34,7 @@ class AutomationControllerTest {
     private AutomationService service;
     private AccountService accounts;
     private AutomationController controller;
+    private com.capstone.etp.service.MarketQuoteCache quotes;
 
     @BeforeEach
     void setUp() {
@@ -47,7 +48,8 @@ class AutomationControllerTest {
         when(accounts.getInstruments()).thenReturn(List.of(apple));
         when(service.progressOf(any())).thenReturn(Optional.empty());
         when(service.recentResults()).thenReturn(List.of());
-        controller = new AutomationController(properties, store, service, new AccountAuthorizer(), accounts);
+        quotes = mock(com.capstone.etp.service.MarketQuoteCache.class);
+        controller = new AutomationController(properties, store, service, new AccountAuthorizer(), accounts, quotes);
     }
 
     @AfterEach
@@ -233,5 +235,72 @@ class AutomationControllerTest {
         var response = controller.create(new AutomationController.CreateRequest(StrategyType.BOLLINGER_BANDS, 1L, "AAPL", 5, null, null, 20, new BigDecimal("2")));
 
         assertEquals("period 20, multiplier 2", response.getBody().parameters());
+    }
+
+    // ----------------------------------------------------------------------- the demo
+
+    private static com.capstone.etp.dto.MarketQuote live(String price) {
+        return com.capstone.etp.dto.MarketQuote.builder().symbol("AAPL").price(new BigDecimal(price)).build();
+    }
+
+    @Test
+    void theDemoIsOffUnlessTheOperatorSwitchedItOn() {
+        when(store.findById(5L)).thenReturn(stored(5, 1, true));
+
+        ModuleException refused = assertThrows(ModuleException.class,
+                () -> controller.simulate(5L, new AutomationController.SimulateRequest(SignalType.BUY)));
+
+        assertEquals("AUT-403", refused.getCatalogueCode());
+        verify(service, never()).simulate(any(), any(), any());
+    }
+
+    @Test
+    void theDemoNeedsASwitchedOnStrategyAndALivePrice() {
+        properties.setSimulationEnabled(true);
+        when(store.findById(5L)).thenReturn(stored(5, 1, false));
+        assertEquals("AUT-409", assertThrows(ModuleException.class,
+                () -> controller.simulate(5L, new AutomationController.SimulateRequest(SignalType.BUY))).getCatalogueCode());
+
+        when(store.findById(5L)).thenReturn(stored(5, 1, true));
+        when(quotes.get("AAPL")).thenReturn(Optional.empty());
+        assertEquals("AUT-409", assertThrows(ModuleException.class,
+                () -> controller.simulate(5L, new AutomationController.SimulateRequest(SignalType.BUY))).getCatalogueCode());
+        verify(service, never()).simulate(any(), any(), any());
+    }
+
+    @Test
+    void theDemoRunsOnTheLatestLivePriceForTheOwnersStrategy() {
+        properties.setSimulationEnabled(true);
+        when(store.findById(5L)).thenReturn(stored(5, 1, true));
+        when(quotes.get("AAPL")).thenReturn(Optional.of(live("200.00")));
+        when(service.simulate("5", SignalType.BUY, new BigDecimal("200.00")))
+                .thenReturn(new AutomationService.Simulation(52, new BigDecimal("200.00"), new BigDecimal("206.00"), SignalType.BUY));
+
+        var response = controller.simulate(5L, new AutomationController.SimulateRequest(SignalType.BUY)).getBody();
+
+        assertEquals(52, response.ticks());
+        assertEquals("BUY", response.trigger());
+    }
+
+    @Test
+    void theDemoCannotBeRunOnAnotherCustomersStrategyOrWithoutADirection() {
+        properties.setSimulationEnabled(true);
+        when(store.findById(9L)).thenReturn(stored(9, 2, true));
+        assertEquals("AUT-404", assertThrows(ModuleException.class,
+                () -> controller.simulate(9L, new AutomationController.SimulateRequest(SignalType.BUY))).getCatalogueCode());
+
+        when(store.findById(5L)).thenReturn(stored(5, 1, true));
+        when(quotes.get("AAPL")).thenReturn(Optional.of(live("200")));
+        assertEquals("VAL-422", assertThrows(ModuleException.class,
+                () -> controller.simulate(5L, new AutomationController.SimulateRequest(SignalType.NONE))).getCatalogueCode());
+    }
+
+    @Test
+    void anAdministratorCannotRunTheDemo() {
+        properties.setSimulationEnabled(true);
+        TestIdentity.admin(1L);
+
+        assertThrows(AccountAccessDeniedException.class,
+                () -> controller.simulate(5L, new AutomationController.SimulateRequest(SignalType.BUY)));
     }
 }

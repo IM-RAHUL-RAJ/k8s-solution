@@ -24,6 +24,11 @@ class CandlePriceHistoryProvider implements PriceHistoryProvider {
 
     @Override
     public List<BigDecimal> closes(String symbol, int count) {
+        return points(symbol, count).stream().map(PricePoint::close).toList();
+    }
+
+    @Override
+    public List<PricePoint> points(String symbol, int count) {
         try {
             CandlesResponse response = candles.candles(symbol, "1d", Math.min(Math.max(count, 1), MAX_LIMIT));
             if (response == null || response.candles() == null) {
@@ -32,7 +37,7 @@ class CandlePriceHistoryProvider implements PriceHistoryProvider {
             return response.candles().stream()
                     .filter(candle -> candle.close() != null && candle.timestamp() != null)
                     .sorted(Comparator.comparing(CandlesResponse.Candle::timestamp))
-                    .map(CandlesResponse.Candle::close)
+                    .map(candle -> new PricePoint(candle.timestamp(), candle.close()))
                     .toList();
         } catch (RuntimeException e) {
             // The provider being down is "no data", not a failure of the whole advice request.

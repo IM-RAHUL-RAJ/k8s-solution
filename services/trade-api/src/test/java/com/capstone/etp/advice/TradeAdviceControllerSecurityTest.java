@@ -80,8 +80,8 @@ class TradeAdviceControllerSecurityTest {
         when(accounts.getPositions(1L)).thenReturn(List.of(
                 PositionResponse.builder().accountId(1L).symbol("AAPL").quantity(5).averageCost(BigDecimal.TEN).build()));
         when(accounts.getWatchlist(1L)).thenReturn(List.of());
-        when(history.closes("AAPL", 6)).thenReturn(
-                List.of(8, 9, 10, 14, 15, 16).stream().map(BigDecimal::valueOf).toList());
+        when(history.points("AAPL", 90)).thenReturn(
+                PricePoint.undated(List.of(8, 9, 10, 14, 15, 16).stream().map(BigDecimal::valueOf).toList()));
     }
 
     private static String token(long accountId) {
@@ -124,7 +124,9 @@ class TradeAdviceControllerSecurityTest {
                 .andExpect(jsonPath("$[0].signal").value("BUY"))
                 .andExpect(jsonPath("$[0].reasoning[0]").isNotEmpty())
                 .andExpect(jsonPath("$[0].timestamp").value("2026-10-07T12:00:00Z"))
-                .andExpect(jsonPath("$[0].length()").value(4));
+                .andExpect(jsonPath("$[0].length()").value(6))
+                .andExpect(jsonPath("$[0].indicators.trend").value("BULLISH"))
+                .andExpect(jsonPath("$[0].chart.length()").value(6));
     }
 
     @Test

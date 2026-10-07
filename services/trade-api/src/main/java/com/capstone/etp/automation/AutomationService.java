@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -39,6 +40,7 @@ import java.util.concurrent.Executor;
 public class AutomationService implements QuoteObserver {
 
     private static final int RECENT_RESULTS = 200;
+    private static final int CHART_POINTS = 120;
 
     private record Active(StrategyDefinition definition, String symbol, TradingStrategy strategy) {
     }
@@ -168,21 +170,132 @@ public class AutomationService implements QuoteObserver {
             return;
         }
 
+        fire(active, signal, quote.getPrice(), keyFor(definition, active.symbol(), signal.type(), quote, prices.size()), "");
+    }
+
+    /** A trigger: record it, build the order and hand it to the one order thread. The same path for a live tick and a demo. */
+    private void fire(Active active, StrategySignal signal, BigDecimal price, UUID key, String note) {
+        StrategyDefinition definition = active.definition();
         Instant now = clock.instant();
-        log.info("[AUTOMATION] event={} strategy={} symbol={} accountId={} trigger={} at={} reason={}",
+        log.info("[AUTOMATION] event={} strategy={} symbol={} accountId={} trigger={} at={} reason={}{}",
                 OrderOutcome.STRATEGY_TRIGGERED, definition.getId(), active.symbol(), definition.getAccountId(),
-                signal.type(), now, signal.reason());
-        remember(definition, active.symbol(), signal.type(), OrderOutcome.STRATEGY_TRIGGERED, null, signal.reason(), now);
+                signal.type(), now, signal.reason(), note.isEmpty() ? "" : " (" + note + ")");
+        remember(definition, active.symbol(), signal.type(), OrderOutcome.STRATEGY_TRIGGERED, null, note + signal.reason(), now);
 
         PlaceOrderRequest request = PlaceOrderRequest.builder()
                 .accountId(definition.getAccountId())
                 .symbol(active.symbol())
                 .side(signal.type() == SignalType.BUY ? OrderSide.BUY : OrderSide.SELL)
                 .quantity(definition.getQuantity())
-                .price(quote.getPrice().setScale(2, RoundingMode.HALF_UP))
-                .idempotencyKey(keyFor(definition, active.symbol(), signal.type(), quote, prices.size()))
+                .price(price.setScale(2, RoundingMode.HALF_UP))
+                .idempotencyKey(key)
                 .build();
         executor.execute(() -> submit(definition, active.symbol(), signal, request));
+    }
+
+    /** What a running strategy is looking at: the prices collected and the lines the rule compares them with. */
+    public record StrategyChart(List<BigDecimal> prices, Map<String, List<BigDecimal>> lines) {
+    }
+
+    public Optional<StrategyChart> chartOf(String strategyId) {
+        Active active = find(strategyId);
+        if (active == null) {
+            return Optional.empty();
+        }
+        List<BigDecimal> all = history.snapshot(active.symbol());
+        int from = Math.max(0, all.size() - CHART_POINTS);
+        StrategyDefinition d = active.definition();
+        Map<String, List<BigDecimal>> lines = new LinkedHashMap<>();
+        if (d.getType() == StrategyType.MA_CROSSOVER) {
+            lines.put("shortAverage", new ArrayList<>());
+            lines.put("longAverage", new ArrayList<>());
+        } else {
+            lines.put("upper", new ArrayList<>());
+            lines.put("middle", new ArrayList<>());
+            lines.put("lower", new ArrayList<>());
+        }
+        for (int i = from; i < all.size(); i++) {
+            int end = i + 1;
+            if (d.getType() == StrategyType.MA_CROSSOVER) {
+                lines.get("shortAverage").add(end >= d.getShortPeriod() ? round(Averages.mean(all, end, d.getShortPeriod())) : null);
+                lines.get("longAverage").add(end >= d.getLongPeriod() ? round(Averages.mean(all, end, d.getLongPeriod())) : null);
+            } else if (end >= d.getPeriod()) {
+                BigDecimal middle = Averages.mean(all, end, d.getPeriod());
+                BigDecimal spread = Averages.standardDeviation(all, end, d.getPeriod(), middle).multiply(d.getMultiplier());
+                lines.get("upper").add(round(middle.add(spread)));
+                lines.get("middle").add(round(middle));
+                lines.get("lower").add(round(middle.subtract(spread)));
+            } else {
+                lines.get("upper").add(null);
+                lines.get("middle").add(null);
+                lines.get("lower").add(null);
+            }
+        }
+        List<BigDecimal> shown = all.subList(from, all.size()).stream().map(AutomationService::round).toList();
+        return Optional.of(new StrategyChart(shown, lines));
+    }
+
+    /** What a demo did: the prices it walked through and the trigger it produced. */
+    public record Simulation(int ticks, BigDecimal startPrice, BigDecimal finalPrice, SignalType trigger) {
+    }
+
+    /**
+     * A demo of one running strategy: a scripted price path around the base price that ends in the crossing the customer
+     * asked to see. The path is evaluated on its own and never added to the shared price history, so it cannot trigger
+     * another customer's strategy. The order it produces is REAL: it goes through the Trade REST API like any other.
+     *
+     * @throws IllegalStateException if the strategy is not running, or the path did not produce the trigger
+     */
+    public Simulation simulate(String strategyId, SignalType direction, BigDecimal base) {
+        Active active = find(strategyId);
+        if (active == null) {
+            throw new IllegalStateException("The strategy is not running");
+        }
+        if (direction == SignalType.NONE || base == null || base.signum() <= 0) {
+            throw new IllegalArgumentException("direction must be BUY or SELL and the base price above zero");
+        }
+        List<BigDecimal> path = demoPath(active, direction, base);
+        StrategySignal signal = active.strategy().evaluate(path);
+        if (signal.type() != direction) {
+            throw new IllegalStateException("The demo prices did not produce a " + direction + " trigger. With a very short Bollinger window (under about 10 prices) no single move can pass the band, so use a longer one.");
+        }
+        BigDecimal last = path.get(path.size() - 1);
+        String basis = active.definition().getId() + "|demo|" + direction + "|" + clock.instant();
+        fire(active, signal, last, UUID.nameUUIDFromBytes(basis.getBytes(StandardCharsets.UTF_8)), "demo price path: ");
+        return new Simulation(path.size(), base, last, signal.type());
+    }
+
+    private static List<BigDecimal> demoPath(Active active, SignalType direction, BigDecimal base) {
+        StrategyDefinition d = active.definition();
+        int steady = active.strategy().requiredObservations();
+        List<BigDecimal> path = new ArrayList<>();
+        for (int i = 0; i < steady; i++) {
+            if (d.getType() == StrategyType.BOLLINGER_BANDS && i < steady - 1) {
+                // a little noise so the bands have a width; the last steady tick sits on the middle
+                path.add(base.multiply(BigDecimal.ONE.add(new BigDecimal(i % 2 == 0 ? "0.001" : "-0.001"))));
+            } else {
+                path.add(base);
+            }
+        }
+        boolean up = direction == SignalType.BUY ? d.getType() == StrategyType.MA_CROSSOVER : d.getType() == StrategyType.BOLLINGER_BANDS;
+        BigDecimal move = new BigDecimal(d.getType() == StrategyType.MA_CROSSOVER ? "0.03" : "0.05");
+        path.add(base.multiply(up ? BigDecimal.ONE.add(move) : BigDecimal.ONE.subtract(move)));
+        return path;
+    }
+
+    private Active find(String strategyId) {
+        for (List<Active> actives : bySymbol.values()) {
+            for (Active active : actives) {
+                if (active.definition().getId().equals(strategyId)) {
+                    return active;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static BigDecimal round(BigDecimal value) {
+        return value == null ? null : value.setScale(2, RoundingMode.HALF_UP);
     }
 
     private void submit(StrategyDefinition definition, String symbol, StrategySignal signal, PlaceOrderRequest request) {

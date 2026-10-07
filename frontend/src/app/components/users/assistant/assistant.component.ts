@@ -1,23 +1,13 @@
 import { ChangeDetectionStrategy, Component, ElementRef, afterNextRender, computed, effect, inject, signal, viewChild, Injector } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AnimationName } from '../../../core/mascot/pixel-mascot';
-import { ChatResponse, QuickAction } from '../../../core/models/assistant.model';
+import { ChatMessage, QuickAction } from '../../../core/models/assistant.model';
+import { AssistantChatStore } from '../../../core/services/assistant-chat.store';
 import { AccountContextService } from '../../../core/services/account-context.service';
 import { ApiErrorMessageService } from '../../../core/services/api-error-message.service';
 import { AssistantService } from '../../../core/services/assistant.service';
 import { IconComponent } from '../shared/icon/icon.component';
 import { MascotComponent } from '../shared/mascot/mascot.component';
-
-/** One line of the conversation. A bot line has the full response (cards, redirect) or an error. */
-export interface ChatMessage {
-  id: number;
-  role: 'user' | 'bot';
-  text: string;
-  response?: ChatResponse;
-  error?: boolean;
-  /** What to send again when an error line's Retry is pressed. */
-  retry?: { message: string; quickAction?: string };
-}
 
 /** The same questions the server offers; shown at once, and replaced by the server's list when it arrives. */
 export const DEFAULT_QUICK_ACTIONS: QuickAction[] = [
@@ -51,14 +41,14 @@ export class AssistantComponent {
   private readonly accountContext = inject(AccountContextService);
   private readonly errors = inject(ApiErrorMessageService);
   private readonly injector = inject(Injector);
+  private readonly store = inject(AssistantChatStore);
 
   protected readonly maxLength = MAX_LENGTH;
-  protected readonly messages = signal<ChatMessage[]>([]);
+  /** The conversation lives in the store, so it survives leaving this page and coming back. */
+  protected readonly messages = this.store.messages;
   protected readonly draft = signal('');
   protected readonly loading = signal(false);
   protected readonly quickActions = signal<QuickAction[]>(DEFAULT_QUICK_ACTIONS);
-  private conversationId: string | undefined;
-  private nextId = 1;
 
   private readonly thread = viewChild<ElementRef<HTMLElement>>('thread');
 
@@ -86,6 +76,7 @@ export class AssistantComponent {
   });
 
   constructor() {
+    this.store.bind(this.accountId());
     this.service.quickActions(this.accountId()).subscribe({
       next: (actions) => actions.length > 0 && this.quickActions.set(actions),
       error: () => undefined
@@ -138,13 +129,12 @@ export class AssistantComponent {
     if (this.loading() || !message.retry) {
       return;
     }
-    this.messages.update((list) => list.filter((entry) => entry.id !== message.id));
+    this.store.remove(message.id);
     this.ask(message.retry.message, message.retry.quickAction, false);
   }
 
   protected clear(): void {
-    this.messages.set([]);
-    this.conversationId = undefined;
+    this.store.clear();
   }
 
   private ask(message: string, quickAction?: string, showQuestion = true): void {
@@ -152,9 +142,9 @@ export class AssistantComponent {
       this.push({ role: 'user', text: message });
     }
     this.loading.set(true);
-    this.service.chat(this.accountId(), { message, conversationId: this.conversationId, selectedQuickAction: quickAction }).subscribe({
+    this.service.chat(this.accountId(), { message, conversationId: this.store.conversationId, selectedQuickAction: quickAction }).subscribe({
       next: (response) => {
-        this.conversationId = response.conversationId;
+        this.store.setConversation(response.conversationId);
         if (response.quickActions.length > 0) {
           this.quickActions.set(response.quickActions);
         }
@@ -169,6 +159,6 @@ export class AssistantComponent {
   }
 
   private push(entry: Omit<ChatMessage, 'id'>): void {
-    this.messages.update((list) => [...list, { ...entry, id: this.nextId++ }]);
+    this.store.add(entry);
   }
 }

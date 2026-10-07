@@ -22,6 +22,11 @@ public class AutomationProperties {
     private int readTimeoutMs = 4000;
     /** Prices kept per symbol. Must cover the longest period any strategy uses, plus one. */
     private int historySize = 500;
+    /**
+     * Allows the demo button: a scripted price path that makes a running strategy trigger now. The order it produces is real,
+     * so it is off unless asked for (AUTOMATION_SIMULATION=true), and meant for demonstrations and testing.
+     */
+    private boolean simulationEnabled = false;
     /** Strategies one account may hold, on or off. */
     private int maxPerAccount = 10;
 }

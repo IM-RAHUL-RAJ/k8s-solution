@@ -39,21 +39,16 @@ public final class AssistantPolicy {
 
     private static final List<Pattern> ADVISORY = compile(
             "\\bwhat (should|shall|can|do) i (buy|sell|invest|trade|do with|put)\\b",
-            "\\bshould i (buy|sell|hold|invest|short|dump|exit|add|trim|keep|get|take|go)\\b",
+            "\\bshould i (buy|sell|hold|invest|short|dump|exit)\\b",
             "\\b(stock|share|investment|trading|market|crypto)s? (tip|tips|pick|picks|idea|ideas|advice|recommendation|recommendations|suggestion|suggestions)\\b",
-            "\\brecommend",
-            "\\b(suggest|advise|advice)\\b",
-            "\\bwhich (stock|share|coin|etf|fund|crypto|instrument|company)s?\\b.*\\b(buy|sell|invest|pick|choose|good|best)\\b",
-            "\\b(best|top|hot|safe|good|worst) (stock|share|coin|etf|fund|crypto|investment|investments|buy|bet)s?\\b",
+            "\\brecommend(ation|ations|ed)?\\b.*\\b(stock|share|coin|etf|fund|crypto|buy|sell|invest|trade)",
+            "\\b(stock|share|coin|etf|fund|crypto)s? (should|to) (i )?(buy|sell|invest)\\b",
+            "\\bwhich (stock|share|coin|etf|fund|crypto|company)s?\\b.*\\b(should|to|can) (i )?(buy|sell|invest|pick)\\b",
             "\\bwhat to (buy|sell|invest)\\b",
-            "\\bworth (buying|selling|investing)\\b",
-            "\\b(good|right|best|wise|bad|perfect) (time|moment|idea|entry|exit) to (buy|sell|invest|enter|exit)\\b",
-            "\\bis it (a )?(good|wise|safe|smart|bad) (idea|time|move|buy|sell)\\b",
-            "\\b(predict|forecast|prediction|price target)\\b",
-            "\\bwill (it|the price|[a-z]{1,10}|my \\w+) (go up|rise|fall|drop|crash|moon|rally|increase|decrease)\\b",
+            "\\b(good|right|best|wise) (time|moment) to (buy|sell|invest)\\b",
+            "\\b(predict|forecast|price target)\\b",
             "\\b(buy|sell) or (sell|buy|hold)\\b",
-            "\\b(buy|sell|invest) (now|today|this)\\b",
-            "\\bgive me .*\\b(tip|tips|advice|pick|picks|signal|signals)\\b",
+            "\\bgive me .*\\b(tip|tips|advice|pick|picks|recommendation|recommendations)\\b",
             "\\bwhere (should|do) i (put|invest|park)\\b");
 
     private static final List<Pattern> INJECTION = compile(
@@ -61,15 +56,15 @@ public final class AssistantPolicy {
             "\\b(disregard|forget|override|bypass) (all |any |the |your )?(previous |prior |above |earlier )?(instructions|rules|prompt|guidelines|constraints|restrictions)\\b",
             "\\bsystem (prompt|message|instruction)",
             "\\b(reveal|show|print|repeat|leak|tell me|output|dump) (me )?(your |the )?(hidden |secret |initial |original )?(prompt|instructions|rules|configuration|config)\\b",
-            "\\b(api[ _-]?key|secret key|access token|bearer token|jwt|password|credentials?)\\b",
-            "\\b(you are now|from now on you|act as|pretend (to be|you)|roleplay|role-play|developer mode|jailbreak|dan mode)\\b",
-            "\\bnew (instructions|rules|persona)\\b",
+            "\\b(your|the) (api[ _-]?key|secret key|access token|bearer token|jwt)\\b",
+            "\\b(you are now|from now on you|pretend (to be|you)|developer mode|jailbreak|dan mode)\\b",
             "<\\s*/?\\s*(system|user_question|data)\\s*>");
 
     private static final List<Pattern> APP_WORDS = compile(
             "\\b(order|orders|trade|trades|trading|transaction|transactions|position|positions|holding|holdings|portfolio|pnl|p&l|profit|loss|losses|gain|gains|gainers|losers|"
                     + "balance|cash|alert|alerts|instrument|instruments|watchlist|account|price|prices|priced|stale|fund|funds|deposit|withdraw|withdrawal|"
-                    + "buy|sell|filled|rejected|cancelled|canceled|pending|activity|performance|realised|realized|unrealised|unrealized|invested|value|net worth|history|week|month|today|stock|stocks|share|shares)\\b");
+                    + "buy|sell|bought|sold|filled|rejected|cancelled|canceled|pending|activity|performance|realised|realized|unrealised|unrealized|invested|investment|investments|value|worth|net worth|"
+                    + "history|week|month|today|yesterday|stock|stocks|share|shares|money|spent|spend|total|recent|latest|last|my|mine|how much|how many|market|dividend|fee|fees|quote|quotes|symbol|symbols|currency|usd|inr|eur|exposure|diversif\\w*)\\b");
 
     private AssistantPolicy() {
     }

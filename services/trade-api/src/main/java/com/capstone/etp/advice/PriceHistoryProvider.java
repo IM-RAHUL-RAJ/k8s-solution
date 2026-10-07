@@ -11,4 +11,9 @@ public interface PriceHistoryProvider {
      * the caller treats that as "insufficient data", never as a reason to guess.
      */
     List<BigDecimal> closes(String symbol, int count);
+
+    /** The same closes with their times, when the provider has them. By default the closes alone. */
+    default List<PricePoint> points(String symbol, int count) {
+        return PricePoint.undated(closes(symbol, count));
+    }
 }

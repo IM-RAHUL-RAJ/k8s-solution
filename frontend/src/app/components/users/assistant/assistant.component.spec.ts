@@ -11,6 +11,8 @@ describe('AssistantComponent', () => {
   const chat = vi.fn();
   const quickActions = vi.fn();
 
+  beforeEach(() => sessionStorage.clear());
+
   const reply = (overrides: Partial<ChatResponse> = {}): ChatResponse => ({
     answer: 'Here you go.', intent: 'GENERAL', advisoryBlocked: false, redirectTo: null, dataCards: [], quickActions: [],
     citations: [], conversationId: 'c1', answeredBy: 'RULES', ...overrides
@@ -175,6 +177,26 @@ describe('AssistantComponent', () => {
     expect(all(fixture, 'message-user').length).toBe(1);
     expect(all(fixture, 'message-bot')[0].textContent).toContain('Back again.');
     expect(el(fixture, 'assistant-retry')).toBeNull();
+  });
+
+  it('keeps the conversation when the page is left and opened again, and after a refresh', async () => {
+    const first = await build(of(reply({ answer: 'You have 3 orders.', conversationId: 'conv-1' })));
+    el(first, 'chip-last_transactions')!.click();
+    first.detectChanges();
+    first.destroy();
+
+    // Back on the page: a new component, the same conversation, and it carries on with the same conversation id.
+    const second = TestBed.createComponent(AssistantComponent);
+    second.detectChanges();
+    expect(all(second, 'message-user')[0].textContent).toContain('Show my last 10 transactions');
+    expect(all(second, 'message-bot')[0].textContent).toContain('You have 3 orders.');
+    expect(el(second, 'assistant-hello')).toBeNull();
+    type(second, 'and my alerts?');
+    el(second, 'assistant-send')!.click();
+    expect(chat).toHaveBeenLastCalledWith(4, { message: 'and my alerts?', conversationId: 'conv-1', selectedQuickAction: undefined });
+
+    // A refresh: the store is rebuilt from the tab's session storage.
+    expect(JSON.parse(sessionStorage.getItem('quorum-assistant-4')!).messages.length).toBeGreaterThan(2);
   });
 
   it('starts a new chat', async () => {

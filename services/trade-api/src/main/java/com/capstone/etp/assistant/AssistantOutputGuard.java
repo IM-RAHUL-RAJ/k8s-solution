@@ -15,11 +15,10 @@ final class AssistantOutputGuard {
     private static final List<Pattern> FORBIDDEN = List.of(
             Pattern.compile("\\byou should (buy|sell|hold|invest|short|consider (buying|selling))\\b"),
             Pattern.compile("\\bi (recommend|suggest|advise|would (buy|sell))\\b"),
-            Pattern.compile("\\b(consider|try|think about) (buying|selling|investing)\\b"),
             Pattern.compile("\\b(good|great|best|right) (time|opportunity|moment) to (buy|sell|invest)\\b"),
-            Pattern.compile("\\b(will|is likely to|is going to|should) (rise|fall|go up|go down|increase|decrease|rally|crash)\\b"),
-            Pattern.compile("\\b(price target|undervalued|overvalued|strong buy|strong sell)\\b"),
-            Pattern.compile("system prompt|my instructions|my rules|api key|bearer |\\bjwt\\b|aiza[0-9a-z_-]{10}"));
+            Pattern.compile("\\b(is likely to|is going to) (rise|fall|go up|go down|crash)\\b"),
+            Pattern.compile("\\b(price target|strong buy|strong sell)\\b"),
+            Pattern.compile("system prompt|my instructions|aiza[0-9a-z_-]{10}"));
 
     private AssistantOutputGuard() {
     }

@@ -17,4 +17,7 @@ public interface AdviceStrategy {
      * @param closes closing prices, oldest first (may be shorter than required, or empty)
      */
     TradeAdvice evaluate(String symbol, List<BigDecimal> closes, Instant now);
+
+    /** The indicators and the chart series for the same history, to show beside the signal. */
+    AdviceMarket market(List<PricePoint> history);
 }

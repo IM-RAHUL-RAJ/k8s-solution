@@ -73,7 +73,7 @@ class TradeAdviceServiceTest {
     @Test
     void adviceComesBackWithASignalReasoningAndATimestamp() {
         when(accounts.getPositions(1L)).thenReturn(List.of(held("AAPL", 10)));
-        when(history.closes("AAPL", 6)).thenReturn(series(8, 9, 10, 14, 15, 16));
+        when(history.points("AAPL", 90)).thenReturn(PricePoint.undated(series(8, 9, 10, 14, 15, 16)));
 
         List<TradeAdvice> advice = service.adviceFor(null);
 
@@ -87,13 +87,13 @@ class TradeAdviceServiceTest {
     @Test
     void anEmptyPortfolioAndWatchlistGivesNoAdviceAndAsksForNoPrices() {
         assertTrue(service.adviceFor(null).isEmpty());
-        verify(history, never()).closes(anyString(), anyInt());
+        verify(history, never()).points(anyString(), anyInt());
     }
 
     @Test
     void anEmptyPortfolioStillAdvisesOnTheWatchlist() {
         when(accounts.getWatchlist(1L)).thenReturn(List.of(watched("MSFT")));
-        when(history.closes("MSFT", 6)).thenReturn(series(20, 19, 18, 12, 11, 10));
+        when(history.points("MSFT", 90)).thenReturn(PricePoint.undated(series(20, 19, 18, 12, 11, 10)));
 
         List<TradeAdvice> advice = service.adviceFor(null);
 
@@ -104,7 +104,7 @@ class TradeAdviceServiceTest {
     @Test
     void anEmptyWatchlistStillAdvisesOnTheHoldings() {
         when(accounts.getPositions(1L)).thenReturn(List.of(held("AAPL", 3)));
-        when(history.closes("AAPL", 6)).thenReturn(series(10, 10, 10, 10, 10, 10));
+        when(history.points("AAPL", 90)).thenReturn(PricePoint.undated(series(10, 10, 10, 10, 10, 10)));
 
         assertEquals(AdviceSignal.HOLD, service.adviceFor(null).get(0).signal());
     }
@@ -113,12 +113,12 @@ class TradeAdviceServiceTest {
     void anInstrumentHeldAndWatchedIsAnalysedOnce() {
         when(accounts.getPositions(1L)).thenReturn(List.of(held("AAPL", 3)));
         when(accounts.getWatchlist(1L)).thenReturn(List.of(watched("aapl"), watched("MSFT")));
-        when(history.closes(anyString(), anyInt())).thenReturn(series(10, 10, 10, 10, 10, 10));
+        when(history.points(anyString(), anyInt())).thenReturn(PricePoint.undated(series(10, 10, 10, 10, 10, 10)));
 
         List<TradeAdvice> advice = service.adviceFor(null);
 
         assertEquals(List.of("AAPL", "MSFT"), advice.stream().map(TradeAdvice::symbol).toList());
-        verify(history, times(1)).closes("AAPL", 6);
+        verify(history, times(1)).points("AAPL", 90);
     }
 
     @Test
@@ -131,7 +131,7 @@ class TradeAdviceServiceTest {
     @Test
     void missingMarketDataGivesNoSignalRatherThanAGuess() {
         when(accounts.getPositions(1L)).thenReturn(List.of(held("AAPL", 10)));
-        when(history.closes("AAPL", 6)).thenReturn(List.of());
+        when(history.points("AAPL", 90)).thenReturn(PricePoint.undated(List.of()));
 
         TradeAdvice advice = service.adviceFor(null).get(0);
 
@@ -142,7 +142,7 @@ class TradeAdviceServiceTest {
     @Test
     void insufficientHistoryGivesNoBuySellOrHold() {
         when(accounts.getWatchlist(1L)).thenReturn(List.of(watched("AAPL")));
-        when(history.closes("AAPL", 6)).thenReturn(series(1, 2, 3));
+        when(history.points("AAPL", 90)).thenReturn(PricePoint.undated(series(1, 2, 3)));
 
         TradeAdvice advice = service.adviceFor(null).get(0);
 
@@ -154,7 +154,7 @@ class TradeAdviceServiceTest {
     @Test
     void oneInstrumentCanBeAskedForByName() {
         when(accounts.getWatchlist(1L)).thenReturn(List.of(watched("MSFT")));
-        when(history.closes("MSFT", 6)).thenReturn(series(8, 9, 10, 14, 15, 16));
+        when(history.points("MSFT", 90)).thenReturn(PricePoint.undated(series(8, 9, 10, 14, 15, 16)));
 
         assertEquals(AdviceSignal.BUY, service.adviceFor(null, " msft ").signal());
     }
@@ -164,7 +164,7 @@ class TradeAdviceServiceTest {
         ModuleException refused = assertThrows(ModuleException.class, () -> service.adviceFor(null, "TSLA"));
 
         assertEquals("ADV-404", refused.getCatalogueCode());
-        verify(history, never()).closes(anyString(), anyInt());
+        verify(history, never()).points(anyString(), anyInt());
     }
 
     @Test

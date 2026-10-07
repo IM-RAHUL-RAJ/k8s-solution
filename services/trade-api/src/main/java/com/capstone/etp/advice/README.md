@@ -59,6 +59,22 @@ Both take an optional `accountId`, which must be one of the token's own accounts
 
 Periods: `app.advice.short-period` (default 10) and `app.advice.long-period` (default 50), daily closes.
 
+## Market indicators
+
+Beside each signal the response carries the market behind it (`indicators`) and a chart series (`chart`), also shown on the Advice page:
+
+| Indicator | Meaning |
+|---|---|
+| `trend` | **BULLISH** (price above the short average, which is above the long one), **BEARISH** (the reverse), else **NEUTRAL** |
+| `rsi`, `rsiState` | Wilder RSI (14): 70 or more is OVERBOUGHT, 30 or less OVERSOLD |
+| `momentumPercent` | change over the short period |
+| `volatilityPercent` | standard deviation of recent daily returns |
+| `chart[]` | each close with the short and long averages at that point |
+
+**RSI guard:** a BUY with RSI at 70 or more becomes HOLD (overbought), and a SELL with RSI at 30 or less becomes HOLD (oversold), with the reasoning saying so.
+
+The Advice page also shows an overall **market mood** (how many of your instruments are bullish, neutral, bearish).
+
 ## Insufficient data
 
 No BUY, SELL or HOLD is given. The answer is `INSUFFICIENT_DATA` with:

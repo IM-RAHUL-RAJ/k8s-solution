@@ -137,4 +137,99 @@ class AutomationReloadTest {
 
         assertEquals("t7", tokens.tokenFor(request.getAccountId()));
     }
+
+    // ----------------------------------------------------------------------- the demo and the chart
+
+    private static StrategyDefinition bands(int period) {
+        StrategyDefinition definition = strategy();
+        definition.setType(StrategyType.BOLLINGER_BANDS);
+        definition.setPeriod(period);
+        definition.setMultiplier(new BigDecimal("2"));
+        return definition;
+    }
+
+    @Test
+    void theDemoPathCrossesTheMovingAveragesUpAndDownAndPlacesARealOrderThroughTheTradeApi() {
+        when(store.findEnabled()).thenReturn(List.of(strategy()));
+        AutomationService service = build();
+
+        var buy = service.simulate("5", SignalType.BUY, new BigDecimal("100"));
+        var sell = service.simulate("5", SignalType.SELL, new BigDecimal("100"));
+
+        assertEquals(SignalType.BUY, buy.trigger());
+        assertEquals(new BigDecimal("103.00"), buy.finalPrice().setScale(2));
+        assertEquals(new BigDecimal("97.00"), sell.finalPrice().setScale(2));
+        var sent = org.mockito.ArgumentCaptor.forClass(PlaceOrderRequest.class);
+        verify(tradeApi, times(2)).submit(sent.capture());
+        assertEquals(com.capstone.etp.enums.OrderSide.BUY, sent.getAllValues().get(0).getSide());
+        assertEquals(com.capstone.etp.enums.OrderSide.SELL, sent.getAllValues().get(1).getSide());
+        assertEquals(7L, sent.getAllValues().get(0).getAccountId());
+        assertEquals(new BigDecimal("103.00"), sent.getAllValues().get(0).getPrice());
+        assertEquals(2, service.recentResults().stream().filter(r -> r.outcome() == OrderOutcome.ORDER_SUBMITTED).count());
+        assertTrue(service.recentResults().stream().anyMatch(r -> r.detail() != null && r.detail().contains("demo price path")));
+    }
+
+    @Test
+    void theDemoPathCrossesTheBollingerBandsBothWays() {
+        when(store.findEnabled()).thenReturn(List.of(bands(10)));
+        AutomationService service = build();
+
+        assertEquals(SignalType.BUY, service.simulate("5", SignalType.BUY, new BigDecimal("50")).trigger());
+        assertEquals(SignalType.SELL, service.simulate("5", SignalType.SELL, new BigDecimal("50")).trigger());
+        verify(tradeApi, times(2)).submit(any());
+    }
+
+    @Test
+    void theDemoNeverTouchesTheSharedPriceHistoryOrAnotherStrategyOnTheSameSymbol() {
+        StrategyDefinition other = strategy();
+        other.setId("6");
+        other.setAccountId(8L);
+        when(store.findEnabled()).thenReturn(List.of(strategy(), other));
+        AutomationService service = build();
+
+        service.simulate("5", SignalType.BUY, new BigDecimal("100"));
+
+        // only the strategy that was asked for placed an order, and no price was added to the shared history
+        var sent = org.mockito.ArgumentCaptor.forClass(PlaceOrderRequest.class);
+        verify(tradeApi, times(1)).submit(sent.capture());
+        assertEquals(7L, sent.getValue().getAccountId());
+        assertEquals(new AutomationService.Progress(0, 5), service.progressOf("6").orElseThrow());
+    }
+
+    @Test
+    void theDemoRefusesAStrategyThatIsNotRunning() {
+        when(store.findEnabled()).thenReturn(List.of());
+        AutomationService service = build();
+
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class, () -> service.simulate("5", SignalType.BUY, BigDecimal.TEN));
+    }
+
+    @Test
+    void theChartHasThePricesCollectedAndTheLinesTheRuleComparesThemWith() {
+        when(store.findEnabled()).thenReturn(List.of(strategy()));
+        AutomationService service = build();
+        feed(service, 10, 10, 10, 10, 12);
+
+        var chart = service.chartOf("5").orElseThrow();
+
+        assertEquals(5, chart.prices().size());
+        assertEquals(List.of("shortAverage", "longAverage"), List.copyOf(chart.lines().keySet()));
+        assertEquals(5, chart.lines().get("shortAverage").size());
+        assertEquals(null, chart.lines().get("longAverage").get(2));
+        assertEquals(new BigDecimal("10.50"), chart.lines().get("longAverage").get(4));
+        assertEquals(new BigDecimal("11.00"), chart.lines().get("shortAverage").get(4));
+        assertTrue(service.chartOf("999").isEmpty());
+    }
+
+    @Test
+    void theBollingerChartHasThreeBands() {
+        when(store.findEnabled()).thenReturn(List.of(bands(5)));
+        AutomationService service = build();
+        feed(service, 10, 11, 10, 11, 10, 11);
+
+        var chart = service.chartOf("5").orElseThrow();
+
+        assertEquals(List.of("upper", "middle", "lower"), List.copyOf(chart.lines().keySet()));
+        assertTrue(chart.lines().get("upper").get(5).compareTo(chart.lines().get("lower").get(5)) > 0);
+    }
 }

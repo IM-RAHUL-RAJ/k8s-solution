@@ -44,6 +44,10 @@ market-data topic ──> MarketDataConsumer ──> QuoteObserver = AutomationS
 
 Only the caller's own accounts are visible or changeable (another customer's strategy is 404 `AUT-404`; an account that is not yours is 403). An administrator cannot manage strategies.
 
+## Seeing it work
+
+See `docs/automation-demo.md` for the walkthrough, including the **demo button** (`app.automation.simulation-enabled`, env `AUTOMATION_SIMULATION`, off by default) that makes a running strategy trigger now from a scripted price path. The order it places is real; the path is never added to the shared price history, so it cannot trigger another customer's strategy. The page also charts the prices a strategy has collected with its rule lines.
+
 ## Strategies
 
 Each is stateless: a trigger is a **transition between the last two observations**.

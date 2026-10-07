@@ -6,6 +6,32 @@ export interface TradeAdvice {
   signal: AdviceSignal;
   reasoning: string[];
   timestamp: string;
+  /** What the rules looked at; null when there is no price history at all. */
+  indicators: AdviceIndicators | null;
+  /** Closes with the two moving averages, oldest first, for the chart. */
+  chart: ChartPoint[];
+}
+
+export type MarketTrend = 'BULLISH' | 'BEARISH' | 'NEUTRAL';
+
+export interface AdviceIndicators {
+  lastPrice: number;
+  shortAverage: number | null;
+  longAverage: number | null;
+  shortPeriod: number;
+  longPeriod: number;
+  rsi: number | null;
+  rsiState: 'OVERBOUGHT' | 'OVERSOLD' | 'NORMAL' | null;
+  momentumPercent: number | null;
+  volatilityPercent: number | null;
+  trend: MarketTrend | null;
+}
+
+export interface ChartPoint {
+  at: string | null;
+  close: number;
+  shortAverage: number | null;
+  longAverage: number | null;
 }
 
 export type OrderOutcome = 'STRATEGY_TRIGGERED' | 'ORDER_SUBMITTED' | 'ORDER_REJECTED' | 'ORDER_SUBMISSION_FAILED';
@@ -22,6 +48,20 @@ export interface AutomationStrategy {
   /** Prices collected so far and prices needed before the rule can act (only while it is switched on). */
   collected: number | null;
   required: number | null;
+  /** The prices it has collected and the lines its rule compares them with, while it is switched on. */
+  chart: StrategyChart | null;
+}
+
+export interface StrategyChart {
+  prices: number[];
+  lines: Record<string, Array<number | null>>;
+}
+
+export interface SimulateResponse {
+  ticks: number;
+  startPrice: number;
+  finalPrice: number;
+  trigger: 'BUY' | 'SELL';
 }
 
 export interface CreateStrategyRequest {
@@ -48,6 +88,7 @@ export interface AutomationResult {
 
 export interface AutomationStatus {
   running: boolean;
+  simulationEnabled: boolean;
   strategies: AutomationStrategy[];
   results: AutomationResult[];
 }

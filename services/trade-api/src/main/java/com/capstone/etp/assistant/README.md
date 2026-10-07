@@ -26,9 +26,9 @@ The **cards are always the data**. The model never supplies a number and never f
 |---|---|
 | Key exposure | The key is `GEMINI_API_KEY` in the server environment only; sent in a request header, never logged, returned or committed. The browser calls only the trade API |
 | Other customers' data | `AccountAuthorizer.ensureOwnAccount` on every call; admin tokens (no accounts) are refused; the data services apply their own checks again |
-| Investment advice | A regex screen on the normalised text (case, spacing, zero-width characters), then the system prompt, then an output guard that discards "you should buy", "I recommend", predictions and price targets. Answer: *"I cannot provide investment advice. Please use the Advice page for research signals."* with `redirectTo: /advice` |
-| Prompt injection | A screen for "ignore previous instructions", "system prompt", "act as", key/token/JWT requests and fence tags, before the model. The question is fenced inside `<user_question>` and the prompt says it is untrusted; fence tags are stripped from it |
-| Leaking the prompt or keys | The output guard rejects text mentioning the prompt, a bearer token, a JWT or the actual key |
+| Investment advice | A screen for clear requests only ("what should I buy", "should I sell X", "stock tips", "recommend a stock", "buy or sell", "predict", "good time to buy"), then the system prompt, then an output guard that discards "you should buy", "I recommend", "price target". Everyday questions that merely contain words like *best*, *top*, *advice* or *buy* ("my best performing stock", "what did I buy last week") are answered. Answer: *"I cannot provide investment advice. Please use the Advice page for research signals."* with `redirectTo: /advice` |
+| Prompt injection | A screen for "ignore previous instructions", "system prompt", "reveal your prompt", requests for *your* API key or token, "you are now", "pretend you are", "developer mode", "jailbreak" and fence tags, before the model. The question is fenced inside `<user_question>` and the prompt says it is untrusted; fence tags are stripped from it |
+| Leaking the prompt or keys | The output guard rejects text mentioning the system prompt or the actual key |
 | Invented figures | Figures come from the cards; the prompt forbids estimating; with no data the answer says so ("You have not placed any orders yet") |
 | Cost abuse | 20 questions a minute per account, message length 500 |
 | Model down or no key | The rules' sentence is used (`answeredBy: RULES`); the cards are unchanged |

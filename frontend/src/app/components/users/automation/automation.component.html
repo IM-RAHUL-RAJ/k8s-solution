@@ -48,6 +48,7 @@
                 @if (strategy.enabled && strategy.required) {
                   @if ((strategy.collected ?? 0) < strategy.required) {
                     <span class="progress" data-testid="strategy-progress">Collecting prices: {{ strategy.collected ?? 0 }} of {{ strategy.required }}. It cannot act until it has them all.</span>
+                    <span class="meter" role="img" [attr.aria-label]="progressPercent(strategy) + '% collected'"><span class="meter__fill" [style.width.%]="progressPercent(strategy)"></span></span>
                   } @else {
                     <span class="progress progress--ready" data-testid="strategy-progress">Watching the price: ready to act.</span>
                   }
@@ -66,6 +67,20 @@
                 </button>
               </div>
             </li>
+            @if (strategy.enabled) {
+              <li class="extras" [attr.data-testid]="'strategy-extras-' + strategy.id">
+                @if (charts()[strategy.id]) {
+                  <app-echart [option]="charts()[strategy.id]" [height]="180" [label]="strategy.symbol + ' prices with the strategy lines'" data-testid="strategy-chart" />
+                }
+                @if (simulationEnabled()) {
+                  <div class="demo" data-testid="strategy-demo">
+                    <span class="muted">Demo: make this strategy trigger now (places a real order)</span>
+                    <button type="button" class="secondary small" [disabled]="busy()" (click)="askDemo(strategy, 'BUY')" data-testid="demo-buy">Trigger BUY</button>
+                    <button type="button" class="secondary small" [disabled]="busy()" (click)="askDemo(strategy, 'SELL')" data-testid="demo-sell">Trigger SELL</button>
+                  </div>
+                }
+              </li>
+            }
           }
         </ul>
       }
@@ -149,7 +164,7 @@
     <app-modal title="Switch on this strategy?" mascot="think" (closed)="confirmingOn.set(null)">
       <div class="confirm" data-testid="confirm-on">
         <p><strong>{{ strategy.symbol }}</strong>: {{ rule(strategy) }}.</p>
-        <p class="warn-text">This places <strong>real orders</strong> on account {{ strategy.accountId }}, using your cash and holdings, without asking you each time. You can switch it off at any time, but an order already sent cannot be taken back by switching off.</p>
+        <p class="warn-text">This places <strong>real orders</strong> on account {{ accountRef() ?? "your account" }}, using your cash and holdings, without asking you each time. You can switch it off at any time, but an order already sent cannot be taken back by switching off.</p>
         <label class="ack">
           <input type="checkbox" [checked]="acknowledged()" (change)="acknowledged.set($any($event.target).checked)" data-testid="confirm-ack" />
           <span>I understand and want this strategy to trade.</span>
@@ -157,6 +172,23 @@
         <div class="modal__actions">
           <button type="button" class="secondary" (click)="confirmingOn.set(null)" data-testid="confirm-cancel">Not now</button>
           <button type="button" class="primary" [disabled]="!acknowledged() || busy()" (click)="confirmOn()" data-testid="confirm-switch-on">Switch on</button>
+        </div>
+      </div>
+    </app-modal>
+  }
+
+  @if (demoing(); as demo) {
+    <app-modal title="Run the demo?" mascot="think" (closed)="demoing.set(null)">
+      <div class="confirm" data-testid="confirm-demo">
+        <p>This walks a scripted price path for <strong>{{ demo.strategy.symbol }}</strong> so that its rule triggers a <strong>{{ demo.direction }}</strong> now.</p>
+        <p class="warn-text">The order it places is <strong>real</strong>: {{ demo.direction }} {{ demo.strategy.quantity }} {{ demo.strategy.symbol }} on account {{ accountRef() ?? "your account" }}, sent through the same trading service as any other order.</p>
+        <label class="ack">
+          <input type="checkbox" [checked]="demoAcknowledged()" (change)="demoAcknowledged.set($any($event.target).checked)" data-testid="demo-ack" />
+          <span>I understand this places a real order.</span>
+        </label>
+        <div class="modal__actions">
+          <button type="button" class="secondary" (click)="demoing.set(null)" data-testid="demo-cancel">Cancel</button>
+          <button type="button" class="primary" [disabled]="!demoAcknowledged() || busy()" (click)="confirmDemo()" data-testid="demo-confirm">Run demo</button>
         </div>
       </div>
     </app-modal>

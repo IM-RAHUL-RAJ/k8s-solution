@@ -33,7 +33,8 @@
 
 .app-content {
   overflow: auto;
-  padding: 16px;
+  /* Room at the bottom so the last of a long page can scroll clear of the chat bubble in the corner. */
+  padding: 16px 16px 104px;
 }
 
 @keyframes shellEnter {

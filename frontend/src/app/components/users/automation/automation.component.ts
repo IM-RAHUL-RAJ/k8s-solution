@@ -2,10 +2,13 @@ import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { AutomationStatus, AutomationStrategy, CreateStrategyRequest, OrderOutcome } from '../../../core/models/advice.model';
 import { AccountContextService } from '../../../core/services/account-context.service';
+import { AccountService } from '../../../core/services/account.service';
 import { AdviceService } from '../../../core/services/advice.service';
 import { ApiErrorMessageService } from '../../../core/services/api-error-message.service';
 import { HomeCurrencyService } from '../../../core/services/home-currency.service';
+import { ThemeService } from '../../../core/theme/theme.service';
 import { ToastService } from '../../../core/ui/toast.service';
+import { ChartOption, EchartComponent, chartText, chartTooltip, token } from '../shared/echart/echart.component';
 import { EmptyStateComponent } from '../shared/empty-state/empty-state.component';
 import { IconComponent } from '../shared/icon/icon.component';
 import { MascotComponent } from '../shared/mascot/mascot.component';
@@ -28,7 +31,7 @@ type StrategyType = CreateStrategyRequest['type'];
 @Component({
   selector: 'app-automation',
   standalone: true,
-  imports: [DatePipe, IconComponent, MascotComponent, EmptyStateComponent, ModalComponent, SelectComponent],
+  imports: [DatePipe, IconComponent, MascotComponent, EmptyStateComponent, ModalComponent, SelectComponent, EchartComponent],
   templateUrl: './automation.component.html',
   styleUrl: './automation.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -39,6 +42,11 @@ export class AutomationComponent {
   private readonly accountContext = inject(AccountContextService);
   private readonly toast = inject(ToastService);
   private readonly home = inject(HomeCurrencyService);
+  private readonly accountService = inject(AccountService);
+  private readonly theme = inject(ThemeService);
+
+  /** The account reference the customer knows (like ACC-0001-7421), never the internal id. */
+  protected readonly accountRef = signal<string | null>(null);
 
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
@@ -47,6 +55,23 @@ export class AutomationComponent {
 
   protected readonly strategies = computed(() => this.status()?.strategies ?? []);
   protected readonly results = computed(() => this.status()?.results ?? []);
+  protected readonly simulationEnabled = computed(() => this.status()?.simulationEnabled ?? false);
+
+  /** One chart per running strategy: the prices it has collected and the lines its rule compares them with. */
+  protected readonly charts = computed<Record<string, ChartOption>>(() => {
+    this.theme.changes();
+    const options: Record<string, ChartOption> = {};
+    for (const strategy of this.strategies()) {
+      if (strategy.chart && strategy.chart.prices.length > 1) {
+        options[strategy.id] = this.chartOption(strategy);
+      }
+    }
+    return options;
+  });
+
+  // ---- the demo
+  protected readonly demoing = signal<{ strategy: AutomationStrategy; direction: 'BUY' | 'SELL' } | null>(null);
+  protected readonly demoAcknowledged = signal(false);
   protected readonly accountId = computed(() => this.accountContext.getCurrentAccount().accountNumericId);
 
   // ---- the new-strategy dialog
@@ -77,6 +102,10 @@ export class AutomationComponent {
 
   constructor() {
     this.home.ensureLoaded();
+    this.accountService.getAccount(this.accountId()).subscribe({
+      next: (account) => this.accountRef.set(account.accountId),
+      error: () => this.accountRef.set(null)
+    });
     this.load();
   }
 
@@ -222,6 +251,62 @@ export class AutomationComponent {
         this.refresh();
       }
     });
+  }
+
+  // ---- demo: make a running strategy trigger now (the order is real)
+  protected askDemo(strategy: AutomationStrategy, direction: 'BUY' | 'SELL'): void {
+    this.demoAcknowledged.set(false);
+    this.demoing.set({ strategy, direction });
+  }
+
+  protected confirmDemo(): void {
+    const demo = this.demoing();
+    if (!demo || !this.demoAcknowledged() || this.busy()) {
+      return;
+    }
+    this.busy.set(true);
+    this.service.simulateStrategy(demo.strategy.id, demo.direction).subscribe({
+      next: (run) => {
+        this.busy.set(false);
+        this.demoing.set(null);
+        this.toast.show(`Demo: ${demo.strategy.symbol} ${run.trigger} triggered. Watch Recent activity for the order.`, 'success', 7000, 'cheer');
+        this.refresh();
+        // the order is sent a moment after the trigger: look again shortly for its outcome
+        setTimeout(() => this.refresh(), 1500);
+      },
+      error: (error: unknown) => {
+        this.busy.set(false);
+        this.demoing.set(null);
+        this.toast.error(this.errors.getMessage(error));
+      }
+    });
+  }
+
+  protected progressPercent(strategy: AutomationStrategy): number {
+    return strategy.required ? Math.min(100, Math.round(((strategy.collected ?? 0) / strategy.required) * 100)) : 0;
+  }
+
+  private chartOption(strategy: AutomationStrategy): ChartOption {
+    const chart = strategy.chart!;
+    const muted = token('--muted', '#525252');
+    const grid = token('--line', '#e5e5e5');
+    const price = token('--accent', '#171717');
+    const colors = [token('--blue', '#2563eb'), token('--amber', '#d97706'), token('--ok', '#16a34a')];
+    const names: Record<string, string> = { shortAverage: 'Short average', longAverage: 'Long average', upper: 'Upper band', middle: 'Middle', lower: 'Lower band' };
+    const labels = chart.prices.map((_, index) => String(index + 1));
+    const lines = Object.entries(chart.lines).map(([key, values], index) => ({
+      name: names[key] ?? key, type: 'line', data: values, showSymbol: false, connectNulls: false,
+      lineStyle: { color: colors[index % colors.length], width: 1.5, type: key === 'middle' ? 'dotted' : key === 'longAverage' ? 'dashed' : 'solid' }, itemStyle: { color: colors[index % colors.length] }
+    }));
+    return {
+      grid: { left: 8, right: 12, top: 28, bottom: 4, containLabel: true },
+      legend: { top: 0, right: 0, icon: 'roundRect', itemWidth: 14, itemHeight: 3, textStyle: chartText(muted, 12) },
+      tooltip: chartTooltip({ trigger: 'axis', axisPointer: { type: 'line', lineStyle: { color: muted, type: 'dashed' } } }),
+      xAxis: { type: 'category', data: labels, boundaryGap: false, axisLine: { lineStyle: { color: grid } }, axisTick: { show: false }, axisLabel: { ...chartText(muted, 11), hideOverlap: true } },
+      yAxis: { type: 'value', scale: true, splitLine: { lineStyle: { color: grid, type: 'dashed' } }, axisLabel: { ...chartText(muted, 11) } },
+      series: [{ name: 'Price', type: 'line', data: chart.prices, showSymbol: false, lineStyle: { color: price, width: 2 }, itemStyle: { color: price } }, ...lines],
+      color: [price, ...colors]
+    };
   }
 
   // ---- remove

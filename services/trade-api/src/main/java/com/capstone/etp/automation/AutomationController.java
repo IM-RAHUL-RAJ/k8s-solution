@@ -4,6 +4,7 @@ import com.capstone.etp.dto.InstrumentResponse;
 import com.capstone.etp.exception.ModuleException;
 import com.capstone.etp.security.AccountAuthorizer;
 import com.capstone.etp.service.AccountService;
+import com.capstone.etp.service.MarketQuoteCache;
 import jakarta.validation.constraints.NotNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -45,14 +46,20 @@ public class AutomationController {
 
     public record StrategyView(String id, String type, Long accountId, String symbol, Integer quantity,
                                boolean enabled, String parameters, List<String> problems,
-                               Integer collected, Integer required) {
+                               Integer collected, Integer required, AutomationService.StrategyChart chart) {
     }
 
     public record ResultView(String strategyId, String symbol, Long accountId, String trigger, String outcome,
                              UUID orderId, String detail, Instant at) {
     }
 
-    public record StatusResponse(boolean running, List<StrategyView> strategies, List<ResultView> results) {
+    public record StatusResponse(boolean running, boolean simulationEnabled, List<StrategyView> strategies, List<ResultView> results) {
+    }
+
+    public record SimulateRequest(@NotNull SignalType direction) {
+    }
+
+    public record SimulateResponse(int ticks, BigDecimal startPrice, BigDecimal finalPrice, String trigger) {
     }
 
     private final AutomationProperties properties;
@@ -60,9 +67,11 @@ public class AutomationController {
     private final AutomationService service;
     private final AccountAuthorizer authorizer;
     private final AccountService accounts;
+    private final MarketQuoteCache quotes;
 
     AutomationController(AutomationProperties properties, AutomationMapper store, AutomationService service,
-                         AccountAuthorizer authorizer, AccountService accounts) {
+                         AccountAuthorizer authorizer, AccountService accounts, MarketQuoteCache quotes) {
+        this.quotes = quotes;
         this.properties = properties;
         this.store = store;
         this.service = service;
@@ -85,7 +94,7 @@ public class AutomationController {
                 .map(result -> new ResultView(result.strategyId(), result.symbol(), result.accountId(),
                         result.trigger().name(), result.outcome().name(), result.orderId(), result.detail(), result.at()))
                 .toList();
-        return ResponseEntity.ok(new StatusResponse(properties.isEnabled(), strategies, results));
+        return ResponseEntity.ok(new StatusResponse(properties.isEnabled(), properties.isSimulationEnabled(), strategies, results));
     }
 
     /** Creates a strategy, switched OFF. */
@@ -152,6 +161,36 @@ public class AutomationController {
         return ResponseEntity.ok(view(store.findById(id)));
     }
 
+    /**
+     * Demo: makes a running strategy trigger now, from a scripted price path around the latest live price. The order it
+     * places is REAL (through the Trade REST API), so this is off unless app.automation.simulation-enabled is set.
+     */
+    @PostMapping("/strategies/{id}/simulate")
+    public ResponseEntity<SimulateResponse> simulate(@PathVariable Long id, @Valid @RequestBody SimulateRequest request) {
+        authorizer.ensureOrderManagementAllowed();
+        if (!properties.isSimulationEnabled()) {
+            throw new ModuleException(HttpStatus.FORBIDDEN, "AUT-403", "The demo is switched off on this platform");
+        }
+        StrategyDefinition definition = owned(id);
+        if (!properties.isEnabled() || !definition.isEnabled()) {
+            throw new ModuleException(HttpStatus.CONFLICT, "AUT-409", "Switch the strategy on first");
+        }
+        if (request.direction() == SignalType.NONE) {
+            throw new ModuleException(HttpStatus.UNPROCESSABLE_ENTITY, "VAL-422", "Choose BUY or SELL");
+        }
+        BigDecimal base = quotes.get(definition.getSymbol()).map(quote -> quote.getPrice()).orElse(null);
+        if (base == null || base.signum() <= 0) {
+            throw new ModuleException(HttpStatus.CONFLICT, "AUT-409", "There is no live price for " + definition.getSymbol() + " yet, so the demo cannot start");
+        }
+        try {
+            AutomationService.Simulation run = service.simulate(String.valueOf(id), request.direction(), base);
+            log.info("[AUTOMATION] demo run strategy={} accountId={} direction={} ticks={}", id, definition.getAccountId(), request.direction(), run.ticks());
+            return ResponseEntity.ok(new SimulateResponse(run.ticks(), run.startPrice(), run.finalPrice(), run.trigger().name()));
+        } catch (IllegalStateException e) {
+            throw new ModuleException(HttpStatus.CONFLICT, "AUT-409", e.getMessage());
+        }
+    }
+
     @DeleteMapping("/strategies/{id}")
     public ResponseEntity<Void> remove(@PathVariable Long id) {
         authorizer.ensureOrderManagementAllowed();
@@ -180,6 +219,7 @@ public class AutomationController {
                 definition.getAccountId(), definition.getSymbol(), definition.getQuantity(), definition.isEnabled(),
                 parameters, StrategyDefinitionValidator.problems(definition),
                 progress.map(AutomationService.Progress::collected).orElse(null),
-                progress.map(AutomationService.Progress::required).orElse(null));
+                progress.map(AutomationService.Progress::required).orElse(null),
+                definition.isEnabled() ? service.chartOf(definition.getId()).orElse(null) : null);
     }
 }

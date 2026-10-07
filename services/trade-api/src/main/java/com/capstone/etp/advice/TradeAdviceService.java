@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -24,6 +25,9 @@ import java.util.Set;
 @Slf4j
 @Service
 public class TradeAdviceService {
+
+    /** How many daily closes to read: enough for the rules and for a useful chart. */
+    static final int CHART_HISTORY = 90;
 
     private final AccountAuthorizer authorizer;
     private final AccountService accounts;
@@ -79,6 +83,9 @@ public class TradeAdviceService {
     }
 
     private TradeAdvice analyse(String symbol) {
-        return strategy.evaluate(symbol, history.closes(symbol, strategy.requiredObservations()), clock.instant());
+        // The chart wants more history than the rules need, so the signal uses the same window the chart shows.
+        List<PricePoint> points = history.points(symbol, Math.max(strategy.requiredObservations(), CHART_HISTORY));
+        List<BigDecimal> closes = points.stream().map(PricePoint::close).toList();
+        return strategy.evaluate(symbol, closes, clock.instant()).withMarket(strategy.market(points));
     }
 }

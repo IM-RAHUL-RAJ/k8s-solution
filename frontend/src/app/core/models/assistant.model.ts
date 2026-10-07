@@ -32,3 +32,14 @@ export interface ChatResponse {
   conversationId: string;
   answeredBy: 'GEMINI' | 'RULES';
 }
+
+/** One line of the conversation. A bot line has the full response (cards, redirect) or an error. */
+export interface ChatMessage {
+  id: number;
+  role: 'user' | 'bot';
+  text: string;
+  response?: ChatResponse;
+  error?: boolean;
+  /** What to send again when an error line's Retry is pressed. */
+  retry?: { message: string; quickAction?: string };
+}
