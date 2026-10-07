@@ -15,7 +15,7 @@ public record PortfolioHistoryResponse(
     public record Point(Instant at, BigDecimal totalValue) {
     }
 
-    /** The change in value over about a day, with cash added or taken out removed. */
+    /** The change since yesterday close, or since the latest recorded point a day old (then with cash added or taken out removed). since is null for the first. */
     public record DayChange(BigDecimal amount, BigDecimal percent, Instant since) {
     }
 }

@@ -156,4 +156,10 @@ public interface NotificationMapper {
             UPDATE notifications SET status = 'SKIPPED', status_reason = #{reason}
              WHERE id = #{id}""")
     int markSkipped(@Param("id") Long id, @Param("reason") String reason);
+
+    /** Marks every unread message of the account read, and says how many there were. */
+    @Update("""
+            UPDATE notifications SET read_at = CURRENT_TIMESTAMP
+             WHERE account_id = #{accountId} AND read_at IS NULL""")
+    int markAllRead(@Param("accountId") Long accountId);
 }

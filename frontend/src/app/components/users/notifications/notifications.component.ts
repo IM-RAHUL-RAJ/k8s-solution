@@ -7,6 +7,7 @@ import { AlertChannel } from '../../../core/models/preferences.model';
 import { AccountContextService } from '../../../core/services/account-context.service';
 import { ApiErrorMessageService } from '../../../core/services/api-error-message.service';
 import { NotificationService } from '../../../core/services/notification.service';
+import { ToastService } from '../../../core/ui/toast.service';
 import { TimeAgoPipe } from '../../../core/ui/time-ago.pipe';
 import { EmptyStateComponent } from '../shared/empty-state/empty-state.component';
 import { IconComponent, IconName } from '../shared/icon/icon.component';
@@ -51,6 +52,7 @@ export class NotificationsComponent {
   private readonly notificationService = inject(NotificationService);
   private readonly accountContext = inject(AccountContextService);
   private readonly errorMessages = inject(ApiErrorMessageService);
+  private readonly toast = inject(ToastService);
 
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
@@ -139,6 +141,27 @@ export class NotificationsComponent {
     this.notificationService.counts(accountId).subscribe({
       next: (counts) => this.counts.set(counts),
       error: () => undefined
+    });
+  }
+
+  /** Marks the whole inbox read, then shows it that way. */
+  protected markAllRead(): void {
+    if (this.busyId() !== null || this.unreadCount() === 0 && this.counts().all === 0) {
+      return;
+    }
+    this.busyId.set(-1);
+    this.actionError.set(null);
+
+    this.notificationService.markAllRead(this.accountContext.getCurrentAccount().accountNumericId).subscribe({
+      next: (updated) => {
+        this.items.update((items) => items.map((item) => ({ ...item, read: true })));
+        this.busyId.set(null);
+        this.toast.show(updated === 0 ? 'Nothing was unread' : `Marked ${updated} as read`);
+      },
+      error: (error: unknown) => {
+        this.actionError.set(this.errorMessages.getMessage(error));
+        this.busyId.set(null);
+      }
     });
   }
 

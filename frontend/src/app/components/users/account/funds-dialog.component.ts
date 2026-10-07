@@ -4,7 +4,7 @@ import { DecimalPipe } from '@angular/common';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { AccountContextService } from '../../../core/services/account-context.service';
 import { ApiErrorMessageService } from '../../../core/services/api-error-message.service';
-import { FUNDS_METHODS, FundsMethod, FundsMovement, FundsService } from '../../../core/services/funds.service';
+import { FundsMovement, FundsService } from '../../../core/services/funds.service';
 import { ToastService } from '../../../core/ui/toast.service';
 import { ModalComponent } from '../shared/modal/modal.component';
 
@@ -13,13 +13,13 @@ function amount(control: AbstractControl<string>): ValidationErrors | null {
   return /^\d{1,12}(\.\d{1,2})?$/.test(value) && Number(value) > 0 ? null : { amount: true };
 }
 
-/** Add or withdraw cash. Simulated: the method is recorded and the balance moves, but no real payment is taken. */
+/** Add or withdraw cash: just an amount. */
 @Component({
   selector: 'app-funds-dialog',
   standalone: true,
   imports: [ReactiveFormsModule, DecimalPipe, ModalComponent],
   template: `
-    <app-modal [title]="kind() === 'deposit' ? 'Add funds' : 'Withdraw funds'" (closed)="closed.emit()">
+    <app-modal [title]="kind() === 'deposit' ? 'Add funds' : 'Withdraw funds'" [mascot]="kind() === 'deposit' ? 'cheer' : 'think'" (closed)="closed.emit()">
       <form [formGroup]="form" (ngSubmit)="submit()" novalidate data-testid="funds-form">
         @if (error()) {
           <div class="banner error" role="alert" data-testid="funds-error">{{ error() }}</div>
@@ -39,17 +39,6 @@ function amount(control: AbstractControl<string>): ValidationErrors | null {
             <span class="field-error" data-testid="funds-amount-error">{{ amountMessage() }}</span>
           }
         </div>
-
-        <div class="field">
-          <label for="funds-method">{{ kind() === 'deposit' ? 'Pay with' : 'Send to' }}</label>
-          <select id="funds-method" formControlName="method" data-testid="funds-method">
-            @for (option of methods; track option.value) {
-              <option [value]="option.value">{{ option.label }}</option>
-            }
-          </select>
-        </div>
-
-        <p class="muted fine">This is a simulation. No real money moves.</p>
 
         <div class="modal__actions">
           <button type="button" class="secondary" (click)="closed.emit()" data-testid="funds-cancel">Cancel</button>
@@ -90,13 +79,11 @@ export class FundsDialogComponent {
   readonly done = output<FundsMovement>();
   readonly closed = output<void>();
 
-  protected readonly methods = FUNDS_METHODS;
   protected readonly saving = signal(false);
   protected readonly error = signal<string | null>(null);
 
   protected readonly form = this.formBuilder.nonNullable.group({
-    amount: ['', [Validators.required, amount]],
-    method: ['BANK_TRANSFER' as FundsMethod, [Validators.required]]
+    amount: ['', [Validators.required, amount]]
   });
 
   protected readonly tooMuch = computed(() => {
@@ -128,7 +115,7 @@ export class FundsDialogComponent {
     }
     const value = this.form.getRawValue();
     const accountId = this.accountContext.getCurrentAccount().accountNumericId;
-    const request = { amount: Number(value.amount), method: value.method };
+    const request = { amount: Number(value.amount) };
 
     this.saving.set(true);
     (this.kind() === 'deposit' ? this.funds.deposit(accountId, request) : this.funds.withdraw(accountId, request)).subscribe({

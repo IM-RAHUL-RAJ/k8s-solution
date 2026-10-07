@@ -29,6 +29,17 @@ describe('AlertDialogComponent', () => {
     fixture.detectChanges();
   };
 
+  /** Opens a select, optionally searches it, and picks an option, the way a person would. */
+  const pick = (id: string, value: string, search?: string) => {
+    el(id)!.click();
+    fixture.detectChanges();
+    if (search !== undefined) {
+      type('select-search', search);
+    }
+    (fixture.nativeElement.querySelector('[data-testid="option-' + value + '"]') as HTMLElement).dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+    fixture.detectChanges();
+  };
+
   async function build(inputs: { alert?: PriceAlert | null; initialSymbol?: string } = {}): Promise<void> {
     await TestBed.configureTestingModule({
       imports: [AlertDialogComponent],
@@ -87,9 +98,7 @@ describe('AlertDialogComponent', () => {
   it('shows the currency of the chosen instrument as a badge', async () => {
     await build();
 
-    type('alert-symbol', 'inf');
-    el('instrument-INFY')!.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
-    fixture.detectChanges();
+    pick('alert-symbol', 'INFY', 'inf');
 
     expect(el('alert-currency')?.textContent).toContain('INR');
     expect(el('alert-currency')?.getAttribute('data-ccy')).toBe('INR');
@@ -98,10 +107,12 @@ describe('AlertDialogComponent', () => {
   it('searches by symbol or name', async () => {
     await build();
 
-    type('alert-symbol', 'infos');
+    el('alert-symbol')!.click();
+    fixture.detectChanges();
+    type('select-search', 'infos');
 
-    expect(el('instrument-INFY')).not.toBeNull();
-    expect(el('instrument-AAPL')).toBeNull();
+    expect(el('option-INFY')).not.toBeNull();
+    expect(el('option-AAPL')).toBeNull();
   });
 
   it('creates with exactly the symbol, the operator and the price', async () => {
@@ -109,8 +120,7 @@ describe('AlertDialogComponent', () => {
     await build({ initialSymbol: 'AAPL' });
     fixture.componentInstance.saved.subscribe(created);
 
-    (el('alert-condition') as HTMLSelectElement).value = '<';
-    el('alert-condition')!.dispatchEvent(new Event('change'));
+    pick('alert-condition', '<');
     type('alert-price', '200');
     el('alert-save')!.click();
     fixture.detectChanges();

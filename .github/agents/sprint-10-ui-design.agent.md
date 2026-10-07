@@ -8,7 +8,7 @@ applyTo: "frontend/**|services/trade-api/src/main/resources/email/**"
 
 ## Philosophy
 
-Modern, minimal, calm. Neutral surfaces, one brand blue, orange used almost never. Spacious like Groww, trustworthy
+Minimal, calm, pixel-art. Zard neutral surfaces (black, white, grey), one signal red, the Doto dot font, pixel mascots that move. Spacious like Groww, trustworthy
 like Stripe, dark-mode-first like Vercel. Inspirations, not templates: adopt the principles, keep our identity.
 
 - <https://groww.in/> data-forward, few colours, icons over words

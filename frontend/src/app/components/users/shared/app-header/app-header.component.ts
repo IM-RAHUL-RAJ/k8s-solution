@@ -8,11 +8,7 @@ import { MascotComponent } from '../mascot/mascot.component';
 
 /** "jane.doe" or "Jane Doe" becomes "JD"; one word gives one letter. */
 export function initialsOf(name: string): string {
-  const parts = name.split(/[\s._-]+/).filter(Boolean);
-  if (parts.length === 0) {
-    return '?';
-  }
-  return (parts.length === 1 ? parts[0].slice(0, 1) : parts[0].slice(0, 1) + parts[parts.length - 1].slice(0, 1)).toUpperCase();
+  return name.trim().charAt(0).toUpperCase() || '?';
 }
 
 /** A calm colour from the name, so the same person always gets the same avatar. White text stays readable on all of them. */

@@ -16,11 +16,20 @@
 }
 
 .legend {
-  margin: 0;
-  font-size: 12px;
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 10px;
+  gap: 4px 14px;
+  margin: 0;
+  font-size: 14px;
+}
+
+.legend--pinned {
+  padding: 2px 8px;
+  border: 2px solid var(--text);
+}
+
+.legend b {
+  font-weight: 800;
 }
 
 .chart__stage {
@@ -50,7 +59,6 @@
 .chart__note .skeleton {
   width: 220px;
   height: 120px;
-  border-radius: var(--r-md);
 }
 
 @media (max-width: 600px) {

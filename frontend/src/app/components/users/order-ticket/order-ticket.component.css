@@ -27,8 +27,8 @@
   gap: 2px;
   padding: 8px 16px;
   border-radius: 12px;
-  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line));
-  background: var(--ok-bg);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
   text-align: right;
 }
 
@@ -68,13 +68,6 @@
   overflow: hidden;
 }
 
-.ticket::before {
-  content: '';
-  position: absolute;
-  inset: 0 0 auto 0;
-  height: 4px;
-  background: var(--accent);
-}
 
 .sidebar-pick {
   display: grid;
@@ -202,7 +195,8 @@
   gap: 12px;
   padding: 14px 16px;
   border-radius: 14px;
-  background: var(--ok-bg);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
 }
 
 .total > div {
@@ -215,7 +209,7 @@
 }
 
 .total__alt {
-  color: var(--teal);
+  color: var(--muted);
   font-weight: 600;
 }
 
@@ -258,13 +252,6 @@
 
 .tick {
   flex: none;
-  width: 24px;
-  height: 24px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
 }
 
 .tick circle {
@@ -347,7 +334,7 @@ button.small {
 .balance {
   display: grid;
   gap: 8px;
-  border-top: 4px solid var(--teal);
+  
 }
 
 .balance__amount {
@@ -379,7 +366,7 @@ button.small {
 .summary {
   display: grid;
   gap: 10px;
-  border-top: 4px solid var(--violet);
+  
 }
 
 .summary dl {
@@ -441,7 +428,7 @@ button.small {
 .converter {
   display: grid;
   gap: 12px;
-  border-top: 4px solid var(--amber);
+  
 }
 
 .converter > summary {

@@ -52,7 +52,10 @@ export class SidebarComponent {
     { label: 'Inbox', path: '/notifications', icon: 'inbox', unread: true }
   ];
 
-  private readonly adminItems: NavigationItem[] = [{ label: 'Admin', path: '/admin', icon: 'shield' }];
+  private readonly adminItems: NavigationItem[] = [
+    { label: 'Admin', path: '/admin', icon: 'shield' },
+    { label: 'Settings', path: '/admin/settings', icon: 'settings' }
+  ];
 
   protected readonly navigationItems = computed(() => (this.auth.isAdmin() ? this.adminItems : this.customerItems));
 

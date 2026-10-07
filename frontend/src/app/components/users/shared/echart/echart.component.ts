@@ -60,7 +60,8 @@ export class EchartComponent {
     core.use([charts.LineChart, charts.PieChart, components.GridComponent, components.TooltipComponent, components.LegendComponent, renderers.CanvasRenderer]);
 
     const element = this.host().nativeElement;
-    this.instance = core.init(element);
+    // Half the pixels, shown at full size and never smoothed (canvas { image-rendering: pixelated }): pixel art.
+    this.instance = core.init(element, undefined, { devicePixelRatio: 0.5 });
     // The option may have changed while the library was loading: draw the latest one.
     this.instance.setOption(this.option(), true);
     this.ready.set(true);
@@ -73,6 +74,26 @@ export class EchartComponent {
 }
 
 /** Reads a design token from the page, so charts follow the theme. */
+/** The one text style for every chart: the pixel face, large enough to survive the pixelation. */
+export function pixelText(color: string, size = 18): Record<string, unknown> {
+  return { color, fontFamily: 'Doto, monospace', fontWeight: 700, fontSize: size };
+}
+
+/** A tooltip that opens on a click and stays, with a hard pixel border. */
+export function pixelTooltip(base: Record<string, unknown>): Record<string, unknown> {
+  return {
+    triggerOn: 'click',
+    confine: true,
+    borderWidth: 4,
+    borderColor: token('--text', '#0a0a0a'),
+    backgroundColor: token('--bg', '#ffffff'),
+    padding: [8, 12],
+    textStyle: pixelText(token('--text', '#0a0a0a'), 18),
+    extraCssText: 'border-radius:0;box-shadow:none;',
+    ...base
+  };
+}
+
 export function token(name: string, fallback: string): string {
   const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   return value || fallback;

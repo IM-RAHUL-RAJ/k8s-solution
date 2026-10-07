@@ -1,54 +1,39 @@
-<app-modal [title]="editing() ? 'Edit Alert' : 'Create Alert'" (closed)="closed.emit()">
+<app-modal [title]="editing() ? 'Edit Alert' : 'Create Alert'" mascot="wave" size="wide" (closed)="closed.emit()">
   <form [formGroup]="form" (ngSubmit)="save()" novalidate data-testid="alert-form">
+    <p class="muted intro">Get told the moment a price meets your condition. It reaches you the way you set in Settings.</p>
+
     @if (error()) {
       <div class="banner error" role="alert" data-testid="alert-create-error">{{ error() }}</div>
     }
 
-    <p class="sentence">
-      <span>If price of</span>
-
-      <span class="combo">
-        <input type="text" class="combo__input" [value]="search()" (input)="onSearch($any($event.target).value)"
-               (focus)="listOpen.set(true)" placeholder="Select Instrument" autocomplete="off" role="combobox"
-               [attr.aria-expanded]="listOpen()" aria-controls="alert-instruments" aria-label="Instrument"
-               [class.invalid]="form.controls.symbol.touched && form.controls.symbol.invalid" data-testid="alert-symbol" />
-        @if (listOpen() && matches().length > 0) {
-          <ul class="combo__list" id="alert-instruments" role="listbox" data-testid="alert-instrument-list">
-            @for (item of matches(); track item.symbol) {
-              <li role="option" [attr.aria-selected]="item.symbol === chosen()?.symbol" (mousedown)="choose(item.symbol)"
-                  [attr.data-testid]="'instrument-' + item.symbol">
-                <strong>{{ item.symbol }}</strong> <span class="muted">{{ item.name }}</span>
-              </li>
-            }
-          </ul>
+    <div class="sentence">
+      <span class="word">If price of</span>
+      <div>
+        <app-select formControlName="symbol" [options]="instrumentOptions()" [invalid]="form.controls.symbol.touched && form.controls.symbol.invalid"
+                    placeholder="Select instrument" searchPlaceholder="Search by symbol or name" emptyText="No instrument matches."
+                    testId="alert-symbol" ariaLabel="Instrument" />
+        @if (form.controls.symbol.touched && form.controls.symbol.invalid) {
+          <span class="field-error">Choose an instrument from the list.</span>
         }
-      </span>
+      </div>
 
-      <span>is</span>
+      <span class="word">is</span>
+      <app-select formControlName="condition" [options]="conditionOptions" testId="alert-condition" ariaLabel="Operator" [allowCustom]="false" />
 
-      <select formControlName="condition" aria-label="Operator" data-testid="alert-condition">
-        @for (option of conditions; track option.value) {
-          <option [value]="option.value">{{ option.label }}</option>
+      <span class="word">than</span>
+      <div>
+        <div class="price">
+          <input type="text" inputmode="decimal" formControlName="price" placeholder="Price" autocomplete="off" aria-label="Price"
+                 [class.invalid]="form.controls.price.touched && form.controls.price.invalid" data-testid="alert-price" />
+          @if (currency()) {
+            <span class="pill-ccy" [attr.data-ccy]="currency()" data-testid="alert-currency">{{ currency() }}</span>
+          }
+        </div>
+        @if (form.controls.price.touched && form.controls.price.invalid) {
+          <span class="field-error" data-testid="alert-price-error">Enter a price above zero, with at most four decimals.</span>
         }
-      </select>
-
-      <span>than</span>
-
-      <span class="price-field">
-        <input type="text" inputmode="decimal" formControlName="price" placeholder="Price" autocomplete="off" aria-label="Price"
-               [class.invalid]="form.controls.price.touched && form.controls.price.invalid" data-testid="alert-price" />
-        @if (currency()) {
-          <span class="pill-ccy" [attr.data-ccy]="currency()" data-testid="alert-currency">{{ currency() }}</span>
-        }
-      </span>
-    </p>
-
-    @if (form.controls.symbol.touched && form.controls.symbol.invalid) {
-      <span class="field-error">Choose an instrument from the list.</span>
-    }
-    @if (form.controls.price.touched && form.controls.price.invalid) {
-      <span class="field-error" data-testid="alert-price-error">Enter a price above zero, with at most four decimals.</span>
-    }
+      </div>
+    </div>
 
     <div class="modal__actions">
       <button type="button" class="secondary" (click)="closed.emit()" data-testid="alert-cancel">Cancel</button>

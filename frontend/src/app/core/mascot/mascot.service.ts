@@ -1,6 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { PreferencesService } from '../services/preferences.service';
-import { MASCOT_TYPES, MascotType } from './mascot-svg';
+import { MASCOT_TYPES, MascotType } from './pixel-mascot';
 
 const STORAGE_KEY = 'quorum-mascot';
 

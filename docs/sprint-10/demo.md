@@ -78,7 +78,7 @@ a substitute for the live run in section 2.)
 
 ## UI enhancements walkthrough
 
-1. **Shell.** Collapse and expand the sidebar (it remembers); hover an icon for its name; resize under 800px for the drawer. The gear opens Settings; the avatar opens Profile and Sign out.
+1. **Shell.** Collapse and expand the sidebar with the chevron (no label) (it remembers); hover an icon for its name; resize under 800px for the drawer. The gear opens Settings; the avatar opens Profile and Sign out.
 2. **Settings.** Pick Dark, switch a notification kind off, pick the rabbit: each saves with a toast. Reload: it is all still there.
 3. **Alerts.** Create "If price of AAPL is >= than 235". Switch it off, edit it, delete it. After it fires, open its history (price, time, delivery state), switch it back on: it fires again and the history has two rows.
 4. **Inbox.** Use the Price Alerts / Orders / Funds tabs and their counts. An alert on `==` reads "AAPL equals 123.45".

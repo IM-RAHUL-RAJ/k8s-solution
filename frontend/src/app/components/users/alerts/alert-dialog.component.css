@@ -1,74 +1,50 @@
-.sentence {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-  margin: 16px 0 8px;
-  font-size: 16px;
-  line-height: 2;
-}
-
-.sentence select,
-.sentence input {
-  width: auto;
-}
-
-.combo {
-  position: relative;
-}
-
-.combo__input {
-  min-width: 180px;
-}
-
-.combo__list {
-  position: absolute;
-  z-index: 70;
-  top: calc(100% + 4px);
-  left: 0;
-  min-width: 280px;
-  max-height: 240px;
-  overflow: auto;
-  margin: 0;
-  padding: 6px;
-  list-style: none;
-  border: 1px solid var(--line);
-  border-radius: var(--r-md);
-  background: var(--surface);
-  box-shadow: var(--shadow-md);
-  animation: listIn 0.2s ease-out;
-  transform-origin: top left;
-}
-
-.combo__list li {
-  display: flex;
-  gap: 10px;
-  padding: 8px 10px;
-  border-radius: var(--r-sm);
-  cursor: pointer;
+.intro {
+  margin: 0 0 var(--sp-2);
   font-size: 14px;
-  line-height: 1.4;
 }
 
-.combo__list li:hover,
-.combo__list li[aria-selected='true'] {
-  background: color-mix(in srgb, var(--text) 6%, transparent);
+/* The sentence runs down the page: the little words on the left, the controls on the right, room to breathe. */
+.sentence {
+  display: grid;
+  grid-template-columns: 124px minmax(0, 1fr);
+  align-items: start;
+  gap: 18px 16px;
+  margin: var(--sp-3) 0 var(--sp-1);
 }
 
-.price-field {
-  display: inline-flex;
+.word {
+  display: flex;
   align-items: center;
-  gap: 8px;
+  height: 38px;
+  font-size: 17px;
+  font-weight: 800;
 }
 
-.price-field input {
-  width: 120px;
-  font-family: var(--font-mono);
+.price {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
-@keyframes listIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95, 0.9);
+.price input {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.price .pill-ccy {
+  flex: none;
+  padding: 7px 12px;
+  font-size: 14px;
+}
+
+@media (max-width: 520px) {
+  .sentence {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+
+  .word {
+    height: auto;
+    margin-top: 10px;
   }
 }

@@ -2,12 +2,13 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { timer } from 'rxjs';
-import { ALERT_CONDITIONS, MAX_ALERTS_PER_ACCOUNT, PriceAlert, conditionText } from '../../../core/models/alert.model';
+import { ALERT_CONDITIONS, AlertCondition, MAX_ALERTS_PER_ACCOUNT, PriceAlert, conditionText } from '../../../core/models/alert.model';
 import { AccountContextService } from '../../../core/services/account-context.service';
 import { AlertService } from '../../../core/services/alert.service';
 import { ApiErrorMessageService } from '../../../core/services/api-error-message.service';
 import { HomeCurrencyService } from '../../../core/services/home-currency.service';
 import { EmptyStateComponent } from '../shared/empty-state/empty-state.component';
+import { SelectComponent, SelectOption } from '../shared/select/select.component';
 import { IconComponent } from '../shared/icon/icon.component';
 import { ModalComponent } from '../shared/modal/modal.component';
 import { AlertDialogComponent } from './alert-dialog.component';
@@ -17,7 +18,6 @@ import { TriggerHistoryPanelComponent } from './trigger-history-panel.component'
 export const ALERT_REFRESH_MS = 15_000;
 
 export type AlertFilter = 'all' | 'enabled' | 'disabled' | 'triggered';
-type SortKey = 'symbol' | 'condition' | 'status';
 
 /**
  * Price alerts: "if the price of X is above Y, tell me". An alert can be switched on and off, edited and
@@ -27,7 +27,7 @@ type SortKey = 'symbol' | 'condition' | 'status';
 @Component({
   selector: 'app-alerts',
   standalone: true,
-  imports: [RouterLink, IconComponent, ModalComponent, EmptyStateComponent, AlertDialogComponent, TriggerHistoryPanelComponent],
+  imports: [RouterLink, SelectComponent, IconComponent, ModalComponent, EmptyStateComponent, AlertDialogComponent, TriggerHistoryPanelComponent],
   templateUrl: './alerts.component.html',
   styleUrl: './alerts.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -47,8 +47,14 @@ export class AlertsComponent {
   protected readonly alerts = signal<PriceAlert[]>([]);
 
   protected readonly filter = signal<AlertFilter>('all');
-  protected readonly sortKey = signal<SortKey>('symbol');
-  protected readonly sortAscending = signal(true);
+  /** More ways to narrow the list than the tabs: by symbol, and by what the alert waits for. */
+  protected readonly search = signal('');
+  protected readonly conditionFilter = signal<string>('');
+  protected readonly conditionFilterOptions: SelectOption[] = [
+    { value: '', label: 'Any condition' },
+    ...ALERT_CONDITIONS.map((option) => ({ value: option.value, label: option.label }))
+  ];
+  protected readonly hasMoreFilters = computed(() => this.search().trim() !== '' || this.conditionFilter() !== '');
 
   /** The dialog: open when creating (editing null) or editing (the alert). */
   protected readonly dialogOpen = signal(false);
@@ -87,9 +93,12 @@ export class AlertsComponent {
           return true;
       }
     });
-    const key = this.sortKey();
-    const direction = this.sortAscending() ? 1 : -1;
-    return [...rows].sort((left, right) => direction * this.compare(key, left, right));
+    const term = this.search().trim().toUpperCase();
+    const operator = this.conditionFilter() as AlertCondition | '';
+    // Newest first, as the server sends them.
+    return rows.filter(
+      (alert) => (term === '' || alert.symbol.includes(term) || this.instrumentName(alert.symbol).toUpperCase().includes(term)) && (operator === '' || alert.condition === operator)
+    );
   });
 
   constructor() {
@@ -129,13 +138,9 @@ export class AlertsComponent {
     this.filter.set(filter);
   }
 
-  protected sortBy(key: SortKey): void {
-    if (this.sortKey() === key) {
-      this.sortAscending.update((value) => !value);
-    } else {
-      this.sortKey.set(key);
-      this.sortAscending.set(true);
-    }
+  protected clearFilters(): void {
+    this.search.set('');
+    this.conditionFilter.set('');
   }
 
   protected openCreate(): void {
@@ -232,15 +237,8 @@ export class AlertsComponent {
     return alert.status === 'TRIGGERED' && (alert.deliveryState === 'PENDING_HANDOVER' || alert.deliveryState === 'HANDOVER_FAILED');
   }
 
-  protected statusText(alert: PriceAlert): string {
-    if (alert.status === 'TRIGGERED') {
-      return alert.deliveryState === 'HANDOVER_FAILED' ? 'Fired, message retrying' : 'Triggered';
-    }
-    return alert.enabled ? 'Watching' : 'Paused';
-  }
-
-  protected sortIndicator(key: SortKey): string {
-    return this.sortKey() === key ? (this.sortAscending() ? 'ascending' : 'descending') : 'none';
+  protected instrumentName(symbol: string): string {
+    return this.home.instrument(symbol)?.name ?? '';
   }
 
   private hasFired(alert: PriceAlert): boolean {
@@ -249,17 +247,6 @@ export class AlertsComponent {
 
   private replace(next: PriceAlert): void {
     this.alerts.update((alerts) => alerts.map((alert) => (alert.id === next.id ? next : alert)));
-  }
-
-  private compare(key: SortKey, left: PriceAlert, right: PriceAlert): number {
-    switch (key) {
-      case 'condition':
-        return left.price - right.price;
-      case 'status':
-        return Number(right.enabled) - Number(left.enabled) || left.symbol.localeCompare(right.symbol);
-      default:
-        return left.symbol.localeCompare(right.symbol) || left.price - right.price;
-    }
   }
 
   private flash(message: string): void {

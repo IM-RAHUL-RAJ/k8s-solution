@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.HashMap;
@@ -136,7 +137,22 @@ class FauxnanceQuoteClient implements QuoteProvider {
                 price.decimalValue(),
                 text(quote, "currency"),
                 instant(quote.hasNonNull("asOf") ? quote.get("asOf") : quote.get("quoteAsOf")),
-                stale);
+                stale,
+                previousClose(quote, price.decimalValue()));
+    }
+
+    /** The previous close, read from either a previousClose field or "price minus change". Null when neither is there. */
+    private static BigDecimal previousClose(JsonNode quote, BigDecimal price) {
+        JsonNode direct = quote.get("previousClose");
+        if (direct != null && direct.isNumber() && direct.decimalValue().signum() > 0) {
+            return direct.decimalValue();
+        }
+        JsonNode change = quote.get("change");
+        if (change != null && change.isNumber()) {
+            BigDecimal derived = price.subtract(change.decimalValue());
+            return derived.signum() > 0 ? derived : null;
+        }
+        return null;
     }
 
     private static String text(JsonNode node, String field) {

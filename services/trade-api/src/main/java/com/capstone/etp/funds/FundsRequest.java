@@ -10,5 +10,10 @@ import java.math.BigDecimal;
 public record FundsRequest(
         @NotNull @DecimalMin(value = "0.01", message = "amount must be greater than zero")
         @Digits(integer = 12, fraction = 2) BigDecimal amount,
-        @NotNull FundsMethod method) {
+        FundsMethod method) {
+
+    /** The screen asks only for an amount; the rail the money notionally travels on defaults to a bank transfer. */
+    public FundsMethod methodOrDefault() {
+        return method == null ? FundsMethod.BANK_TRANSFER : method;
+    }
 }

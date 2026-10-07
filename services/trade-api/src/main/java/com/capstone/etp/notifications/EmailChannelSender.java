@@ -4,6 +4,7 @@ import com.capstone.etp.preferences.AlertChannel;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import jakarta.mail.MessagingException;
@@ -54,6 +55,11 @@ class EmailChannelSender implements ChannelSender {
                 EmailTemplateRenderer.Rendered rendered = renderer.render(
                         message.kind(), message.mascot(), message.subject(), message.body(), java.time.Instant.now());
                 helper.setText(rendered.text(), rendered.html());
+                // The animated mascot rides inside the message, referenced from the HTML as cid:mascot.
+                ClassPathResource mascot = new ClassPathResource(rendered.mascotResource());
+                if (mascot.exists()) {
+                    helper.addInline("mascot", mascot, "image/gif");
+                }
             } else {
                 helper.setText(message.body(), false);
             }

@@ -76,13 +76,6 @@
         the current value and gain figures, so those totals are lower than the full picture.
       </div>
     }
-    @if (staleCount() > 0) {
-      <div class="banner info" role="status" data-testid="stale-banner">
-        <strong>Some prices are delayed.</strong>
-        {{ staleCount() }} {{ staleCount() === 1 ? 'price is' : 'prices are' }} not live and
-        {{ staleCount() === 1 ? 'is' : 'are' }} marked <span class="pill pill--stale">Delayed</span> below.
-      </div>
-    }
 
     <div class="tiles stagger">
       <article class="card tile tile--hero" data-testid="tile-total">
@@ -101,7 +94,7 @@
           <p class="tile__note" [attr.data-dir]="direction(d.amount)">{{ d.percent > 0 ? '+' : '' }}{{ d.percent | number: '1.2-2' }}%</p>
         } @else {
           <p class="tile__value muted">n/a</p>
-          <p class="tile__note muted">Shows once we have a value from a day ago</p>
+          <p class="tile__note muted">No previous close for your holdings yet</p>
         }
       </article>
 

@@ -86,6 +86,19 @@ class PortfolioHistoryServiceTest {
     }
 
     @Test
+    void whenTheHoldingsHaveAPreviousCloseTodayIsMeasuredFromIt() {
+        PortfolioSummaryResponse base = summary("1350.00");
+        when(portfolio.summary(1L)).thenReturn(new PortfolioSummaryResponse(1L, "USD", base.cashBalance(), BigDecimal.ZERO, BigDecimal.ZERO,
+                BigDecimal.ZERO, null, BigDecimal.ZERO, base.totalValue(), 1, false, NOW, new BigDecimal("42.00"), new BigDecimal("0.60")));
+
+        PortfolioHistoryResponse.DayChange change = service.history(1L, "30d").dayChange();
+
+        assertEquals(new BigDecimal("42.00"), change.amount());
+        assertEquals(new BigDecimal("0.60"), change.percent());
+        verify(snapshots, never()).findAtOrBefore(any(), any());
+    }
+
+    @Test
     void withoutAPointADayOldThereIsNoDayChangeRatherThanAGuess() {
         when(portfolio.summary(1L)).thenReturn(summary("1000.00"));
         when(snapshots.findAtOrBefore(any(), any())).thenReturn(null);

@@ -1,5 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, input, output, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { ALERT_CONDITIONS, AlertCondition, PriceAlert } from '../../../core/models/alert.model';
 import { InstrumentInfo } from '../../../core/models/instrument.model';
@@ -7,6 +8,7 @@ import { AccountContextService } from '../../../core/services/account-context.se
 import { AlertService } from '../../../core/services/alert.service';
 import { ApiErrorMessageService } from '../../../core/services/api-error-message.service';
 import { ModalComponent } from '../shared/modal/modal.component';
+import { SelectComponent, SelectOption } from '../shared/select/select.component';
 
 function positiveAmount(control: AbstractControl<string>): ValidationErrors | null {
   const value = control.value.trim();
@@ -14,18 +16,18 @@ function positiveAmount(control: AbstractControl<string>): ValidationErrors | nu
 }
 
 /**
- * Create or edit an alert, written as a sentence: "If price of [instrument] is [operator] than [price] USD".
+ * Create or edit an alert, written as a sentence down the page: If price of [instrument] is [operator] than [price] USD.
  * It talks to the alert API itself and tells the page what was saved.
  */
 @Component({
   selector: 'app-alert-dialog',
   standalone: true,
-  imports: [ReactiveFormsModule, ModalComponent],
+  imports: [ReactiveFormsModule, ModalComponent, SelectComponent],
   templateUrl: './alert-dialog.component.html',
   styleUrl: './alert-dialog.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class AlertDialogComponent {
+export class AlertDialogComponent implements OnInit {
   private readonly alertService = inject(AlertService);
   private readonly accountContext = inject(AccountContextService);
   private readonly errorMessages = inject(ApiErrorMessageService);
@@ -39,11 +41,9 @@ export class AlertDialogComponent {
   readonly saved = output<PriceAlert>();
   readonly closed = output<void>();
 
-  protected readonly conditions = ALERT_CONDITIONS;
+  protected readonly conditionOptions: SelectOption[] = ALERT_CONDITIONS.map((option) => ({ value: option.value, label: option.label }));
   protected readonly saving = signal(false);
   protected readonly error = signal<string | null>(null);
-  protected readonly search = signal('');
-  protected readonly listOpen = signal(false);
 
   protected readonly form = this.formBuilder.nonNullable.group({
     symbol: ['', [Validators.required]],
@@ -51,44 +51,23 @@ export class AlertDialogComponent {
     price: ['', [Validators.required, positiveAmount]]
   });
 
+  private readonly symbolValue = toSignal(this.form.controls.symbol.valueChanges, { initialValue: '' });
+
   protected readonly editing = computed(() => this.alert() !== null);
 
-  protected readonly matches = computed(() => {
-    const term = this.search().trim().toLowerCase();
-    return this.instruments()
-      .filter((item) => term === '' || item.symbol.toLowerCase().includes(term) || item.name.toLowerCase().includes(term))
-      .slice(0, 50);
-  });
+  protected readonly instrumentOptions = computed<SelectOption[]>(() =>
+    this.instruments().map((item) => ({ value: item.symbol, label: item.symbol, hint: item.name, tag: item.currency }))
+  );
 
-  private readonly chosenSymbol = signal('');
-  protected readonly chosen = computed(() => this.instruments().find((item) => item.symbol === this.chosenSymbol()) ?? null);
-  protected readonly currency = computed(() => this.chosen()?.currency ?? '');
+  protected readonly currency = computed(() => this.instruments().find((item) => item.symbol === this.symbolValue())?.currency ?? '');
 
   ngOnInit(): void {
     const existing = this.alert();
     if (existing) {
       this.form.setValue({ symbol: existing.symbol, condition: existing.condition, price: String(existing.price) });
-      this.choose(existing.symbol);
     } else if (this.initialSymbol()) {
-      this.choose(this.initialSymbol());
+      this.form.controls.symbol.setValue(this.initialSymbol());
     }
-  }
-
-  protected onSearch(value: string): void {
-    this.search.set(value);
-    this.listOpen.set(true);
-    // Typing again un-chooses the instrument until one is picked from the list.
-    if (this.chosenSymbol() !== '' && value.trim().toUpperCase() !== this.chosenSymbol()) {
-      this.chosenSymbol.set('');
-      this.form.controls.symbol.setValue('');
-    }
-  }
-
-  protected choose(symbol: string): void {
-    this.chosenSymbol.set(symbol);
-    this.form.controls.symbol.setValue(symbol);
-    this.search.set(symbol);
-    this.listOpen.set(false);
   }
 
   protected save(): void {

@@ -73,12 +73,13 @@ describe('SettingsComponent', () => {
     setMascot.mockReset();
   });
 
-  it('masks the account id to its last four digits and shows the reference as locked', async () => {
+  it('shows the account reference as locked, and no internal account id', async () => {
     await build();
 
     expect(maskAccountId(7)).toBe('••••7');
     expect(maskAccountId(1234567)).toBe('••••4567');
-    expect(el('account-id')?.textContent).toContain('••••');
+    expect(el('account-id')).toBeNull();
+    expect(el('section-other')).toBeNull();
     expect(el('account-ref')?.textContent).toContain('ACC-0001-7421');
     expect(el('account-ref')?.textContent).toContain('cannot be changed');
   });

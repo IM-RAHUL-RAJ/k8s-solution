@@ -1,154 +1,51 @@
 <div class="landing">
-  <div class="orb orb--one" aria-hidden="true"></div>
-  <div class="orb orb--two" aria-hidden="true"></div>
-  <div class="orb orb--three" aria-hidden="true"></div>
-
-  <header class="bar rise" style="--d:0s">
-    <app-brand-logo [size]="34" />
+  <header class="bar">
+    <app-brand-logo [size]="30" />
     <div class="bar__actions">
-      <button
-        type="button"
-        class="landing__theme-toggle"
-        (click)="toggleTheme()"
-        [attr.aria-label]="currentTheme() === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'"
-        [attr.title]="currentTheme() === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'"
-      >
-        <svg *ngIf="currentTheme() === 'dark'; else moonIcon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">`
-          <circle cx="12" cy="12" r="4" fill="currentColor"></circle>
-          <path d="M12 2v2M12 20v2M22 12h-2M4 12H2M19.07 4.93l-1.41 1.41M6.34 17.66l-1.41 1.41M19.07 19.07l-1.41-1.41M6.34 6.34 4.93 4.93" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"></path>
-        </svg>
-        <ng-template #moonIcon>
-          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
-            <path d="M21 14.5A8.5 8.5 0 1 1 9.5 3a7 7 0 1 0 11.5 11.5Z" fill="currentColor"></path>
-          </svg>
-        </ng-template>
+      <button type="button" class="icon-btn" (click)="toggleTheme()" data-testid="landing-theme"
+              [attr.aria-label]="currentTheme() === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'"
+              [attr.data-tip]="currentTheme() === 'dark' ? 'Light theme' : 'Dark theme'" data-tip-below data-tip-end>
+        <app-icon [name]="currentTheme() === 'dark' ? 'sun' : 'moon'" [size]="20" />
       </button>
-      <a routerLink="/sign-in" class="bar__link">Sign in</a>
+      <a routerLink="/sign-in" class="button secondary" data-testid="landing-sign-in">Sign in</a>
     </div>
   </header>
 
   <main class="hero">
     <div class="copy">
-      <span class="eyebrow rise" style="--d:.08s"><i aria-hidden="true"></i>Enterprise Trading Platform</span>
-      <h1 class="rise" style="--d:.16s">Trade with <span class="grad">clarity and control</span>, from order ticket to final fill.</h1>
-      <p class="lead rise" style="--d:.28s">
-        Quorum brings orders, execution, watchlist and portfolio views into one reliable workspace for seamless trading.
-      </p>
-
-      <div class="actions rise" style="--d:.38s">
-        <a routerLink="/sign-in" class="cta" data-testid="sign-in-button">
-          Login to Trading Desk
-          <span aria-hidden="true">→</span>
-        </a>
+      <span class="eyebrow">Enterprise trading platform</span>
+      <h1>Trade with clarity, from order ticket to final fill.</h1>
+      <p class="lead">Orders, watchlist, alerts and portfolio in one calm workspace, with a little friend to keep you company.</p>
+      <div class="actions">
+        <a routerLink="/sign-in" class="button primary lg" data-testid="sign-in-button">Login to trading desk <span aria-hidden="true">&rarr;</span></a>
       </div>
-
-      <!-- <ul class="features rise" style="--d:.5s">
-        <li class="f f--green"><b>Live blotter</b><span>Status that updates itself</span></li>
-        <li class="f f--blue"><b>Watchlist</b><span>Trade straight from it</span></li>
-        <li class="f f--violet"><b>Net worth</b><span>Cash and holdings together</span></li>
-      </ul> -->
     </div>
 
-    <div class="stage" aria-hidden="true">
-      <div class="card chart rise" style="--d:.28s">
-        <div class="card__head"><b>AAPL</b><span class="up">▲ 3.4%</span><em>Live market</em></div>
-        <svg viewBox="0 0 320 130" class="chart__svg">
-          <style>
-            .c line { stroke-width: 1.6; stroke-linecap: round; }
-            .c rect { rx: 1.2; }
-            .c.up line, .c.up rect { stroke: #2f6b4f; fill: #2f6b4f; }
-            .c.dn line, .c.dn rect { stroke: #a5382c; fill: #a5382c; }
-            .ma { fill: none; stroke: var(--accent); stroke-width: 1.35; stroke-linecap: round; opacity: 0.85; }
-            .grid path { stroke: color-mix(in srgb, var(--line) 80%, transparent); stroke-dasharray: 3 5; fill: none; }
-          </style>
-          <g class="grid"><path d="M0 20H320M0 50H320M0 80H320M0 98H320"/></g>
-          <g class="c up" style="--i:0"><line x1="8" x2="8" y1="44.1" y2="60.0"/><rect x="4" y="47.8" width="8" height="7.5"/></g>
-          <g class="c up" style="--i:1"><line x1="21" x2="21" y1="47.2" y2="54.4"/><rect x="17" y="47.4" width="8" height="2.9"/></g>
-          <g class="c up" style="--i:2"><line x1="34" x2="34" y1="34.0" y2="60.0"/><rect x="30" y="41.6" width="8" height="4.4"/></g>
-          <g class="c dn" style="--i:3"><line x1="47" x2="47" y1="30.3" y2="70.6"/><rect x="43" y="41.5" width="8" height="26.1"/></g>
-          <g class="c up" style="--i:4"><line x1="60" x2="60" y1="59.6" y2="69.7"/><rect x="56" y="60.4" width="8" height="8.4"/></g>
-          <g class="c dn" style="--i:5"><line x1="73" x2="73" y1="58.5" y2="92.0"/><rect x="69" y="61.5" width="8" height="22.2"/></g>
-          <g class="c up" style="--i:6"><line x1="86" x2="86" y1="65.3" y2="83.4"/><rect x="82" y="68.1" width="8" height="13.2"/></g>
-          <g class="c dn" style="--i:7"><line x1="99" x2="99" y1="63.1" y2="79.6"/><rect x="95" y="67.1" width="8" height="1.6"/></g>
-          <g class="c up" style="--i:8"><line x1="112" x2="112" y1="52.5" y2="67.7"/><rect x="108" y="64.1" width="8" height="1.6"/></g>
-          <g class="c up" style="--i:9"><line x1="125" x2="125" y1="60.8" y2="72.6"/><rect x="121" y="65.9" width="8" height="1.6"/></g>
-          <g class="c up" style="--i:10"><line x1="138" x2="138" y1="43.2" y2="75.0"/><rect x="134" y="49.4" width="8" height="13.6"/></g>
-          <g class="c up" style="--i:11"><line x1="151" x2="151" y1="44.5" y2="55.0"/><rect x="147" y="48.3" width="8" height="2.6"/></g>
-          <g class="c dn" style="--i:12"><line x1="164" x2="164" y1="39.4" y2="69.0"/><rect x="160" y="47.4" width="8" height="15.1"/></g>
-          <g class="c up" style="--i:13"><line x1="177" x2="177" y1="48.9" y2="72.5"/><rect x="173" y="52.5" width="8" height="11.5"/></g>
-          <g class="c up" style="--i:14"><line x1="190" x2="190" y1="40.3" y2="57.5"/><rect x="186" y="47.2" width="8" height="3.1"/></g>
-          <g class="c up" style="--i:15"><line x1="203" x2="203" y1="39.2" y2="49.4"/><rect x="199" y="39.3" width="8" height="8.2"/></g>
-          <g class="c up" style="--i:16"><line x1="216" x2="216" y1="20.7" y2="44.5"/><rect x="212" y="28.9" width="8" height="9.1"/></g>
-          <g class="c dn" style="--i:17"><line x1="229" x2="229" y1="28.6" y2="39.3"/><rect x="225" y="30.6" width="8" height="3.2"/></g>
-          <g class="c up" style="--i:18"><line x1="242" x2="242" y1="13.0" y2="36.8"/><rect x="238" y="22.6" width="8" height="8.7"/></g>
-          <g class="c up" style="--i:19"><line x1="255" x2="255" y1="8.6" y2="26.3"/><rect x="251" y="17.3" width="8" height="4.2"/></g>
-          <g class="c dn" style="--i:20"><line x1="268" x2="268" y1="10.7" y2="36.8"/><rect x="264" y="18.7" width="8" height="13.4"/></g>
-          <g class="c up" style="--i:21"><line x1="281" x2="281" y1="10.3" y2="35.6"/><rect x="277" y="12.9" width="8" height="22.1"/></g>
-          <g class="c dn" style="--i:22"><line x1="294" x2="294" y1="8.0" y2="37.2"/><rect x="290" y="10.8" width="8" height="24.6"/></g>
-          <g class="c up" style="--i:23"><line x1="307" x2="307" y1="20.2" y2="40.2"/><rect x="303" y="21.2" width="8" height="17.0"/></g>
-          <path class="ma" d="M8 47.8 L21 47.6 L34 45.6 L47 51.1 L60 53.0 L73 60.1 L86 64.3 L99 69.4 L112 68.7 L125 69.8 L138 62.9 L151 59.0 L164 58.0 L177 55.7 L190 52.0 L203 50.0 L216 46.1 L229 40.3 L242 34.3 L255 28.4 L268 26.9 L281 23.7 L294 24.1 L307 23.8"/>
-        </svg>
-      </div>
-
-      <div class="card panel rise" style="--d:.54s">
-        <div class="panel__head"><b>Orders</b><span>Newest first</span></div>
-        <div class="row"><span>AAPL</span><span>Buy 50</span><span class="swap"><span class="badge badge--new">NEW</span></span></div>
-        <div class="row"><span>MSFT</span><span>Sell 20</span><span class="badge badge--filled">FILLED</span></div>
-        <div class="row"><span>NVDA</span><span>Buy 900</span><span class="badge badge--rejected">REJECTED</span></div>
-        <div class="row"><span>TSLA</span><span>Buy 10</span><span class="badge badge--cancelled">CANCELLED</span></div>
-      </div>
-
-      <div class="card depth rise" style="--d:.46s">
-        <div class="depth__head"><small>Market depth</small><b>AAPL</b></div>
-        <svg viewBox="0 0 176 64" class="depth__svg">
-          <g class="bids"><path class="fill" d="M88 58V48H73.4V41H58.8V34H44.2V28H29.6V17H15V6H.4V58Z"/><path class="edge" d="M88 48H73.4V41H58.8V34H44.2V28H29.6V17H15V6H.4"/></g>
-          <g class="asks"><path class="fill" d="M88 58V50H102.6V43H117.2V31H131.8V25H146.4V19H161V12H175.6V58Z"/><path class="edge" d="M88 50H102.6V43H117.2V31H131.8V25H146.4V19H161V12H175.6"/></g>
-          <line class="mid" x1="88" x2="88" y1="2" y2="62"/>
-          <path class="base" d="M0 58.5H176"/>
-        </svg>
-        <div class="depth__foot"><span class="up">10.24 bid</span><em>spread 0.02</em><span class="dn">10.26 ask</span></div>
-      </div>
+    <div class="stage">
+      <div class="stage__mascot"><app-mascot [size]="200" action="dance" /></div>
+      <div class="stage__bubble" aria-hidden="true">Ready when you are!</div>
     </div>
   </main>
 
+  <section class="features" aria-label="What you get">
+    @for (feature of features; track feature.title) {
+      <article class="card feature">
+        <app-icon [name]="feature.icon" [size]="26" />
+        <h2>{{ feature.title }}</h2>
+        <p class="muted">{{ feature.text }}</p>
+      </article>
+    }
+  </section>
+
   <div class="ticker" aria-hidden="true">
     <div class="ticker__track">
-      <div class="ticker__group">
-        <span>AAPL 193.12 <b class="up">▲ 1.2%</b></span>
-        <span>MSFT 330.45 <b class="dn">▼ 0.6%</b></span>
-        <span>GOOGL 136.80 <b class="up">▲ 0.4%</b></span>
-        <span>AMZN 134.22 <b class="dn">▼ 0.9%</b></span>
-        <span>TSLA 272.50 <b class="up">▲ 2.3%</b></span>
-        <span>NVDA 516.30 <b class="up">▲ 0.8%</b></span>
-        <span>JPM 116.40 <b class="dn">▼ 0.3%</b></span>
-        <span>BAC 30.75 <b class="up">▲ 0.5%</b></span>
-        <span>V 225.60 <b class="up">▲ 0.7%</b></span>
-        <span>MA 365.10 <b class="dn">▼ 0.4%</b></span>
-        <span>NFLX 402.20 <b class="up">▲ 1.1%</b></span>
-        <span>META 279.85 <b class="dn">▼ 0.2%</b></span>
-        <span>INTC 28.40 <b class="dn">▼ 0.8%</b></span>
-        <span>ORCL 88.95 <b class="up">▲ 0.6%</b></span>
-        <span>NKE 117.30 <b class="up">▲ 0.9%</b></span>
-        <span>DIS 92.10 <b class="dn">▼ 0.1%</b></span>
-      </div>
-      <div class="ticker__group" aria-hidden="true">
-        <span>AAPL 193.12 <b class="up">▲ 1.2%</b></span>
-        <span>MSFT 330.45 <b class="dn">▼ 0.6%</b></span>
-        <span>GOOGL 136.80 <b class="up">▲ 0.4%</b></span>
-        <span>AMZN 134.22 <b class="dn">▼ 0.9%</b></span>
-        <span>TSLA 272.50 <b class="up">▲ 2.3%</b></span>
-        <span>NVDA 516.30 <b class="up">▲ 0.8%</b></span>
-        <span>JPM 116.40 <b class="dn">▼ 0.3%</b></span>
-        <span>BAC 30.75 <b class="up">▲ 0.5%</b></span>
-        <span>V 225.60 <b class="up">▲ 0.7%</b></span>
-        <span>MA 365.10 <b class="dn">▼ 0.4%</b></span>
-        <span>NFLX 402.20 <b class="up">▲ 1.1%</b></span>
-        <span>META 279.85 <b class="dn">▼ 0.2%</b></span>
-        <span>INTC 28.40 <b class="dn">▼ 0.8%</b></span>
-        <span>ORCL 88.95 <b class="up">▲ 0.6%</b></span>
-        <span>NKE 117.30 <b class="up">▲ 0.9%</b></span>
-        <span>DIS 92.10 <b class="dn">▼ 0.1%</b></span>
-      </div>
+      @for (copy of [0, 1]; track copy) {
+        <div class="ticker__group">
+          @for (tick of ticks; track tick.symbol) {
+            <span>{{ tick.symbol }} {{ tick.price }} <b [class.up]="tick.up" [class.dn]="!tick.up">{{ tick.up ? '&#9650;' : '&#9660;' }} {{ tick.change }}</b></span>
+          }
+        </div>
+      }
     </div>
   </div>
 </div>

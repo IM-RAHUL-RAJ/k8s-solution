@@ -17,5 +17,7 @@
       <router-outlet />
     </main>
   </div>
-  <app-toast-host />
+  @if (showDock()) {
+    <app-mascot-dock />
+  }
 </div>

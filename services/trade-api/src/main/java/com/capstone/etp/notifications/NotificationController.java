@@ -39,6 +39,11 @@ public class NotificationController {
         return ResponseEntity.ok(Map.of("unread", service.unreadCount(accountId)));
     }
 
+    @PostMapping("/read-all")
+    public ResponseEntity<Map<String, Integer>> markAllRead(@PathVariable Long accountId) {
+        return ResponseEntity.ok(Map.of("updated", service.markAllRead(accountId)));
+    }
+
     @PostMapping("/{notificationId}/read")
     public ResponseEntity<NotificationResponse> markRead(
             @PathVariable Long accountId,

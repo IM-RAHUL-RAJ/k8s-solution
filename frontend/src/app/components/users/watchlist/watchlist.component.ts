@@ -15,6 +15,9 @@ import { HomeCurrencyService } from '../../../core/services/home-currency.servic
 import { InstrumentService } from '../../../core/services/instrument.service';
 import { OrderService } from '../../../core/services/order.service';
 import { EmptyStateComponent } from '../shared/empty-state/empty-state.component';
+import { IconComponent } from '../shared/icon/icon.component';
+import { MascotComponent } from '../shared/mascot/mascot.component';
+import { SelectComponent, SelectOption } from '../shared/select/select.component';
 import { CandleChartComponent } from './candle-chart.component';
 
 /** How often the quotes are re-read. The executor publishes about once a minute, so this only shortens the wait. */
@@ -24,7 +27,7 @@ export const QUOTE_REFRESH_MS = 10_000;
 @Component({
   selector: 'app-watchlist',
   standalone: true,
-  imports: [CommonModule, RouterLink, CandleChartComponent, EmptyStateComponent],
+  imports: [CommonModule, RouterLink, CandleChartComponent, EmptyStateComponent, IconComponent, MascotComponent, SelectComponent],
   templateUrl: './watchlist.component.html',
   styleUrl: './watchlist.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -56,6 +59,11 @@ export class WatchlistComponent {
     const watched = new Set(this.entries().map((entry) => entry.symbol));
     return this.home.instrumentList().filter((item) => item.tradable && !watched.has(item.symbol));
   });
+
+  /** What the add control offers: symbol, name, and what kind of instrument it is. */
+  protected readonly addOptions = computed<SelectOption[]>(() =>
+    this.addable().map((item) => ({ value: item.symbol, label: item.symbol, hint: item.name, tag: this.label(item.assetClass) }))
+  );
 
   /** One card per watched instrument, with what the customer already has with it. */
   protected readonly cards = computed(() =>

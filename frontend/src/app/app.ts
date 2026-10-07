@@ -3,7 +3,8 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
 import { AppHeaderComponent } from './components/users/shared/app-header/app-header.component';
 import { SidebarComponent } from './components/users/shared/sidebar/sidebar.component';
-import { ToastHostComponent } from './components/users/shared/toast-host/toast-host.component';
+import { MascotDockComponent } from './components/users/shared/mascot-dock/mascot-dock.component';
+import { NotificationWatcher } from './core/ui/notification-watcher.service';
 import { MascotService } from './core/mascot/mascot.service';
 import { AccountContextService } from './core/services/account-context.service';
 import { AuthService } from './core/auth/auth.service';
@@ -14,7 +15,7 @@ import { filter, map, startWith } from 'rxjs/operators';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [AppHeaderComponent, SidebarComponent, ToastHostComponent, RouterOutlet, RouterLink],
+  imports: [AppHeaderComponent, SidebarComponent, MascotDockComponent, RouterOutlet, RouterLink],
   templateUrl: './app.html',
   styleUrl: './app.css',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -25,6 +26,7 @@ export class App implements OnInit {
   private readonly sessionSocket = inject(SessionSocketService);
   private readonly router = inject(Router);
   private readonly mascot = inject(MascotService);
+  private readonly watcher = inject(NotificationWatcher);
   private readonly accountContext = inject(AccountContextService);
   private readonly currentUrl = toSignal(
     this.router.events.pipe(
@@ -41,6 +43,9 @@ export class App implements OnInit {
     return this.auth.isAuthenticated() && !this.auth.isAdmin() && this.auth.mustChangePassword() && path !== '/profile';
   });
 
+  /** The companion is on every page except the landing page, which has its own big scene. */
+  protected readonly showDock = computed(() => this.currentUrl().split("?")[0] !== "/");
+
   protected readonly showHeader = computed(() => {
     const path = this.currentUrl().split('?')[0];
     const isPublic = path === '/' || path === '/sign-in';
@@ -52,6 +57,9 @@ export class App implements OnInit {
     effect(() => {
       if (this.auth.isAuthenticated() && !this.auth.isAdmin()) {
         this.mascot.refresh(this.accountContext.getTokenAccountId());
+        this.watcher.start();
+      } else {
+        this.watcher.stop();
       }
     });
     // Ensure theme preference is applied on every app startup/refresh,

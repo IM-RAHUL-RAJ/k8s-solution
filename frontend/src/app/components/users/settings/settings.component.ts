@@ -1,6 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { MASCOT_LABEL, MASCOT_TYPES, MascotType } from '../../../core/mascot/mascot-svg';
+import { AnimationName, MASCOT_LABEL, MASCOT_TYPES, MascotType } from '../../../core/mascot/pixel-mascot';
 import { MascotService } from '../../../core/mascot/mascot.service';
 import {
   AlertChannel,
@@ -56,7 +56,6 @@ export class SettingsComponent {
   protected readonly kindOptions = NOTIFICATION_KIND_OPTIONS;
   protected readonly mascots = MASCOT_TYPES;
   protected readonly mascotLabel = MASCOT_LABEL;
-  protected readonly timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
   protected readonly loading = signal(true);
   protected readonly loadError = signal<string | null>(null);
@@ -72,9 +71,9 @@ export class SettingsComponent {
   protected readonly mascot = signal<MascotChoice>('OWL');
   protected readonly defaultAccountId = signal(0);
   protected readonly happyPick = signal<MascotType | null>(null);
+  protected readonly hovered = signal<MascotType | null>(null);
 
   protected readonly accountId = computed(() => this.accountContext.getTokenAccountId());
-  protected readonly maskedAccountId = computed(() => maskAccountId(this.accountId()));
   protected readonly accounts = computed(() => this.accountContext.getAllowedAccountIds());
   protected readonly email = computed(() => this.preferences()?.channels.find((option) => option.channel === 'EMAIL') ?? null);
   protected readonly emailAvailable = computed(() => this.email()?.available ?? false);
@@ -130,6 +129,17 @@ export class SettingsComponent {
   protected setInAppOnly(inApp: boolean): void {
     this.channel.set(inApp || !this.emailAvailable() ? 'PUSH' : 'EMAIL');
     this.persist();
+  }
+
+  /** Just picked: cheer. Chosen: dance. Pointed at: wave. The rest breathe. */
+  protected actionFor(type: MascotType): AnimationName {
+    if (this.happyPick() === type) {
+      return 'cheer';
+    }
+    if (this.mascot().toLowerCase() === type) {
+      return 'dance';
+    }
+    return this.hovered() === type ? 'wave' : 'idle';
   }
 
   protected pickMascot(type: MascotType): void {

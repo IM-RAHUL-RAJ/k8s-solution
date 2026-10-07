@@ -26,7 +26,8 @@ import java.util.regex.Pattern;
 @Component
 class EmailTemplateRenderer {
 
-    record Rendered(String html, String text) {
+    /** mascotResource is the classpath path of the animated GIF the message carries inline, or null if there is none. */
+    record Rendered(String html, String text, String mascotResource) {
     }
 
     /** What differs between kinds: the template, the pose of the mascot, the colour, and where the button goes. */
@@ -50,7 +51,7 @@ class EmailTemplateRenderer {
 
     /** The welcome message sent when an account is opened. */
     Rendered renderWelcome(String mascot, String subject, String body, Instant at) {
-        return render(new Style("welcome", "wave", "#2563eb", "Open Quorum", "/dashboard"), mascot, subject, body, at);
+        return render(new Style("welcome", "dance", "#171717", "Open Quorum", "/dashboard"), mascot, subject, body, at);
     }
 
     private Rendered render(Style style, String mascot, String subject, String body, Instant at) {
@@ -63,14 +64,15 @@ class EmailTemplateRenderer {
         values.put("ctaLabel", style.ctaLabel());
         values.put("ctaUrl", publicBaseUrl + style.ctaPath());
         values.put("settingsUrl", publicBaseUrl + "/settings");
-        values.put("mascotUrl", publicBaseUrl + "/mascots/email/" + mascotKey + "-" + style.pose() + ".png");
+        // The picture travels inside the message (cid:), so it shows even where the web app cannot be reached.
+        values.put("mascotUrl", "cid:mascot");
         values.put("mascotName", mascotKey.substring(0, 1).toUpperCase(Locale.ROOT) + mascotKey.substring(1));
         values.put("sentAt", SENT.format((at == null ? Instant.now() : at).atOffset(ZoneOffset.UTC)));
 
         String content = fill(template(style.template()), values, Map.of());
         String html = fill(template("layout"), values, Map.of("content", content));
         String text = subject + "\n\n" + body + "\n\n" + style.ctaLabel() + ": " + values.get("ctaUrl") + "\n";
-        return new Rendered(html, text);
+        return new Rendered(html, text, "email/mascots/" + mascotKey + "-" + style.pose() + ".gif");
     }
 
     private static String fill(String template, Map<String, String> escaped, Map<String, String> raw) {
@@ -114,11 +116,11 @@ class EmailTemplateRenderer {
 
     private static Style styleOf(NotificationKind kind) {
         return switch (kind) {
-            case ORDER_FILLED -> new Style("order-placed", "happy", "#2563eb", "View order in app", "/blotter");
-            case ORDER_REJECTED -> new Style("order-rejected", "sad", "#b45309", "See your orders", "/blotter");
-            case ORDER_CANCELLED -> new Style("order-cancelled", "thinking", "#475569", "See your orders", "/blotter");
-            case PRICE_ALERT -> new Style("price-alert", "thinking", "#7c3aed", "View alert", "/alerts");
-            case FUNDS -> new Style("funds", "happy", "#0f766e", "View balance", "/account");
+            case ORDER_FILLED -> new Style("order-placed", "cheer", "#171717", "View order in app", "/blotter");
+            case ORDER_REJECTED -> new Style("order-rejected", "sad", "#171717", "See your orders", "/blotter");
+            case ORDER_CANCELLED -> new Style("order-cancelled", "think", "#171717", "See your orders", "/blotter");
+            case PRICE_ALERT -> new Style("price-alert", "wave", "#171717", "View alert", "/alerts");
+            case FUNDS -> new Style("funds", "happy", "#171717", "View balance", "/profile");
         };
     }
 }

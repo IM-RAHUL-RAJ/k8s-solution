@@ -79,10 +79,10 @@ public class FundsService {
 
     private FundsResponse record(Long accountId, FundsKind kind, FundsRequest request, String currency, BigDecimal balance) {
         UUID id = UUID.randomUUID();
-        mapper.insertMovement(id, accountId, kind, request.amount(), currency, request.method(), balance);
+        mapper.insertMovement(id, accountId, kind, request.amount(), currency, request.methodOrDefault(), balance);
         log.info("[FUNDS] {} accountId={} amount={} {} method={}", kind, accountId, request.amount(), currency, request.method());
         announce(id, accountId, kind, request.amount(), currency, balance);
-        return new FundsResponse(id, accountId, kind, request.amount(), currency, request.method(), balance, java.time.Instant.now());
+        return new FundsResponse(id, accountId, kind, request.amount(), currency, request.methodOrDefault(), balance, java.time.Instant.now());
     }
 
     /** A failed message must never undo the money movement, so it is logged and dropped. */

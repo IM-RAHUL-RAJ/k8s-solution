@@ -88,6 +88,23 @@ class PriceAlertNotificationTest {
         }
     }
 
+    @Test
+    void readAllMarksOnlyThisAccountsMessagesAndSaysHowManyChanged() {
+        fire(AlertDeliveryRequest.Operator.GT, 20, "231");
+        UUIDs.order(ledger, 1L);
+        UUIDs.order(ledger, 2L);
+        NotificationService service = new NotificationService(ledger, new AccountAuthorizer());
+        com.capstone.etp.testsupport.TestIdentity.customer(1L);
+        try {
+            assertEquals(2, service.markAllRead(1L));
+            assertEquals(0, service.unreadCount(1L));
+            assertEquals(0, service.markAllRead(1L), "nothing left to read");
+            assertEquals(1, ledger.countUnread(2L), "another account's inbox is untouched");
+        } finally {
+            com.capstone.etp.testsupport.TestIdentity.clear();
+        }
+    }
+
     /** Puts an order message in the ledger without going through Kafka. */
     private static final class UUIDs {
         static void order(InMemoryNotificationMapper ledger, long accountId) {

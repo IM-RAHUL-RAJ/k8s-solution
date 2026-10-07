@@ -367,7 +367,7 @@ describe('PortfolioComponent', () => {
       expect(isPricingUnavailable(new HttpErrorResponse({ status: 500 }))).toBe(false);
     });
 
-    it('flags delayed and unpriced holdings in banners', async () => {
+    it('flags unpriced holdings in a banner, and leaves delayed prices to the table colouring', async () => {
       getSummary.mockReturnValue(of(summary({ partial: true })));
       getPositions.mockReturnValue(of([
         position({ stale: true, priceAsOf: iso(10) }),
@@ -376,7 +376,7 @@ describe('PortfolioComponent', () => {
       await build();
 
       expect(el('partial-banner')).not.toBeNull();
-      expect(el('stale-banner')).not.toBeNull();
+      expect(el('stale-banner')).toBeNull();
     });
 
     it('shows the profit-and-loss error without blanking the holdings', async () => {

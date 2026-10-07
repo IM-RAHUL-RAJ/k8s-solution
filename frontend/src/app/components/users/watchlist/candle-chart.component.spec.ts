@@ -3,13 +3,14 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 import { vi } from 'vitest';
 import { CandlesService } from '../../../core/services/candles.service';
-import { BARS_FOR, CandleChartComponent } from './candle-chart.component';
+import { CandleChartComponent } from './candle-chart.component';
 
 // The chart library needs a real canvas. These tests care what the component asks for and shows, not the drawing.
 const setData = vi.fn();
 const createChart = vi.fn(() => ({
   addSeries: vi.fn(() => ({ setData, applyOptions: vi.fn(), priceScale: () => ({ applyOptions: vi.fn() }) })),
   subscribeCrosshairMove: vi.fn(),
+  subscribeClick: vi.fn(),
   applyOptions: vi.fn(),
   timeScale: () => ({ fitContent: vi.fn() }),
   remove: vi.fn()
@@ -18,7 +19,8 @@ vi.mock('lightweight-charts', () => ({
   createChart: (...args: unknown[]) => (createChart as (...a: unknown[]) => unknown)(...args),
   CandlestickSeries: 'candles',
   HistogramSeries: 'volume',
-  CrosshairMode: { Magnet: 1 }
+  CrosshairMode: { Magnet: 1 },
+  LineStyle: { Dotted: 1 }
 }));
 
 describe('CandleChartComponent', () => {
@@ -62,10 +64,10 @@ describe('CandleChartComponent', () => {
     createChart.mockClear();
   });
 
-  it('asks for daily candles first, as many as the period suggests', async () => {
+  it('asks for a month of daily candles first', async () => {
     await build();
 
-    expect(getCandles).toHaveBeenCalledWith('AAPL', '1d', BARS_FOR['1d']);
+    expect(getCandles).toHaveBeenCalledWith('AAPL', '1d', 31);
   });
 
   it('draws the candles and the volume once they arrive', async () => {
@@ -75,34 +77,35 @@ describe('CandleChartComponent', () => {
     // one call for candles, one for volume
     expect(setData).toHaveBeenCalledTimes(2);
     expect(setData.mock.calls[0][0]).toEqual([
-      { time: Date.parse('2026-10-05T00:00:00Z') / 1000, open: 229, high: 232, low: 228, close: 231.2 },
-      { time: Date.parse('2026-10-06T00:00:00Z') / 1000, open: 231, high: 233, low: 230, close: 230.5 }
+      { time: '2026-10-05', open: 229, high: 232, low: 228, close: 231.2 },
+      { time: '2026-10-06', open: 231, high: 233, low: 230, close: 230.5 }
     ]);
   });
 
-  it('offers 1D, 4H, 1H and 15M, and re-fetches when one is chosen', async () => {
+  it('offers just 1 Day, 1 Month and 3 Months, and re-fetches when one is chosen', async () => {
     await build();
-    expect(Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('[role="radio"]')).map((b) => b.textContent!.trim())).toEqual(['1D', '4H', '1H', '15M']);
+    expect(Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('[role="radio"]')).map((b) => b.textContent!.trim())).toEqual(['1 Day', '1 Month', '3 Months']);
 
-    el('period-1h')!.click();
+    el('preset-1D')!.click();
     await settle();
 
-    expect(getCandles).toHaveBeenLastCalledWith('AAPL', '1h', BARS_FOR['1h']);
-    expect(el('period-1h')?.getAttribute('aria-checked')).toBe('true');
-    expect(el('period-1d')?.getAttribute('aria-checked')).toBe('false');
+    // today is read in 15-minute bars
+    expect(getCandles).toHaveBeenLastCalledWith('AAPL', '15m', 32);
+    expect(el('preset-1D')?.getAttribute('aria-checked')).toBe('true');
+    expect(el('preset-1M')?.getAttribute('aria-checked')).toBe('false');
   });
 
   it('remembers the chosen period for next time', async () => {
     await build();
-    el('period-4h')!.click();
+    el('preset-3M')!.click();
     await settle();
 
-    expect(localStorage.getItem('quorum-candle-period')).toBe('4h');
+    expect(localStorage.getItem('quorum-candle-preset')).toBe('3M');
 
     TestBed.resetTestingModule();
     getCandles.mockClear();
     await build();
-    expect(getCandles).toHaveBeenCalledWith('AAPL', '4h', BARS_FOR['4h']);
+    expect(getCandles).toHaveBeenCalledWith('AAPL', '1d', 92);
   });
 
   it('asks again for a different instrument', async () => {
@@ -111,7 +114,7 @@ describe('CandleChartComponent', () => {
     fixture.componentRef.setInput('symbol', 'MSFT');
     await settle();
 
-    expect(getCandles).toHaveBeenLastCalledWith('MSFT', '1d', BARS_FOR['1d']);
+    expect(getCandles).toHaveBeenLastCalledWith('MSFT', '1d', 31);
   });
 
   it('says so when there are no candles, and draws nothing', async () => {

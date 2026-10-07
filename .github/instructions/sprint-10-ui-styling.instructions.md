@@ -1,6 +1,6 @@
 ---
 name: sprint-10-ui-styling
-description: "Use when styling or creating CSS for the Sprint 10 trading UI. Enforces the neutral-plus-one-blue design system: tokens only (no hard-coded colours), 8px spacing scale, light and dark parity, mascot styling, and the animation timing rules."
+description: "Use when styling or creating CSS for the Sprint 10 trading UI. Enforces the Zard neutral pixel design system (supersedes the blue palette below; see Phase 2): tokens only (no hard-coded colours), 8px spacing scale, light and dark parity, mascot styling, and the animation timing rules."
 applyTo: "frontend/src/**/*.css|frontend/src/**/*.scss"
 ---
 
@@ -107,3 +107,10 @@ Rules:
 - A `.page` is a single shrinkable column (`grid-template-columns: minmax(0, 1fr)`); a wide table must scroll
   inside its own `.scroll` box and never widen the page.
 - Check every new screen at 390px, 768px and 1280px, in light and dark.
+
+## Phase 2: Zard neutral, pixel art (supersedes the blue palette above)
+
+- Tokens come from the Zard (shadcn neutral) set in `frontend/src/styles.css`: `--bg --surface --muted-bg --line --text --muted --accent --on-accent --signal --ok --reject --c1..c6`. The accent is near-black (white in dark mode); `--signal` red marks the active nav edge and unread counts. No gradients, no coloured card borders.
+- The one typeface is Doto (self-hosted via @fontsource/doto, weights 500/700/900) for all text; charts use it too. Canvas charts render at half resolution with `image-rendering: pixelated` and step lines.
+- Every pop-up (`app-modal`) carries a mascot with an animation (`mascot` input); toasts are the mascot's speech bubbles (`ToastService` + `app-mascot-dock`).
+- Mascots are pixel art from `core/mascot/pixel-mascot.ts`; never add an SVG or PNG mascot.

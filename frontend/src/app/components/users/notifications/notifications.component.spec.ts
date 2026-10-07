@@ -12,6 +12,7 @@ describe('NotificationsComponent', () => {
   const list = vi.fn();
   const counts = vi.fn();
   const markRead = vi.fn();
+  const markAllRead = vi.fn();
 
   const item = (overrides: Partial<NotificationItem> = {}): NotificationItem => ({
     id: 1,
@@ -40,7 +41,7 @@ describe('NotificationsComponent', () => {
     await TestBed.configureTestingModule({
       imports: [NotificationsComponent],
       providers: [
-        { provide: NotificationService, useValue: { list, counts, markRead } },
+        { provide: NotificationService, useValue: { list, counts, markRead, markAllRead } },
         { provide: AccountContextService, useValue: { getCurrentAccount: () => ({ accountNumericId: 1 }) } }
       ]
     }).compileComponents();
@@ -52,6 +53,19 @@ describe('NotificationsComponent', () => {
     list.mockReset().mockReturnValue(of([item()]));
     counts.mockReset().mockReturnValue(of({ all: 5, priceAlert: 3, order: 2, funds: 0 }));
     markRead.mockReset();
+    markAllRead.mockReset().mockReturnValue(of(2));
+  });
+
+  it('has a Read all button that marks the whole inbox read at once', async () => {
+    list.mockReturnValue(of([item({ id: 1 }), item({ id: 2 })]));
+    await create();
+    expect(fixture.nativeElement.querySelectorAll('[data-testid="unread-dot"]').length + fixture.nativeElement.querySelectorAll('.item--unread').length).toBeGreaterThanOrEqual(0);
+
+    el('mark-all-read')!.click();
+    await settle();
+
+    expect(markAllRead).toHaveBeenCalledWith(1);
+    expect(fixture.componentInstance['items']().every((entry: NotificationItem) => entry.read)).toBe(true);
   });
 
   describe('filter tabs', () => {

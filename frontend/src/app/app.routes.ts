@@ -21,6 +21,13 @@ export const routes: Routes = [
 			import('./components/users/admin/admin-dashboard.component').then((m) => m.AdminDashboardComponent)
 	},
 	{
+		path: 'admin/settings',
+		title: 'Settings',
+		canActivate: [authGuard, adminGuard],
+		loadComponent: () =>
+			import('./components/users/admin/admin-settings.component').then((m) => m.AdminSettingsComponent)
+	},
+	{
 		path: 'dashboard',
 		canActivate: [authGuard, customerGuard],
 		loadComponent: () =>

@@ -4,10 +4,16 @@
       <h1>Inbox</h1>
       <p class="muted">Messages about your orders, price alerts and funds, including ones you missed.</p>
     </div>
-    <button type="button" class="secondary" [class.active]="unreadOnly()" [attr.aria-pressed]="unreadOnly()"
-            (click)="toggleUnread()" data-testid="filter-unread">
-      Unread only ({{ unreadCount() }})
-    </button>
+    <div class="head__actions">
+      <button type="button" class="secondary" [class.active]="unreadOnly()" [attr.aria-pressed]="unreadOnly()"
+              (click)="toggleUnread()" data-testid="filter-unread">
+        Unread only ({{ unreadCount() }})
+      </button>
+      <button type="button" class="primary" (click)="markAllRead()" [disabled]="unreadCount() === 0 || busyId() !== null"
+              data-testid="mark-all-read">
+        <app-icon name="check" [size]="18" /> Read all
+      </button>
+    </div>
   </header>
 
   <div class="tabs" role="tablist" aria-label="Filter messages by type" data-testid="type-tabs">

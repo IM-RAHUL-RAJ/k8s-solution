@@ -13,7 +13,7 @@ export const FUNDS_METHODS: ReadonlyArray<{ value: FundsMethod; label: string }>
 
 export interface FundsRequest {
   amount: number;
-  method: FundsMethod;
+  method?: FundsMethod;
 }
 
 export interface FundsMovement {
@@ -22,7 +22,7 @@ export interface FundsMovement {
   kind: 'DEPOSIT' | 'WITHDRAWAL';
   amount: number;
   currency: string;
-  method: FundsMethod;
+  method?: FundsMethod;
   balanceAfter: number;
   createdAt: string;
 }

@@ -1,4 +1,4 @@
-/* Not encapsulated: the artwork is injected markup, so its classes live in the global scope under .mascot. */
+/* Not encapsulated: the artwork is injected markup. The animation itself is stepped frames, drawn in code. */
 app-mascot {
   display: inline-block;
   line-height: 0;
@@ -19,137 +19,60 @@ app-mascot {
   width: 100%;
   height: 100%;
   overflow: visible;
+  image-rendering: pixelated;
 }
 
 .mascot__btn {
+  height: 100%;
   padding: 0;
   border: none;
   background: transparent;
+  border-radius: 0;
   cursor: pointer;
-  border-radius: 50%;
 }
 
 .mascot__btn:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: none;
 }
 
-/* Breathing: a slow, small squash of the body from the feet. */
-.mascot .m-body {
-  animation: mascotBreathe 3.6s ease-in-out infinite;
-}
-
-.mascot .m-eye {
-  animation: mascotBlink 5.2s infinite;
-}
-
-.mascot .m-arm {
-  animation: mascotWave 1.2s ease-in-out infinite;
-}
-
-.mascot--happy .m-body {
-  animation: mascotJump 0.9s var(--bounce, cubic-bezier(0.34, 1.56, 0.64, 1)) 2;
-}
-
-.mascot--empty {
-  animation: mascotEnter 300ms ease-out both;
-}
-
-.mascot--loading .m-body {
-  animation-duration: 2.2s;
-}
-
-.mascot__ring {
-  position: absolute;
-  inset: -6%;
-  border-radius: 50%;
-  border: 3px solid color-mix(in srgb, var(--accent) 22%, transparent);
-  border-top-color: var(--accent);
-  animation: mascotSpin 1.8s linear infinite;
-  pointer-events: none;
-}
-
+/* A speech bubble in the pixel face, with a square tail. */
 .mascot__thought {
   position: absolute;
   z-index: 2;
   left: 50%;
-  bottom: calc(100% + 4px);
+  bottom: calc(100% + 8px);
   transform: translateX(-50%);
   width: max-content;
   max-width: 220px;
   padding: 8px 12px;
-  border-radius: 14px;
-  border: 1px solid var(--line);
-  background: var(--surface);
+  border: 2px solid var(--text);
+  border-radius: 0;
+  background: var(--bg);
   color: var(--text);
-  box-shadow: var(--shadow-md);
-  font-size: 13px;
-  line-height: 1.35;
-  animation: scaleIn 240ms var(--ease, ease-out);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.3;
+  text-align: left;
+  animation: bubbleIn 220ms steps(4, end);
 }
 
-@keyframes mascotBreathe {
-  0%,
-  100% {
-    transform: scale(1, 1);
-  }
-  50% {
-    transform: scale(1.015, 0.975);
-  }
+.mascot__thought::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+  background: var(--bg);
+  border-right: 2px solid var(--text);
+  border-bottom: 2px solid var(--text);
+  transform: translateY(-5px) rotate(45deg);
 }
 
-@keyframes mascotBlink {
-  0%,
-  94%,
-  100% {
-    transform: scaleY(1);
-  }
-  97% {
-    transform: scaleY(0.1);
-  }
-}
-
-@keyframes mascotWave {
-  0%,
-  100% {
-    transform: rotate(0);
-  }
-  50% {
-    transform: rotate(-18deg);
-  }
-}
-
-@keyframes mascotJump {
-  0%,
-  100% {
-    transform: translateY(0) scale(1, 1);
-  }
-  30% {
-    transform: translateY(-14%) scale(0.97, 1.04);
-  }
-  60% {
-    transform: translateY(0) scale(1.04, 0.96);
-  }
-}
-
-@keyframes mascotEnter {
+@keyframes bubbleIn {
   from {
     opacity: 0;
-    transform: translateY(16px);
-  }
-}
-
-@keyframes mascotSpin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .mascot .m-body,
-  .mascot .m-eye,
-  .mascot .m-arm,
-  .mascot__ring,
-  .mascot--empty {
-    animation: none;
+    transform: translateX(-50%) translateY(6px);
   }
 }

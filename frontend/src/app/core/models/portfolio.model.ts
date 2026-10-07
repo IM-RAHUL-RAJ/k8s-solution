@@ -58,7 +58,7 @@ export interface PortfolioHistoryPoint {
 export interface DayChange {
   amount: number;
   percent: number;
-  since: string;
+  since: string | null;
 }
 
 export interface PortfolioHistory {

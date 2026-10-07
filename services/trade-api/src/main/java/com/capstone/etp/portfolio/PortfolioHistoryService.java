@@ -59,10 +59,18 @@ public class PortfolioHistoryService {
                 .toList();
 
         return new PortfolioHistoryResponse(accountId, current == null ? null : current.baseCurrency(), range, points,
-                current == null ? null : dayChange(accountId, current.totalValue(), now));
+                current == null ? null : dayChangeOf(current, accountId, now));
     }
 
-    private PortfolioHistoryResponse.DayChange dayChange(Long accountId, BigDecimal total, Instant now) {
+    /** Prefer the real thing: holdings now against yesterday close. Without previous closes, fall back to the recorded history. */
+    private PortfolioHistoryResponse.DayChange dayChangeOf(PortfolioSummaryResponse current, Long accountId, Instant now) {
+        if (current.dayChange() != null) {
+            return new PortfolioHistoryResponse.DayChange(current.dayChange(), current.dayChangePercent(), null);
+        }
+        return snapshotDayChange(accountId, current.totalValue(), now);
+    }
+
+    private PortfolioHistoryResponse.DayChange snapshotDayChange(Long accountId, BigDecimal total, Instant now) {
         PortfolioSnapshotMapper.Snapshot before = snapshots.findAtOrBefore(accountId, now.minus(DAY));
         if (before == null || before.getTotalValue() == null || before.getTotalValue().signum() == 0) {
             return null;

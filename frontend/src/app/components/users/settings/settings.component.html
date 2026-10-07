@@ -16,7 +16,6 @@
     <article class="card section" data-testid="section-account">
       <h2>Account</h2>
       <dl class="rows">
-        <div><dt>Account ID</dt><dd class="mono" data-testid="account-id">{{ maskedAccountId() }}</dd></div>
         <div>
           <dt>Account reference</dt>
           <dd class="mono locked" data-testid="account-ref">
@@ -103,32 +102,12 @@
       <div class="mascots stagger" role="radiogroup" aria-label="Companion">
         @for (type of mascots; track type) {
           <button type="button" role="radio" class="mascot-card" [class.mascot-card--on]="mascot().toLowerCase() === type"
-                  [attr.aria-checked]="mascot().toLowerCase() === type" (click)="pickMascot(type)" [attr.data-testid]="'mascot-' + type">
-            <app-mascot [type]="type" [state]="happyPick() === type ? 'happy' : 'idle'" [size]="96" [interactive]="false" />
+                  [attr.aria-checked]="mascot().toLowerCase() === type" (click)="pickMascot(type)" (mouseenter)="hovered.set(type)" (mouseleave)="hovered.set(null)" (focus)="hovered.set(type)" (blur)="hovered.set(null)" [attr.data-testid]="'mascot-' + type">
+            <app-mascot [type]="type" [action]="actionFor(type)" [size]="96" [interactive]="false" />
             <span>{{ mascotLabel[type] }}</span>
           </button>
         }
       </div>
-    </article>
-
-    <!-- 6. Other -->
-    <article class="card section" data-testid="section-other">
-      <h2>Other</h2>
-      <div class="field">
-        <label for="default-account">Default account</label>
-        <select id="default-account" [value]="defaultAccountId()" (change)="setDefaultAccount($any($event.target).value)" data-testid="default-account">
-          @for (id of accounts(); track id) {
-            <option [value]="id" [selected]="id === defaultAccountId()">Account {{ id }}</option>
-          }
-        </select>
-        <span class="field-hint">
-          @if (accounts().length < 2) { This sign-in works on one account, so there is nothing else to choose yet. }
-          @else { The account the application opens on when you sign in. }
-        </span>
-      </div>
-      <dl class="rows">
-        <div><dt>Time zone</dt><dd data-testid="timezone">{{ timezone }}</dd></div>
-      </dl>
     </article>
   }
 </section>

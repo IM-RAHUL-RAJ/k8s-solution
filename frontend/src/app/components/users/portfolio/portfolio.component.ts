@@ -21,7 +21,7 @@ import { PortfolioService } from '../../../core/services/portfolio.service';
 import { ExportDocument, ExportService, ExportTable } from '../../../core/export/export.service';
 import { ThemeService } from '../../../core/theme/theme.service';
 import { DownloadMenuComponent, DownloadRequest } from '../shared/download-menu/download-menu.component';
-import { ChartOption, EchartComponent, token } from '../shared/echart/echart.component';
+import { ChartOption, EchartComponent, pixelText, pixelTooltip, token } from '../shared/echart/echart.component';
 import { EmptyStateComponent } from '../shared/empty-state/empty-state.component';
 import { IconComponent } from '../shared/icon/icon.component';
 
@@ -220,20 +220,23 @@ export class PortfolioComponent {
     const muted = token('--muted', '#6b7078');
     const grid = token('--line', '#e5e5ea');
     return {
-      grid: { left: 8, right: 12, top: 16, bottom: 8, containLabel: true },
-      tooltip: {
+      grid: { left: 8, right: 16, top: 24, bottom: 8, containLabel: true },
+      tooltip: pixelTooltip({
         trigger: 'axis',
+        axisPointer: { type: 'line', lineStyle: { color: muted, type: 'dashed', width: 2 } },
         valueFormatter: (value: number) => value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-      },
-      xAxis: { type: 'time', axisLine: { lineStyle: { color: grid } }, axisLabel: { color: muted } },
-      yAxis: { type: 'value', scale: true, splitLine: { lineStyle: { color: grid } }, axisLabel: { color: muted } },
+      }),
+      xAxis: { type: 'time', axisLine: { lineStyle: { color: grid, width: 2 } }, axisTick: { show: false }, axisLabel: pixelText(muted, 16) },
+      yAxis: { type: 'value', scale: true, splitLine: { lineStyle: { color: grid, type: 'dotted', width: 2 } }, axisLabel: pixelText(muted, 16) },
       series: [
         {
           type: 'line',
-          smooth: true,
-          showSymbol: points.length < 40,
-          lineStyle: { color: line, width: 2 },
-          itemStyle: { color: line },
+          step: 'end',
+          symbol: 'rect',
+          symbolSize: 8,
+          showSymbol: points.length < 30,
+          lineStyle: { color: line, width: 3 },
+          itemStyle: { color: line, borderRadius: 0 },
           areaStyle: { color: line, opacity: 0.08 },
           data: points.map((point) => [point.at, point.totalValue])
         }
@@ -251,17 +254,17 @@ export class PortfolioComponent {
       .sort((left, right) => (right.value ?? 0) - (left.value ?? 0))
       .map((row) => ({ name: row.position.symbol, value: row.value as number }));
     return {
-      tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
-      legend: { bottom: 0, icon: 'circle', itemWidth: 8, itemHeight: 8, textStyle: { color: token('--muted', '#6b7078') } },
+      tooltip: pixelTooltip({ trigger: 'item', formatter: '{b}<br/>{c} ({d}%)' }),
+      legend: { bottom: 0, icon: 'rect', itemWidth: 10, itemHeight: 10, textStyle: pixelText(token('--muted', '#737373'), 16) },
       color: palette,
       series: [
         {
           type: 'pie',
           radius: ['52%', '74%'],
           center: ['50%', '44%'],
-          itemStyle: { borderColor: surface, borderWidth: 2, borderRadius: 4 },
+          itemStyle: { borderColor: surface, borderWidth: 4, borderRadius: 0 },
           label: { show: false },
-          emphasis: { scale: true, scaleSize: 6 },
+          emphasis: { scale: true, scaleSize: 8 },
           data: slices
         }
       ]

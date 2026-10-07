@@ -156,4 +156,16 @@ class InMemoryNotificationMapper implements NotificationMapper {
         n.setStatusReason(reason);
         return 1;
     }
+
+    @Override
+    public int markAllRead(Long accountId) {
+        int changed = 0;
+        for (Notification n : rows.values()) {
+            if (n.getAccountId().equals(accountId) && n.getReadAt() == null) {
+                n.setReadAt(Instant.now());
+                changed++;
+            }
+        }
+        return changed;
+    }
 }

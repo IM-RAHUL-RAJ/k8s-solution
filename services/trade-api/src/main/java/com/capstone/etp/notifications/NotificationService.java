@@ -116,6 +116,12 @@ public class NotificationService implements NotificationStatusLookup {
         return mapper.countUnread(accountId);
     }
 
+    /** Reads everything in the inbox at once. Answers with how many were unread. */
+    public int markAllRead(Long accountId) {
+        authorizer.ensureOwnAccount(accountId);
+        return mapper.markAllRead(accountId);
+    }
+
     public NotificationResponse markRead(Long accountId, Long notificationId) {
         authorizer.ensureOwnAccount(accountId);
         // The update is keyed on the account as well as the id, so another account's notification

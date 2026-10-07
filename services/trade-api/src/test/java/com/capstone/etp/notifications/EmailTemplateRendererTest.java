@@ -19,7 +19,8 @@ class EmailTemplateRendererTest {
             EmailTemplateRenderer.Rendered rendered = renderer.render(kind, "RABBIT", "Subject", "Body text.", at);
 
             assertTrue(rendered.html().contains("Body text."), kind + " carries the message");
-            assertTrue(rendered.html().contains("/mascots/email/rabbit-"), kind + " shows the chosen mascot");
+            assertTrue(rendered.mascotResource().contains("rabbit-"), kind + " carries the chosen mascot");
+            assertTrue(rendered.html().contains("src=\"cid:mascot\""), kind + " shows it from the message itself");
             assertFalse(rendered.html().contains("{{"), kind + " has no unfilled placeholder");
             assertTrue(rendered.text().contains("https://app.example/"), kind + " text version has the link");
         }
@@ -27,10 +28,10 @@ class EmailTemplateRendererTest {
 
     @Test
     void thePoseFitsTheMessage() {
-        assertTrue(renderer.render(NotificationKind.ORDER_FILLED, "OWL", "s", "b", at).html().contains("owl-happy.png"));
-        assertTrue(renderer.render(NotificationKind.ORDER_REJECTED, "OWL", "s", "b", at).html().contains("owl-sad.png"));
-        assertTrue(renderer.render(NotificationKind.PRICE_ALERT, "CAT", "s", "b", at).html().contains("cat-thinking.png"));
-        assertTrue(renderer.renderWelcome("OWL", "s", "b", at).html().contains("owl-wave.png"));
+        assertEquals("email/mascots/owl-cheer.gif", renderer.render(NotificationKind.ORDER_FILLED, "OWL", "s", "b", at).mascotResource());
+        assertEquals("email/mascots/owl-sad.gif", renderer.render(NotificationKind.ORDER_REJECTED, "OWL", "s", "b", at).mascotResource());
+        assertEquals("email/mascots/cat-wave.gif", renderer.render(NotificationKind.PRICE_ALERT, "CAT", "s", "b", at).mascotResource());
+        assertEquals("email/mascots/owl-dance.gif", renderer.renderWelcome("OWL", "s", "b", at).mascotResource());
     }
 
     @Test

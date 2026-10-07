@@ -67,6 +67,8 @@ describe('OrderHistoryComponent download', () => {
 
   it('offers the current filter and everything once a filter narrows the list', async () => {
     const fixture = await create();
+    fixture.nativeElement.querySelector('[data-testid="filters-toggle"]').click();
+    fixture.detectChanges();
     fixture.nativeElement.querySelector('[data-testid="filter-FILLED"]').click();
     fixture.detectChanges();
 
@@ -79,6 +81,8 @@ describe('OrderHistoryComponent download', () => {
 
   it('exports only what the filter shows, saying which filter it was', async () => {
     const fixture = await create();
+    fixture.nativeElement.querySelector('[data-testid="filters-toggle"]').click();
+    fixture.detectChanges();
     fixture.nativeElement.querySelector('[data-testid="filter-FILLED"]').click();
     fixture.detectChanges();
 
@@ -94,6 +98,8 @@ describe('OrderHistoryComponent download', () => {
 
   it('exports every order when asked for everything, filter or not', async () => {
     const fixture = await create();
+    fixture.nativeElement.querySelector('[data-testid="filters-toggle"]').click();
+    fixture.detectChanges();
     fixture.nativeElement.querySelector('[data-testid="filter-FILLED"]').click();
     fixture.detectChanges();
 

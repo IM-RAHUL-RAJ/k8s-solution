@@ -3,7 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { vi } from 'vitest';
-import { MASCOT_TYPES, mascotSvg } from '../../../core/mascot/mascot-svg';
+import { ANIMATIONS, ANIMATION_NAMES, MASCOT_TYPES, frameSvg } from '../../../core/mascot/pixel-mascot';
 import { MascotService } from '../../../core/mascot/mascot.service';
 import { AuthService } from '../../../core/auth/auth.service';
 import { NotificationService } from '../../../core/services/notification.service';
@@ -21,17 +21,21 @@ import { ModalComponent } from './modal/modal.component';
 import { SidebarComponent } from './sidebar/sidebar.component';
 
 describe('mascot artwork', () => {
-  it('draws every mascot in every pose, each with a unique gradient so several can share a page', () => {
-    const ids = new Set<string>();
+  it('draws every mascot in every animation as pixel art, and every animation has frames to move through', () => {
     for (const type of MASCOT_TYPES) {
-      for (const pose of ['idle', 'happy', 'sad', 'thinking', 'wave'] as const) {
-        const svg = mascotSvg(type, pose);
+      for (const name of ANIMATION_NAMES) {
+        expect(ANIMATIONS[name].length).toBeGreaterThan(1);
+        const svg = frameSvg(type, name, 0);
         expect(svg.startsWith('<svg')).toBe(true);
         expect(svg).toContain('role="img"');
-        ids.add(svg.match(/radialGradient id="([^"]+)"/)![1]);
+        expect(svg).toContain('crispEdges');
       }
     }
-    expect(ids.size).toBe(3);
+  });
+
+  it('moves: the frames of a dance are not all the same picture', () => {
+    const frames = new Set(ANIMATIONS['dance'].map((_, index) => frameSvg('owl', 'dance', index)));
+    expect(frames.size).toBeGreaterThan(1);
   });
 });
 
@@ -63,21 +67,22 @@ describe('MascotComponent', () => {
     expect(fixture.nativeElement.querySelector('[data-testid="mascot"]').dataset.type).toBe('rabbit');
   });
 
-  it('wraps itself in a turning ring while loading and a jump while happy', () => {
-    fixture.componentRef.setInput('state', 'loading');
+  it('plays the animation it is asked for, else the one its mood implies', () => {
+    fixture.componentRef.setInput('action', 'cheer');
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.mascot__ring')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-testid="mascot"]').dataset.action).toBe('cheer');
 
+    fixture.componentRef.setInput('action', null);
     fixture.componentRef.setInput('state', 'happy');
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.mascot--happy')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('.mascot__ring')).toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-testid="mascot"]').dataset.action).toBe('happy');
   });
 
-  it('shows a thought when tapped, and not when it is only decoration', () => {
+  it('dances and says something when tapped, and has no button when it is only decoration', () => {
     fixture.detectChanges();
     fixture.nativeElement.querySelector('.mascot__btn').click();
     fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[data-testid="mascot"]').dataset.action).toBe('dance');
     expect(fixture.nativeElement.querySelector('.mascot__thought')).not.toBeNull();
 
     const plain = TestBed.createComponent(MascotComponent);
@@ -210,7 +215,7 @@ describe('ToastService', () => {
     toasts.show('four');
     expect(toasts.toasts().map((toast) => toast.message)).toEqual(['two', 'three', 'four']);
 
-    vi.advanceTimersByTime(3600);
+    vi.advanceTimersByTime(4600);
     expect(toasts.toasts()).toEqual([]);
     vi.useRealTimers();
   });
@@ -237,9 +242,9 @@ describe('ShellStateService', () => {
 });
 
 describe('avatar', () => {
-  it('takes initials from one or several words', () => {
-    expect(initialsOf('jane.doe')).toBe('JD');
-    expect(initialsOf('Jane Q Doe')).toBe('JD');
+  it('is the first letter of the name', () => {
+    expect(initialsOf('jane.doe')).toBe('J');
+    expect(initialsOf('Jane Q Doe')).toBe('J');
     expect(initialsOf('trader01')).toBe('T');
     expect(initialsOf('')).toBe('?');
   });
@@ -302,7 +307,7 @@ describe('navigation shell', () => {
     fixture.detectChanges();
 
     const labels = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('.nav-item__label')).map((node) => node.textContent!.trim());
-    expect(labels).toEqual(['Admin', 'Collapse']);
+    expect(labels).toEqual(['Admin', 'Settings']);
   });
 
   it('the top bar has a settings gear and an avatar, and no theme control', () => {
@@ -312,7 +317,7 @@ describe('navigation shell', () => {
 
     expect(root.querySelector('[data-testid="settings-link"]')?.getAttribute('aria-label')).toBe('Settings');
     expect(root.querySelector('[data-testid="settings-link"]')?.getAttribute('href')).toBe('/settings');
-    expect(root.querySelector('[data-testid="avatar-button"]')?.textContent?.trim()).toBe('JD');
+    expect(root.querySelector('[data-testid="avatar-button"]')?.textContent?.trim()).toBe('J');
     expect(root.querySelector('[data-testid="avatar-button"]')?.getAttribute('data-tip')).toBe('jane.doe');
     expect(root.querySelector('app-theme-toggle')).toBeNull();
   });
@@ -369,7 +374,14 @@ describe('FundsDialogComponent', () => {
     show.mockReset();
   });
 
-  it('adds funds with the amount and method, then says so and reports the new balance', () => {
+  it('asks for an amount and nothing else: no payment method, no simulation note', () => {
+    build('deposit');
+
+    expect(el('funds-method')).toBeNull();
+    expect(fixture.nativeElement.textContent).not.toContain('simulation');
+  });
+
+  it('adds funds with just the amount, then says so and reports the new balance', () => {
     build('deposit');
     const done = vi.fn();
     fixture.componentInstance.done.subscribe(done);
@@ -378,7 +390,7 @@ describe('FundsDialogComponent', () => {
     el('funds-submit')!.click();
     fixture.detectChanges();
 
-    expect(deposit).toHaveBeenCalledWith(1, { amount: 250, method: 'BANK_TRANSFER' });
+    expect(deposit).toHaveBeenCalledWith(1, { amount: 250 });
     expect(show).toHaveBeenCalledWith('Funds added successfully');
     expect(done).toHaveBeenCalledWith(movement);
   });
@@ -405,7 +417,7 @@ describe('FundsDialogComponent', () => {
     expect((el('funds-amount') as HTMLInputElement).value).toBe('1000.00');
 
     el('funds-submit')!.click();
-    expect(withdraw).toHaveBeenCalledWith(1, { amount: 1000, method: 'BANK_TRANSFER' });
+    expect(withdraw).toHaveBeenCalledWith(1, { amount: 1000 });
     expect(show).toHaveBeenCalledWith('Withdrawal request initiated');
   });
 

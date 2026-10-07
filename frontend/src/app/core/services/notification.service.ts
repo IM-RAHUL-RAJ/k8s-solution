@@ -52,6 +52,14 @@ export class NotificationService {
     return this.http.get<NotificationCounts>(`${this.base(accountId)}/counts`);
   }
 
+  /** Reads everything at once. Answers with how many were unread. */
+  markAllRead(accountId: number): Observable<number> {
+    return this.http.post<{ updated: number }>(`${this.base(accountId)}/read-all`, null).pipe(
+      map((reply) => reply.updated),
+      tap(() => this.unreadSignal.set(0))
+    );
+  }
+
   markRead(accountId: number, notificationId: number): Observable<NotificationItem> {
     return this.http
       .post<NotificationItem>(`${this.base(accountId)}/${notificationId}/read`, null)

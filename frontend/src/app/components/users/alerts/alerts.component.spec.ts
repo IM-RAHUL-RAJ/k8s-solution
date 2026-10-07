@@ -56,6 +56,7 @@ describe('AlertsComponent', () => {
           useValue: {
             ensureLoaded: vi.fn(),
             currencyOf: (symbol: string) => (symbol === 'INFY' ? 'INR' : 'USD'),
+            instrument: (symbol: string) => ({ symbol, name: symbol === 'AAPL' ? 'Apple' : symbol, currency: 'USD' }),
             instrumentList: signal([
               { symbol: 'AAPL', name: 'Apple', exchange: 'NASDAQ', assetClass: 'US_EQUITY', currency: 'USD', tradable: true },
               { symbol: 'MSFT', name: 'Microsoft', exchange: 'NASDAQ', assetClass: 'US_EQUITY', currency: 'USD', tradable: true }
@@ -85,6 +86,7 @@ describe('AlertsComponent', () => {
     expect(el('alert-condition-text')?.textContent).toContain('USD');
     expect(el('alert-toggle')?.getAttribute('aria-checked')).toBe('true');
     expect(el('alert-count')?.textContent).toContain('Total: 1 alert');
+    expect(el('alert-status')?.textContent?.trim()).toBe('Enabled');
   });
 
   it('shows the companion and a call to action when there are no alerts', async () => {
@@ -103,7 +105,9 @@ describe('AlertsComponent', () => {
     await settle();
 
     expect(el('alert-form')).not.toBeNull();
-    const options = Array.from((el('alert-condition') as HTMLSelectElement).options).map((option) => option.value);
+    el('alert-condition')!.click();
+    fixture.detectChanges();
+    const options = all('select-panel').length ? Array.from(fixture.nativeElement.querySelectorAll('[data-testid^="option-"]')).map((option) => (option as HTMLElement).dataset['testid']!.slice(7)) : [];
     expect(options).toEqual(['>', '>=', '<', '<=', '==']);
   });
 
@@ -111,7 +115,7 @@ describe('AlertsComponent', () => {
     await build({ symbol: 'msft' });
 
     expect(el('alert-form')).not.toBeNull();
-    expect((el('alert-symbol') as HTMLInputElement).value).toBe('MSFT');
+    expect(el('alert-symbol')?.textContent).toContain('MSFT');
   });
 
   it('edit opens the dialog filled in, titled Edit Alert', async () => {
@@ -121,9 +125,9 @@ describe('AlertsComponent', () => {
     await settle();
 
     expect(text()).toContain('Edit Alert');
-    expect((el('alert-symbol') as HTMLInputElement).value).toBe('AAPL');
+    expect(el('alert-symbol')?.textContent).toContain('AAPL');
     expect((el('alert-price') as HTMLInputElement).value).toBe('235');
-    expect((el('alert-condition') as HTMLSelectElement).value).toBe('>=');
+    expect(el('alert-condition')?.textContent).toContain('Greater or equal');
     expect(el('alert-save')?.textContent).toContain('Update');
   });
 
@@ -206,6 +210,28 @@ describe('AlertsComponent', () => {
       alert({ id: 2, symbol: 'MSFT', enabled: false }),
       alert({ id: 3, symbol: 'NVDA', enabled: true, status: 'TRIGGERED', deliveryState: 'HANDED_OVER', triggerCount: 2 })
     ];
+
+    it('narrows by symbol and by condition too, and says Disabled rather than Paused', async () => {
+      list.mockReturnValue(of([alert({ id: 1, symbol: 'AAPL' }), alert({ id: 2, symbol: 'MSFT', enabled: false, condition: '<' })]));
+      await build();
+      expect(all('alert-status').map((node) => node.textContent?.trim())).toEqual(['Enabled', 'Disabled']);
+
+      const search = el<HTMLInputElement>('alert-search')!;
+      search.value = 'msf';
+      search.dispatchEvent(new Event('input'));
+      await settle();
+      expect(all('alert-toggle').length).toBe(1);
+      expect(text()).toContain('MSFT');
+
+      el('alert-clear-filters')!.click();
+      await settle();
+      el('alert-condition-filter')!.click();
+      fixture.detectChanges();
+      (fixture.nativeElement.querySelector('[data-testid="option-<"]') as HTMLElement).dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+      await settle();
+      expect(all('alert-toggle').length).toBe(1);
+      expect(text()).toContain('MSFT');
+    });
 
     it('counts each tab and narrows the list', async () => {
       list.mockReturnValue(of(alerts));

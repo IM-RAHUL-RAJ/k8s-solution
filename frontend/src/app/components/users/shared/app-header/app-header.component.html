@@ -5,11 +5,9 @@
 
   <span class="topbar__spacer"></span>
 
-  @if (!isAdmin()) {
-    <app-mascot class="topbar__mascot" [size]="36" [interactive]="false" />
-  }
+  <app-mascot class="topbar__mascot" [size]="36" [interactive]="false" />
 
-  <a class="icon-btn" routerLink="/settings" aria-label="Settings" data-tip="Settings" data-tip-below data-testid="settings-link">
+  <a class="icon-btn" [routerLink]="isAdmin() ? '/admin/settings' : '/settings'" aria-label="Settings" data-tip="Settings" data-tip-below data-testid="settings-link">
     <app-icon name="settings" [size]="22" />
   </a>
 

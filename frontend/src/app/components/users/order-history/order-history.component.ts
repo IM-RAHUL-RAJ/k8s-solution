@@ -56,6 +56,7 @@ function localDayFromDate(date: Date): string {
 }
 import { StatusBadgeComponent } from '../shared/status-badge/status-badge.component';
 import { EmptyStateComponent } from '../shared/empty-state/empty-state.component';
+import { IconComponent } from '../shared/icon/icon.component';
 import { DownloadMenuComponent, DownloadRequest } from '../shared/download-menu/download-menu.component';
 import { ExportDocument, ExportService } from '../../../core/export/export.service';
 
@@ -71,7 +72,7 @@ type DatePresetId = 'today' | 'last7' | 'last30' | 'thisMonth';
 @Component({
   selector: 'app-order-history',
   standalone: true,
-  imports: [CommonModule, RouterLink, StatusBadgeComponent, DownloadMenuComponent, EmptyStateComponent],
+  imports: [CommonModule, RouterLink, StatusBadgeComponent, DownloadMenuComponent, EmptyStateComponent, IconComponent],
   templateUrl: './order-history.component.html',
   styleUrl: './order-history.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -101,6 +102,8 @@ export class OrderHistoryComponent implements OnDestroy {
 
   readonly filter = signal<OrderFilter>('ALL');
   readonly exporting = signal(false);
+  /** The filters stay out of the way until the customer asks for them with the filter icon. */
+  readonly filtersOpen = signal(false);
 
   readonly filters = computed(() => {
     const orders = this.orders();
@@ -233,6 +236,10 @@ export class OrderHistoryComponent implements OnDestroy {
     this.pollAttempt.set(0);
     this.pollingStopped.set(false);
     this.load();
+  }
+
+  toggleFilters(): void {
+    this.filtersOpen.update((open) => !open);
   }
 
   setFilter(filter: OrderFilter): void {
