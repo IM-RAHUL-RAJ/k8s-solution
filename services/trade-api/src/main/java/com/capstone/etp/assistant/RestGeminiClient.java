@@ -60,7 +60,7 @@ public class RestGeminiClient implements GeminiClient {
 
         for (String model : candidates()) {
             try {
-                Optional<String> text = call(model, body);
+                Optional<String> text = callWithRetry(model, body);
                 if (text.isPresent()) {
                     if (!model.equals(working)) {
                         log.info("[ASSISTANT] using model {}", model);
@@ -77,8 +77,9 @@ public class RestGeminiClient implements GeminiClient {
                 log.warn("[ASSISTANT] the model call failed: status={} model={}", e.getStatusCode().value(), model);
                 return Optional.empty();
             } catch (RuntimeException e) {
-                // The message can carry the URL; the type is enough.
-                log.warn("[ASSISTANT] the model call failed: {} model={}", e.getClass().getSimpleName(), model);
+                // The key travels in a header, so neither the message nor the cause can carry it.
+                log.warn("[ASSISTANT] the model call failed: {} model={} cause={} detail={}", e.getClass().getSimpleName(), model,
+                        e.getCause() == null ? "none" : e.getCause().getClass().getSimpleName(), brief(e));
                 return Optional.empty();
             }
         }
@@ -93,6 +94,26 @@ public class RestGeminiClient implements GeminiClient {
         }
         models.stream().filter(name -> !name.equals(working)).forEach(order::add);
         return order;
+    }
+
+    /**
+     * Generating text changes nothing, so a call that broke on the way (a reset connection, a response cut short) is
+     * safe to make once more. An answer from Google, good or bad, is never repeated.
+     */
+    private Optional<String> callWithRetry(String model, Map<String, Object> body) {
+        try {
+            return call(model, body);
+        } catch (RestClientResponseException e) {
+            throw e;
+        } catch (RestClientException first) {
+            log.warn("[ASSISTANT] the connection broke ({}), trying once more", first.getClass().getSimpleName());
+            return call(model, body);
+        }
+    }
+
+    private static String brief(Throwable e) {
+        String message = e.getMessage() == null ? "" : e.getMessage().replaceAll("\s+", " ");
+        return message.length() > 200 ? message.substring(0, 200) : message;
     }
 
     private Optional<String> call(String model, Map<String, Object> body) {

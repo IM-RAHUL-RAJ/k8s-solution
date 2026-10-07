@@ -79,6 +79,25 @@ class RestGeminiClientTest {
     }
 
     @Test
+    void aConnectionThatBreaksOnceIsRetriedAndThenAnswers() {
+        build("k");
+        server.expect(requestTo(URL)).andRespond(withException(new java.io.IOException("connection reset")));
+        server.expect(requestTo(URL)).andRespond(withSuccess("{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"fine\"}]}}]}", MediaType.APPLICATION_JSON));
+
+        assertEquals(Optional.of("fine"), client.generate("s", "u"));
+        server.verify();
+    }
+
+    @Test
+    void aRefusalFromGoogleIsNeverRepeated() {
+        build("k");
+        server.expect(requestTo(URL)).andRespond(withStatus(HttpStatus.TOO_MANY_REQUESTS));
+
+        assertTrue(client.generate("s", "u").isEmpty());
+        server.verify();
+    }
+
+    @Test
     void isNotConfiguredWithoutAKeyAndMakesNoCall() {
         build("  ");
 
@@ -94,15 +113,17 @@ class RestGeminiClientTest {
         assertTrue(client.generate("s", "u").isEmpty());
 
         build("k");
-        server.expect(requestTo(URL)).andRespond(withException(new SocketTimeoutException("slow")));
+        // a broken connection is tried once more, then given up on
+        server.expect(org.springframework.test.web.client.ExpectedCount.twice(), requestTo(URL)).andRespond(withException(new SocketTimeoutException("slow")));
         assertTrue(client.generate("s", "u").isEmpty());
+        server.verify();
 
         build("k");
         server.expect(requestTo(URL)).andRespond(withSuccess("{\"candidates\":[]}", MediaType.APPLICATION_JSON));
         assertTrue(client.generate("s", "u").isEmpty());
 
         build("k");
-        server.expect(requestTo(URL)).andRespond(withSuccess("not json at all", MediaType.TEXT_PLAIN));
+        server.expect(org.springframework.test.web.client.ExpectedCount.twice(), requestTo(URL)).andRespond(withSuccess("not json at all", MediaType.TEXT_PLAIN));
         assertTrue(client.generate("s", "u").isEmpty());
     }
 }

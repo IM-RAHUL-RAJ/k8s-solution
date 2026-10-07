@@ -42,7 +42,7 @@ Quick actions (also by plain words): portfolio performance (today and all-time),
 
 ```
 GEMINI_API_KEY=...           # required for model phrasing; leave empty to answer from the rules
-GEMINI_MODEL=gemini-3.1-flash-lite
+GEMINI_MODEL=gemini-2.5-flash
 app.assistant.rate-per-minute=20
 app.assistant.gemini.read-timeout-ms=8000
 ```
