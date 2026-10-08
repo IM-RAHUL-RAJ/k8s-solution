@@ -259,7 +259,7 @@ app-change-password {
 /* Registration */
 .register {
   display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(260px, 1fr);
+  grid-template-columns: 1fr;
   gap: 16px;
   align-items: start;
 }
@@ -328,6 +328,14 @@ label {
   padding: 12px 14px;
   font-size: 14px;
   border-radius: 12px;
+}
+
+.form select {
+  padding: 12px 14px;
+  min-height: 48px;
+  line-height: 1.6;
+  vertical-align: middle;
+  font-size: 14px;
 }
 
 .field-hint.bad {
