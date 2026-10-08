@@ -13,17 +13,20 @@ import {
   PortfolioSummary,
   PricedPosition
 } from '../../../core/models/portfolio.model';
+import { BenchmarkSummary } from '../../../core/models/benchmark.model';
 import { AccountContextService } from '../../../core/services/account-context.service';
 import { AccountService } from '../../../core/services/account.service';
 import { ApiErrorMessageService } from '../../../core/services/api-error-message.service';
 import { HomeCurrencyService } from '../../../core/services/home-currency.service';
 import { PortfolioService } from '../../../core/services/portfolio.service';
+import { BenchmarkService } from '../../../core/services/benchmark.service';
 import { ExportDocument, ExportService, ExportTable } from '../../../core/export/export.service';
 import { ThemeService } from '../../../core/theme/theme.service';
 import { DownloadMenuComponent, DownloadRequest } from '../shared/download-menu/download-menu.component';
 import { ChartOption, EchartComponent, chartText, chartTooltip, token } from '../shared/echart/echart.component';
 import { EmptyStateComponent } from '../shared/empty-state/empty-state.component';
 import { IconComponent } from '../shared/icon/icon.component';
+import { PortfolioBenchmarkComponent } from '../shared/portfolio-benchmark/portfolio-benchmark.component';
 
 /** True for the documented "no price for any holding" answer: 503 with MKT-503. */
 export function isPricingUnavailable(error: unknown): boolean {
@@ -122,7 +125,7 @@ interface HoldingRow {
 @Component({
   selector: 'app-portfolio',
   standalone: true,
-  imports: [DecimalPipe, DatePipe, FormsModule, RouterLink, DownloadMenuComponent, EchartComponent, EmptyStateComponent, IconComponent],
+  imports: [DecimalPipe, DatePipe, FormsModule, RouterLink, DownloadMenuComponent, EchartComponent, EmptyStateComponent, IconComponent, PortfolioBenchmarkComponent],
   templateUrl: './portfolio.component.html',
   styleUrl: './portfolio.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -134,6 +137,7 @@ export class PortfolioComponent {
   private readonly errorMessages = inject(ApiErrorMessageService);
   private readonly exporter = inject(ExportService);
   private readonly theme = inject(ThemeService);
+  private readonly benchmarkService = inject(BenchmarkService);
   protected readonly home = inject(HomeCurrencyService);
 
   protected readonly loading = signal(true);
@@ -141,11 +145,13 @@ export class PortfolioComponent {
   protected readonly pricingDown = signal(false);
   protected readonly pnlError = signal<string | null>(null);
   protected readonly exporting = signal(false);
+  protected readonly benchmarkLoading = signal(false);
 
   protected readonly summary = signal<PortfolioSummary | null>(null);
   protected readonly positions = signal<PricedPosition[]>([]);
   protected readonly pnl = signal<PnlResponse | null>(null);
   protected readonly history = signal<PortfolioHistory | null>(null);
+  protected readonly benchmarkSummary = signal<BenchmarkSummary | null>(null);
 
   /** What the page shows when no price can be had: the holdings and cash, unpriced. */
   protected readonly unpriced = signal<PositionResponse[]>([]);
@@ -229,6 +235,17 @@ export class PortfolioComponent {
     const s = this.summary();
     const all = this.allTime();
     return s && all !== null && s.costBasis > 0 ? (all / s.costBasis) * 100 : null;
+  });
+
+  /** Portfolio return percentage for benchmarking. */
+  protected readonly portfolioReturn = computed(() => this.allTimePercent() ?? 0);
+
+  /** Compute benchmark summary whenever portfolio return or range changes. */
+  protected readonly benchmarkComparison = computed(() => {
+    if (this.benchmarkSummary()) {
+      return this.benchmarkSummary();
+    }
+    return null;
   });
 
   protected readonly dayChange = computed(() => this.history()?.dayChange ?? null);
@@ -327,6 +344,7 @@ export class PortfolioComponent {
       next: (summary) => {
         this.summary.set(summary);
         this.loadDetails(accountId);
+        this.loadBenchmarks();
       },
       error: (error: unknown) => {
         if (isPricingUnavailable(error)) {
@@ -339,6 +357,20 @@ export class PortfolioComponent {
           this.error.set(this.errorMessages.getMessage(error));
           this.loading.set(false);
         }
+      }
+    });
+  }
+
+  private loadBenchmarks(): void {
+    this.benchmarkLoading.set(true);
+    this.benchmarkService.fetchBenchmarks(this.range()).subscribe({
+      next: () => {
+        const summary = this.benchmarkService.getSummary(this.portfolioReturn());
+        this.benchmarkSummary.set(summary);
+        this.benchmarkLoading.set(false);
+      },
+      error: () => {
+        this.benchmarkLoading.set(false);
       }
     });
   }
@@ -364,6 +396,7 @@ export class PortfolioComponent {
     this.range.set(range);
     remember(RANGE_KEY, range);
     this.loadHistory(this.accountContext.getCurrentAccount().accountNumericId);
+    this.loadBenchmarks();
   }
 
   protected sortBy(key: SortKey): void {

@@ -157,6 +157,10 @@
         </article>
       </div>
 
+      @if (benchmarkComparison(); as benchmark) {
+        <app-portfolio-benchmark [summary]="benchmark" />
+      }
+
       <article class="card">
         <div class="table-head">
           <h2>Holdings</h2>
