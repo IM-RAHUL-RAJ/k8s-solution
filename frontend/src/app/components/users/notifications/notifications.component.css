@@ -11,40 +11,23 @@
 }
 
 .head h1 {
-  margin: 0 0 2px;
+  margin: 0 0 4px;
 }
 
-.head p {
-  margin: 0;
+.head__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
-.tabs {
-  display: inline-flex;
-  gap: 4px;
-  padding: 3px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background-color: var(--bg);
-}
-
-.tab {
-  padding: 6px 12px;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--muted);
-  font-weight: 600;
-}
-
-.tab--on {
-  background-color: var(--surface);
-  color: var(--text);
-  box-shadow: var(--shadow-sm);
+.head__actions .active {
+  background: var(--muted-bg);
+  border-color: var(--text);
 }
 
 .list {
   display: grid;
-  gap: 8px;
+  gap: 10px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -52,12 +35,14 @@
 
 .message {
   display: grid;
-  gap: 4px;
-  border-left: 3px solid transparent;
+  gap: 6px;
+  padding: 18px 20px;
+  border-left: 4px solid var(--line);
 }
 
+/* Unread: a red pixel bar on the edge, like a notification light. */
 .message--unread {
-  border-left-color: var(--accent);
+  border-left-color: var(--signal);
 }
 
 .message__top {
@@ -65,67 +50,81 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .kind {
-  padding: 2px 9px;
-  border-radius: 99px;
-  font-weight: 600;
-  background-color: var(--new-bg);
-  color: var(--new);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  font-weight: 700;
+  color: var(--text);
+  background: var(--muted-bg);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
 }
 
 .kind[data-kind='ORDER_FILLED'] {
   background-color: var(--ok-bg);
   color: var(--ok);
+  border-color: transparent;
 }
 
 .kind[data-kind='ORDER_REJECTED'] {
   background-color: var(--reject-bg);
   color: var(--reject);
+  border-color: transparent;
 }
 
 .kind[data-kind='ORDER_CANCELLED'] {
   background-color: var(--cancel-bg);
   color: var(--cancel);
+  border-color: transparent;
+}
+
+.kind[data-kind='PRICE_ALERT'] {
+  background-color: var(--amber-bg);
+  color: var(--amber);
+  border-color: transparent;
+}
+
+.kind[data-kind='FUNDS'] {
+  background-color: var(--new-bg);
+  color: var(--new);
+  border-color: transparent;
 }
 
 .message__subject {
-  margin: 0;
-  font-size: 15px;
+  font-size: 17px;
 }
 
 .message__body {
-  margin: 0;
+  color: var(--text);
 }
 
 .message__delivery {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin: 2px 0 0;
-  font-size: 12px;
+  gap: 8px;
+  font-size: 13px;
 }
 
-.dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background-color: var(--muted);
+.message__delivery .dot {
+  background: var(--slate);
 }
 
 .message__delivery[data-status='SENT'] .dot {
-  background-color: var(--ok);
+  background: var(--ok);
 }
 
-.message__delivery[data-status='HELD'] .dot,
+.message__delivery[data-status='QUEUED'] .dot,
+.message__delivery[data-status='HELD'] .dot {
+  background: var(--amber);
+}
+
 .message__delivery[data-status='FAILED'] .dot {
-  background-color: var(--reject);
-}
-
-.message__delivery[data-status='QUEUED'] .dot {
-  background-color: var(--new);
+  background: var(--reject);
 }
 
 .message__actions {
@@ -133,11 +132,30 @@
   justify-content: flex-end;
 }
 
-.empty {
-  text-align: center;
-  padding: 36px 16px;
+/* A trade an automated strategy placed, so it is never mistaken for one placed by hand. */
+.automated {
+  display: inline-block;
+  margin-right: 8px;
+  padding: 1px 8px;
+  vertical-align: middle;
+  color: var(--blue);
+  background: var(--blue-bg);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 800;
 }
 
-.empty p {
-  margin: 0;
+.auto-banner {
+  display: grid;
+  gap: 2px;
+  margin-bottom: 8px;
+  padding: 8px 12px;
+  color: var(--on-accent);
+  background: var(--accent);
+  font-family: var(--font-body);
+}
+
+.auto-banner span {
+  font-size: 13px;
+  opacity: 0.9;
 }

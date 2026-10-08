@@ -9,7 +9,7 @@ This folder contains design and styling guidance for the Trading Platform UI (Sp
   - Status badges, messages, accessibility, implementation checklist
   - Reference for colors, spacing, radius, and all visual specifications
 
-- **[`../instructions/sprint-09-ui-styling.instructions.md`](../instructions/sprint-09-ui-styling.instructions.md)** — Styling patterns for components
+- **[`../instructions/sprint-10-ui-styling.instructions.md`](../instructions/sprint-10-ui-styling.instructions.md)** — Styling patterns for components
   - Global stylesheet setup (CSS variables, buttons, labels, inputs, tables)
   - Component patterns (nav bar, status badge, error banner, form field)
   - Color, spacing, radius, typography rules
@@ -90,7 +90,7 @@ styles: [`
 
 ### 2. Building Components
 
-Follow the component patterns in `sprint-09-ui-styling.instructions.md`:
+Follow the component patterns in `sprint-10-ui-styling.instructions.md`:
 - Status badge (with pulsing NEW state)
 - Error banner (role="alert")
 - Form field with validation hints
@@ -148,7 +148,7 @@ Nav bar, heading, refresh button, orders table (newest first), info banner (poll
 ## Reference
 
 - Full theme spec: [`theme-sage-forest.md`](./theme-sage-forest.md)
-- Styling patterns: [`../instructions/sprint-09-ui-styling.instructions.md`](../instructions/sprint-09-ui-styling.instructions.md)
+- Styling patterns: [`../instructions/sprint-10-ui-styling.instructions.md`](../instructions/sprint-10-ui-styling.instructions.md)
 - Figma mockup: See `.github/design/` for visual reference
 - Angular instructions: [`../instructions/angular-trading-ui.instructions.md`](../instructions/angular-trading-ui.instructions.md)
 
@@ -156,8 +156,8 @@ Nav bar, heading, refresh button, orders table (newest first), info banner (poll
 
 If you need to:
 - **Add a new color**: Add it to `theme-sage-forest.md`, define in `:root`, update this file
-- **Change spacing scale**: Update all references in `theme-sage-forest.md` and `sprint-09-ui-styling.instructions.md`
-- **Add a component pattern**: Document in `sprint-09-ui-styling.instructions.md` with ✅ CORRECT and ❌ WRONG examples
+- **Change spacing scale**: Update all references in `theme-sage-forest.md` and `sprint-10-ui-styling.instructions.md`
+- **Add a component pattern**: Document in `sprint-10-ui-styling.instructions.md` with ✅ CORRECT and ❌ WRONG examples
 
 ## Status
 

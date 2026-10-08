@@ -18,8 +18,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 @Component
 class AlertIndex {
 
-    
-    record Entry(long id, long accountId, String symbol, AlertDirection direction, BigDecimal threshold) {
+    /** An armed alert, held in memory so a quote does not need a database read. */
+    record Entry(long id, long accountId, String symbol, AlertOperator operator, BigDecimal threshold) {
     }
 
     private final AlertMapper mapper;
@@ -50,8 +50,11 @@ class AlertIndex {
         }
     }
 
+    /** Adds an alert when it is armed; an alert that is switched off is never in the index. */
     void add(PriceAlert alert) {
-        bySymbol.computeIfAbsent(alert.getSymbol(), key -> new CopyOnWriteArrayList<>()).add(toEntry(alert));
+        if (alert.isEnabled() && alert.getStatus() == AlertStatus.ACTIVE) {
+            bySymbol.computeIfAbsent(alert.getSymbol(), key -> new CopyOnWriteArrayList<>()).add(toEntry(alert));
+        }
     }
 
     void remove(String symbol, long id) {
@@ -61,7 +64,16 @@ class AlertIndex {
         }
     }
 
-    
+    /** Drops the alert wherever it is indexed, then indexes it again from its current row if it is armed. */
+    void replace(PriceAlert before, PriceAlert after) {
+        if (before != null) {
+            remove(before.getSymbol(), before.getId());
+        }
+        if (after != null) {
+            add(after);
+        }
+    }
+
     List<Entry> forSymbol(String symbol) {
         List<Entry> entries = bySymbol.get(symbol);
         return entries == null || entries.isEmpty() ? List.of() : new ArrayList<>(entries);
@@ -73,6 +85,6 @@ class AlertIndex {
 
     private static Entry toEntry(PriceAlert alert) {
         return new Entry(alert.getId(), alert.getAccountId(), alert.getSymbol(),
-                alert.getDirection(), alert.getThreshold());
+                alert.getOperator(), alert.getThreshold());
     }
 }

@@ -26,7 +26,10 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class PricingService {
 
-    public record PricedQuote(String symbol, BigDecimal price, String currency, Instant asOf, boolean stale) {
+    public record PricedQuote(String symbol, BigDecimal price, String currency, Instant asOf, boolean stale, BigDecimal previousClose) {
+        public PricedQuote(String symbol, BigDecimal price, String currency, Instant asOf, boolean stale) {
+            this(symbol, price, currency, asOf, stale, null);
+        }
     }
 
     private record CachedQuote(QuoteProvider.ProviderQuote quote, Instant fetchedAt) {
@@ -73,6 +76,8 @@ public class PricingService {
         if (!missing.isEmpty()) {
             fetchInto(priced, missing, now);
         }
+        // "Today" needs yesterday's close. If the provider did not say, the market-data topic usually does.
+        priced.replaceAll((symbol, quote) -> quote.previousClose() != null ? quote : withTopicClose(symbol, quote));
         return priced;
     }
 
@@ -118,14 +123,20 @@ public class PricingService {
             return Optional.of(toPriced(expired.quote(), now, true));
         }
         return fromTopic.map(quote -> new PricedQuote(
-                symbol, quote.getPrice(), quote.getCurrency(), topicAsOf, true));
+                symbol, quote.getPrice(), quote.getCurrency(), topicAsOf, true, quote.getPreviousClose()));
+    }
+
+    private PricedQuote withTopicClose(String symbol, PricedQuote quote) {
+        BigDecimal close = topicCache.get(symbol).map(MarketQuote::getPreviousClose).filter(value -> value != null && value.signum() > 0).orElse(null);
+        return close == null ? quote
+                : new PricedQuote(quote.symbol(), quote.price(), quote.currency(), quote.asOf(), quote.stale(), close);
     }
 
     private PricedQuote toPriced(QuoteProvider.ProviderQuote quote, Instant now, boolean forceStale) {
         Instant asOf = quote.asOf();
         boolean old = asOf != null && Duration.between(asOf, now).compareTo(staleAfter) > 0;
         return new PricedQuote(normalise(quote.symbol()), quote.price(), quote.currency(), asOf,
-                forceStale || quote.stale() || old);
+                forceStale || quote.stale() || old, quote.previousClose());
     }
 
     private static Instant observedAt(Instant asOf, Instant fallback) {

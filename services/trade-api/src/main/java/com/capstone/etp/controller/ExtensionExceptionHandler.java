@@ -22,7 +22,12 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
         "com.capstone.etp.preferences",
         "com.capstone.etp.notifications",
         "com.capstone.etp.alerts",
-        "com.capstone.etp.portfolio"
+        "com.capstone.etp.portfolio",
+        "com.capstone.etp.funds",
+        "com.capstone.etp.candles",
+        "com.capstone.etp.advice",
+        "com.capstone.etp.automation",
+        "com.capstone.etp.assistant"
 })
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class ExtensionExceptionHandler {

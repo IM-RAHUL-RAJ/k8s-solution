@@ -13,4 +13,7 @@ public class PreferenceRow {
     private AlertChannel alertChannel;
     private Long defaultAccountId;
     private Instant updatedAt;
+    private Mascot mascot;
+    private Boolean notificationsEnabled;
+    private String notificationKinds;
 }

@@ -11,7 +11,16 @@ public record PreferencesResponse(
         String contactDetail,
         ChannelSource source,
         List<ChannelOption> channels,
-        Instant updatedAt) {
+        Instant updatedAt,
+        Mascot mascot,
+        boolean notificationsEnabled,
+        List<String> notificationKinds) {
+
+    public PreferencesResponse(Long accountId, Long defaultAccountId, AlertChannel alertChannel, String contactDetail,
+                               ChannelSource source, List<ChannelOption> channels, Instant updatedAt) {
+        this(accountId, defaultAccountId, alertChannel, contactDetail, source, channels, updatedAt,
+                Mascot.OWL, true, PreferencesService.ALL_KINDS);
+    }
 
     /** One channel the customer could pick, and whether the profile can serve it. */
     public record ChannelOption(AlertChannel channel, boolean available, String hint) {

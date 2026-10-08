@@ -20,6 +20,9 @@ import java.util.Optional;
 // Manages customer notification preferences and resolves the effective channel for notification delivery.
 public class PreferencesService implements ChannelResolver {
 
+    /** The kinds of message a customer can switch on or off. */
+    static final List<String> ALL_KINDS = List.of("ORDER_FILLED", "ORDER_REJECTED", "ORDER_CANCELLED", "PRICE_ALERT", "FUNDS");
+
     static final AlertChannel DEFAULT_CHANNEL = AlertChannel.EMAIL;
     static final AlertChannel DEFAULT_CHANNEL_WITHOUT_EMAIL = AlertChannel.PUSH;
 
@@ -50,11 +53,42 @@ public class PreferencesService implements ChannelResolver {
         }
 
         mapper.upsert(row.getClientId(), request.defaultAccountId(), request.alertChannel());
+        if (request.hasExtras()) {
+            mapper.updateExtras(row.getClientId(), request.mascot(), request.notificationsEnabled(),
+                    request.notificationKinds() == null ? null : String.join(",", validKinds(request.notificationKinds())));
+        }
         log.info("[PREFERENCES] updated clientId={} defaultAccountId={} channel={}",
                 row.getClientId(), request.defaultAccountId(), request.alertChannel());
         return toResponse(accountId, requireRow(accountId));
     }
  
+
+    @Override
+    public String mascotOf(long accountId) {
+        try {
+            PreferenceRow row = mapper.findByAccountId(accountId);
+            return row == null || row.getMascot() == null ? Mascot.OWL.name() : row.getMascot().name();
+        } catch (RuntimeException e) {
+            return Mascot.OWL.name();
+        }
+    }
+
+    @Override
+    public boolean wants(long accountId, String kind) {
+        try {
+            PreferenceRow row = mapper.findByAccountId(accountId);
+            if (row == null) {
+                return true;
+            }
+            if (Boolean.FALSE.equals(row.getNotificationsEnabled())) {
+                return false;
+            }
+            return row.getNotificationKinds() == null || kindsOf(row).contains(kind);
+        } catch (RuntimeException e) {
+            // An unreadable preference must not silence a message.
+            return true;
+        }
+    }
 
     @Override
     public Optional<ResolvedChannel> resolve(long accountId) {
@@ -120,7 +154,27 @@ public class PreferencesService implements ChannelResolver {
                                 hasText(row.getPhone()) ? ContactMasker.maskPhone(row.getPhone())
                                         : "No phone number on your profile"),
                         new PreferencesResponse.ChannelOption(AlertChannel.PUSH, true, "In-app inbox")),
-                row.getUpdatedAt());
+                row.getUpdatedAt(),
+                row.getMascot() == null ? Mascot.OWL : row.getMascot(),
+                !Boolean.FALSE.equals(row.getNotificationsEnabled()),
+                row.getNotificationKinds() == null ? ALL_KINDS : kindsOf(row));
+    }
+
+    private static List<String> kindsOf(PreferenceRow row) {
+        String stored = row.getNotificationKinds();
+        if (stored == null || stored.isBlank()) {
+            return List.of();
+        }
+        return List.of(stored.split(","));
+    }
+
+    /** Only kinds the platform sends are accepted, so a typo cannot silence a real message by accident. */
+    private static List<String> validKinds(List<String> requested) {
+        List<String> unknown = requested.stream().filter(kind -> !ALL_KINDS.contains(kind)).toList();
+        if (!unknown.isEmpty()) {
+            throw invalid("Unknown notification type");
+        }
+        return requested.stream().distinct().toList();
     }
 
     private static String maskedDestination(AlertChannel channel, PreferenceRow row) {

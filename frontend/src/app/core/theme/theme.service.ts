@@ -29,6 +29,9 @@ export class ThemeService {
    */
   private prefersDark = signal(this.checkSystemPreference());
 
+  /** Bumps whenever the theme is applied, so a chart can rebuild its colours from the tokens. */
+  readonly changes = signal(0);
+
   constructor() {
     // Listen to system preference changes
     this.setupSystemPreferenceListener();
@@ -167,6 +170,7 @@ export class ThemeService {
     } else {
       root.setAttribute('data-theme', mode);
     }
+    this.changes.update((count) => count + 1);
 
     this.transitionCleanupHandle = this.document.defaultView?.setTimeout(() => {
       root.classList.remove('theme-transitioning');

@@ -185,3 +185,27 @@ These are the rows that matter: where a module changed something the service alr
 1. **A02 and A10 are the two where the module-by-module difference matters most.** P is where the customer chooses a channel, and it cannot be made to accept a destination. N is where something is actually sent, and its destination comes from one place only. F is the only module that calls a third party with a secret, and the secret never leaves the server. W calls nobody.
 2. **The consumer paths have no token** (decision 0009). They do not reach customer data through a route; they write rows for the account an internal event names, and customers can read those rows only through the authorised routes in A01.
 3. **What was not tested.** No live SMTP or SMS send, no running container, no load test of the quote consumer, no penetration test. The Kafka and database behaviour above was run against an embedded broker and a local Postgres 18.
+
+
+## Addendum: Sprint 10 UI enhancements
+
+Drafted by Claude on 2026-10-07; the team to confirm. Covers what was added after the review above: alert
+operators, enable/disable, trigger history, notification filters and kinds, funds, candles, portfolio history,
+e-mail templates, and CSV/Excel/PDF export.
+
+| Area | Risk considered | What was done | Evidence |
+|---|---|---|---|
+| Alert edit, switch, history, delete | Another account's alert read or changed (A01) | Every call authorises the token's own account, then looks the alert up by id **and** account; a foreign id is 404, not 403 | `PriceAlertServiceTest.anotherAccountIsRefused...`, `ExtensionsChainIT` (account 5 on account 1's alert) |
+| Alert request fields | Mass assignment (A04) | Records with fixed fields; the strict mapper refuses unknown fields (422) | `PriceAlertControllerTest`, `ExtensionsChainIT` |
+| Funds | Overdraw by two requests; negative or oversized amounts; moving money on another account (A01, A04) | One conditional UPDATE; `@DecimalMin(0.01)`; per-movement cap; `ensureOwnAccount`; a failed inbox message never undoes the movement | `FundsServiceTest`, `ExtensionsChainIT.funds...` |
+| Candles | The market-data key reaching the browser; path or parameter injection into the provider call (A02, A10) | The call is made by the platform; the symbol must match `^[A-Za-z0-9.:^=-]{1,20}$`, period is an enum, limit is 1 to 500; the provider URL is configuration, not input; failure is 503, never an invented chart | `CandleServiceTest`, bundle scan clean |
+| Notification type filter | SQL injection through `type` (A03) | The value is checked against a fixed list in the service and bound as a parameter in the query | `ExtensionsChainIT.theInboxCanBeFiltered...` |
+| Preferences: mascot and kinds | Unknown values silencing real messages (A04) | Mascot is an enum; kinds are checked against the platform's own list (422 otherwise); an unreadable preference answers "send" | `ExtensionsChainIT.theMascotAndNotification...` |
+| E-mail templates | HTML injection through a subject or body (A03) | Values are HTML-escaped; only our own template file is inserted raw | `EmailTemplateRendererTest.customerTextIsEscaped...` |
+| Export | CSV formula injection; leaking more than is on screen (A03) | A cell starting `= + - @` is prefixed with `'`; files are built in the browser from data already on screen; PDF and Excel libraries load on demand | `export.service.spec.ts` |
+| Mascot artwork | XSS through `innerHTML` (A03) | The only trusted HTML is SVG generated from constants in `mascot-svg.ts`; no customer text reaches it (the label is from a fixed table) | `ui.spec.ts` |
+| Portfolio history | Reading another account's values (A01) | `ensureOwnAccount` first; the snapshot query is keyed on the account | `PortfolioHistoryServiceTest` |
+
+Outstanding: the welcome e-mail template exists (`email/welcome.html`, `renderWelcome`) but the sign-up flow lives
+in the auth service and does not call it yet; SMS still exists on the server for accounts that stored it (the UI no
+longer offers it).

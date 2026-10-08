@@ -72,7 +72,9 @@ public class PortfolioService {
                 valuation.cash.add(marketValue),
                 valuation.rows.size(),
                 valuation.partial,
-                valuation.asOf);
+                valuation.asOf,
+                valuation.dayChangeKnown ? valuation.dayChangeBase : null,
+                valuation.dayChangeKnown ? percent(valuation.dayChangeBase, valuation.previousValueBase) : null);
     }
 
     public List<PricedPositionResponse> positions(Long accountId, String symbol) {
@@ -133,6 +135,10 @@ public class PortfolioService {
         BigDecimal pricedMarketValueBase = money(BigDecimal.ZERO);
         boolean partial;
         Instant asOf;
+        /** Today's move: what the holdings are worth now minus what they were worth at yesterday's close. */
+        BigDecimal dayChangeBase = money(BigDecimal.ZERO);
+        BigDecimal previousValueBase = money(BigDecimal.ZERO);
+        boolean dayChangeKnown;
     }
 
     private Valuation value(Long accountId, String symbolFilter) {
@@ -202,6 +208,16 @@ public class PortfolioService {
             unrealisedBase = marketValueBase.subtract(costBase);
         } else {
             valuation.partial = true;
+        }
+
+        if (quote.previousClose() != null) {
+            BigDecimal previousValue = money(quote.previousClose().multiply(BigDecimal.valueOf(quantity)));
+            BigDecimal previousBase = convert(previousValue, currency, valuation.baseCurrency);
+            if (previousBase != null && marketValueBase != null) {
+                valuation.dayChangeBase = valuation.dayChangeBase.add(marketValueBase.subtract(previousBase));
+                valuation.previousValueBase = valuation.previousValueBase.add(previousBase);
+                valuation.dayChangeKnown = true;
+            }
         }
 
         return new Row(new PricedPositionResponse(accountId, symbol, quantity, averageCost, costBasis,

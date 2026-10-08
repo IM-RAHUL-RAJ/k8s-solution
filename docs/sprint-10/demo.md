@@ -9,6 +9,7 @@ poller, real messages on Kafka, real rows in Postgres. Nothing below is a fixtur
 2. A database that already has data needs the extension tables once:
    `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f databases/postgreSQL/migrations/003_extensions.sql`
    (a fresh volume gets it automatically).
+   Then `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f databases/postgreSQL/migrations/004_sprint10_ui_enhancements.sql` (alert operators, trigger history, mascot, funds, value history; safe to run twice).
 3. Create the topics if they do not exist (`infrastructure/kafka/scripts/create-topics.sh` runs as `kafka-init`).
 4. `cd frontend && npm start`, sign in as a customer.
 
@@ -73,3 +74,15 @@ a substitute for the live run in section 2.)
 * Why an alert fires once (0007) and what the customer sees if its hand-over fails (0008).
 * Where the authorisation boundary sits for a consumer (0009) and why the two seams are not routes (0001).
 * Why realised P&L is booked from sale events and not from today's price (0010), and the currency trap in the event.
+
+
+## UI enhancements walkthrough
+
+1. **Shell.** Collapse and expand the sidebar with the chevron (no label) (it remembers); hover an icon for its name; resize under 800px for the drawer. The gear opens Settings; the avatar opens Profile and Sign out.
+2. **Settings.** Pick Dark, switch a notification kind off, pick the rabbit: each saves with a toast. Reload: it is all still there.
+3. **Alerts.** Create "If price of AAPL is >= than 235". Switch it off, edit it, delete it. After it fires, open its history (price, time, delivery state), switch it back on: it fires again and the history has two rows.
+4. **Inbox.** Use the Price Alerts / Orders / Funds tabs and their counts. An alert on `==` reads "AAPL equals 123.45".
+5. **Profile.** Add 250 and withdraw 100: the balance moves, two Funds messages arrive, the history has two rows. Try withdrawing more than the balance.
+6. **Watchlist.** Click an instrument: candles with 1D/4H/1H/15M. Disconnect the provider: an error with a retry, not a made-up chart.
+7. **Portfolio.** Filter to Crypto, sort by Gain/Loss, hover a price dot for its time. Download the PDF with the charts: the file says which filter applied.
+8. **E-mail.** With `SMTP_HOST` set, an order fill arrives as HTML with the chosen companion. `PUBLIC_BASE_URL` must be the address the web app is served from, because the mascot images are loaded from it.

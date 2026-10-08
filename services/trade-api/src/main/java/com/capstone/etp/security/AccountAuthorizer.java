@@ -36,6 +36,30 @@ public class AccountAuthorizer {
         }
     }
 
+    /**
+     * The account a customer is asking about: the one named, which must be one of the token's own, or else the
+     * token's first account. A token with no account (an administrator's, say) has none to ask about.
+     */
+    public Long resolveOwnAccount(Long requested) {
+        if (requested != null) {
+            ensureOwnAccount(requested);
+            return requested;
+        }
+        AuthenticatedUser user = getAuthenticatedUser();
+        List<Long> accountIds = user.accountIds();
+        if (accountIds == null || accountIds.isEmpty()) {
+            logDenied(user, null);
+            throw new AccountAccessDeniedException();
+        }
+        return accountIds.get(0);
+    }
+
+    /** The accounts named in the token. Empty when it names none. */
+    public List<Long> ownAccountIds() {
+        List<Long> accountIds = getAuthenticatedUser().accountIds();
+        return accountIds == null ? List.of() : accountIds;
+    }
+
     private void logDenied(AuthenticatedUser user, Long requestedAccountId) {
         // The subject is the token's own identifier; nothing the caller typed is written to the log.
         log.warn("[ACCESS_DENIED] subject={} requestedAccountId={} tokenAccountIds={}",

@@ -111,7 +111,7 @@ describe('WatchlistComponent', () => {
     expect(rows[1].getAttribute('data-dir')).toBe('flat');
   });
 
-  it('opens the details for a row with bid, ask, spread, market state and what the customer holds', () => {
+  it('opens the details for a row with the price, the chart and what the customer holds, and none of the repeated figures', () => {
     const fixture = create();
 
     expect(root(fixture).querySelector('[data-testid="watch-overlay"]')).toBeNull();
@@ -120,11 +120,11 @@ describe('WatchlistComponent', () => {
     const card = root(fixture).querySelector('[data-testid="watch-card"]');
     expect(card).not.toBeNull();
     const quote = root(fixture).querySelector('[data-testid="watch-quote"]');
-    expect(quote?.textContent).toContain('193.10');
-    expect(quote?.textContent).toContain('193.14');
-    expect(quote?.textContent).toContain('0.04');
-    expect(quote?.textContent).toContain('194.32');
-    expect(quote?.textContent).toContain('REGULAR');
+    expect(quote?.textContent).toContain('193.12');
+    expect(quote?.textContent).toContain('-0.62%');
+    expect(card?.textContent).not.toContain('REGULAR');
+    expect(card?.querySelector('app-candle-chart')).not.toBeNull();
+    expect(card?.querySelector('app-mascot')).not.toBeNull();
     expect(card?.textContent).toContain('You hold');
     expect(card?.textContent).toContain('3');
   });

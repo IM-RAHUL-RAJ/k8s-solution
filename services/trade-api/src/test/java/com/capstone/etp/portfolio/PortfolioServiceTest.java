@@ -79,6 +79,44 @@ class PortfolioServiceTest {
         when(accounts.getPositions(1L)).thenReturn(List.of(position("AAPL", 200, "228.40"), position("INFY.NS", 40, "1580.25")));
     }
 
+    // ---------------------------------------------------------------- today
+
+    @Test
+    void todayIsWhatTheHoldingsGainedSinceYesterdaysClose() {
+        when(accounts.getPositions(1L)).thenReturn(List.of(position("AAPL", 200, "228.40")));
+        when(pricing.price(anyList())).thenReturn(Map.of("AAPL", new PricingService.PricedQuote("AAPL", new BigDecimal("232.71"), "USD",
+                Instant.parse("2026-10-19T14:04:58Z"), false, new BigDecimal("230.00"))));
+
+        PortfolioSummaryResponse s = service.summary(1L);
+
+        // 200 shares x (232.71 - 230.00)
+        assertEquals(new BigDecimal("542.00"), s.dayChange());
+        assertEquals(new BigDecimal("1.18"), s.dayChangePercent());
+    }
+
+    @Test
+    void todayIsNullRatherThanZeroWhenNoHoldingHasAPreviousClose() {
+        when(accounts.getPositions(1L)).thenReturn(List.of(position("AAPL", 200, "228.40")));
+        when(pricing.price(anyList())).thenReturn(Map.of("AAPL", quote("AAPL", "232.71", "USD", false)));
+
+        PortfolioSummaryResponse s = service.summary(1L);
+
+        assertNull(s.dayChange());
+        assertNull(s.dayChangePercent());
+    }
+
+    @Test
+    void aFallingHoldingMakesTodayNegative() {
+        when(accounts.getPositions(1L)).thenReturn(List.of(position("AAPL", 10, "228.40")));
+        when(pricing.price(anyList())).thenReturn(Map.of("AAPL", new PricingService.PricedQuote("AAPL", new BigDecimal("90.00"), "USD",
+                Instant.parse("2026-10-19T14:04:58Z"), false, new BigDecimal("100.00"))));
+
+        PortfolioSummaryResponse s = service.summary(1L);
+
+        assertEquals(new BigDecimal("-100.00"), s.dayChange());
+        assertEquals(new BigDecimal("-10.00"), s.dayChangePercent());
+    }
+
     // ---------------------------------------------------------------- the definitions
 
     @Test

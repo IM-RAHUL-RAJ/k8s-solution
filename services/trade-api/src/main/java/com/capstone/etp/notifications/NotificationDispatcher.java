@@ -71,6 +71,11 @@ class NotificationDispatcher {
 
     /** Sends one notification. Package-visible so the behaviour can be tested without a scheduler. */
     void dispatch(Notification notification) {
+        if (!resolver.wants(notification.getAccountId(), notification.getKind().name())) {
+            mapper.markSkipped(notification.getId(), "OPTED_OUT");
+            log.info("[NOTIFY] notificationId={} not sent: the customer switched this kind off", notification.getId());
+            return;
+        }
         Optional<ResolvedChannel> resolved;
         try {
             resolved = resolver.resolve(notification.getAccountId());
@@ -97,7 +102,8 @@ class NotificationDispatcher {
 
         try {
             ChannelSender.Mode mode = sender.send(
-                    new OutboundMessage(channel.destination(), notification.getSubject(), notification.getBody()));
+                    new OutboundMessage(channel.destination(), notification.getSubject(), notification.getBody(),
+                            notification.getKind(), resolver.mascotOf(notification.getAccountId())));
             mapper.markSent(notification.getId(), channel.channel(), channel.source(),
                     mode == ChannelSender.Mode.STUB ? REASON_STUB : null);
             log.info("[NOTIFY] sent notificationId={} channel={} source={} mode={}",
@@ -106,7 +112,8 @@ class NotificationDispatcher {
             int attempts = notification.getAttempts() + 1;
             if (attempts >= maxAttempts) {
                 mapper.markFailed(notification.getId(), REASON_PROVIDER_ERROR, channel.channel(), channel.source());
-                log.error("[NOTIFY] giving up notificationId={} after {} attempts", notification.getId(), attempts);
+                log.error("[NOTIFY] giving up notificationId={} after {} attempts ({})", notification.getId(), attempts,
+                        e instanceof ChannelSender.DeliveryException ? e.getMessage() : e.getClass().getSimpleName());
             } else {
                 mapper.reschedule(notification.getId(), NotificationStatus.QUEUED, REASON_PROVIDER_ERROR,
                         channel.channel(), channel.source(), backoff(attempts));

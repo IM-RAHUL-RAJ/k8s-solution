@@ -10,18 +10,15 @@ describe('LandingPage', () => {
     }).compileComponents();
   });
 
-  it('should create the landing page', () => {
-    const fixture = TestBed.createComponent(LandingPage);
-    expect(fixture.componentInstance).toBeTruthy();
-  });
-
-  it('should render the feature cards', async () => {
+  it('shows the headline, three features, the dancing companion and the sign-in button', async () => {
     const fixture = TestBed.createComponent(LandingPage);
     await fixture.whenStable();
     fixture.detectChanges();
 
-    const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelectorAll('.card').length).toBe(3);
-    expect(compiled.textContent).toContain('Trade with clarity and control, from order ticket to final fill.');
+    const page = fixture.nativeElement as HTMLElement;
+    expect(page.querySelector('h1')?.textContent).toContain('Trade with clarity');
+    expect(page.querySelectorAll('.feature').length).toBe(3);
+    expect(page.querySelector('app-mascot')).not.toBeNull();
+    expect(page.querySelector('[data-testid="sign-in-button"]')?.getAttribute('href')).toBe('/sign-in');
   });
 });

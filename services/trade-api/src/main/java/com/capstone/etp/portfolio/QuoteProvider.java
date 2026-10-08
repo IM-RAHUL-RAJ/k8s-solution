@@ -12,7 +12,11 @@ interface QuoteProvider {
 
     int MAX_BATCH = 25;
 
-    record ProviderQuote(String symbol, BigDecimal price, String currency, Instant asOf, boolean stale) {
+    /** previousClose is the last close before today's session, when the provider says. It is what "today" is measured from. */
+    record ProviderQuote(String symbol, BigDecimal price, String currency, Instant asOf, boolean stale, BigDecimal previousClose) {
+        ProviderQuote(String symbol, BigDecimal price, String currency, Instant asOf, boolean stale) {
+            this(symbol, price, currency, asOf, stale, null);
+        }
     }
 
     class QuoteProviderException extends Exception {

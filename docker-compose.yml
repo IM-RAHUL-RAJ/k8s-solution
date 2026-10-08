@@ -16,6 +16,10 @@ services:
       - ./services/auth_service/migrations/001_initial_schema.sql:/docker-entrypoint-initdb.d/004_auth_service_schema.sql:ro
       # Sprint 10 extensions: preferences, notifications, price alerts, realised P&L
       - ./databases/postgreSQL/migrations/003_extensions.sql:/docker-entrypoint-initdb.d/005_extensions.sql:ro
+      - ./databases/postgreSQL/migrations/004_sprint10_ui_enhancements.sql:/docker-entrypoint-initdb.d/006_sprint10_ui_enhancements.sql:ro
+      # Automated trading: the strategies customers set up
+      - ./databases/postgreSQL/migrations/005_automation.sql:/docker-entrypoint-initdb.d/007_automation.sql:ro
+      - ./databases/postgreSQL/migrations/006_automation_history.sql:/docker-entrypoint-initdb.d/008_automation_history.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-springboot_db}"]
       interval: 10s
@@ -112,6 +116,12 @@ services:
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASS: ${SMTP_PASS:-}
       SMTP_FROM: ${SMTP_FROM:-}
+      # The in-app assistant. The Gemini key lives only in this container's environment (set it in .env, which is
+      # git-ignored); the browser never sees it. Without it the assistant still answers from account data.
+      # Automated trading demo button (places a REAL order from a scripted price path). Off unless set to true.
+      AUTOMATION_SIMULATION: ${AUTOMATION_SIMULATION:-false}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.1-flash-lite}
     ports:
       - "${TRADE_API_PORT:-8084}:8084"
     depends_on:

@@ -7,7 +7,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -21,7 +25,7 @@ import java.util.UUID;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class NotificationService {
+public class NotificationService implements NotificationStatusLookup {
 
     static final int DEFAULT_LIMIT = 50;
     static final int MAX_LIMIT = 100;
@@ -55,6 +59,11 @@ public class NotificationService {
         return new Enqueued(id == null ? -1L : id, true);
     }
 
+    /** Records a funds message in the customer's inbox. The movement id is the event id, so it is recorded once. */
+    public void recordFundsEvent(UUID movementId, long accountId, String subject, String body) {
+        enqueue(movementId, accountId, NotificationKind.FUNDS, subject, body);
+    }
+
     public List<NotificationResponse> list(Long accountId, boolean unreadOnly, Integer limit) {
         authorizer.ensureOwnAccount(accountId);
         int bounded = limit == null ? DEFAULT_LIMIT : Math.max(1, Math.min(limit, MAX_LIMIT));
@@ -63,9 +72,54 @@ public class NotificationService {
                 .toList();
     }
 
+    /** The inbox for one group of messages: all, price_alert, order or funds. */
+    public List<NotificationResponse> list(Long accountId, boolean unreadOnly, Integer limit, String type) {
+        authorizer.ensureOwnAccount(accountId);
+        String group = type == null || type.isBlank() ? "all" : type.trim().toLowerCase(Locale.ROOT);
+        if (!List.of("all", "price_alert", "order", "funds").contains(group)) {
+            throw new ModuleException(HttpStatus.UNPROCESSABLE_ENTITY, "VAL-422",
+                    "type must be all, price_alert, order or funds");
+        }
+        int bounded = limit == null ? DEFAULT_LIMIT : Math.max(1, Math.min(limit, MAX_LIMIT));
+        return mapper.findByAccountAndType(accountId, unreadOnly, group, bounded).stream()
+                .map(NotificationResponse::from)
+                .toList();
+    }
+
+    /** Totals per group, for the badges on the inbox tabs. */
+    public Map<String, Long> counts(Long accountId) {
+        authorizer.ensureOwnAccount(accountId);
+        Map<String, Long> row = mapper.countByGroup(accountId);
+        Map<String, Long> counts = new HashMap<>();
+        counts.put("all", row == null ? 0L : number(row.get("total")));
+        counts.put("priceAlert", row == null ? 0L : number(row.get("price_alert")));
+        counts.put("order", row == null ? 0L : number(row.get("orders")));
+        counts.put("funds", row == null ? 0L : number(row.get("funds")));
+        return counts;
+    }
+
+    private static long number(Object value) {
+        return value instanceof Number n ? n.longValue() : 0L;
+    }
+
+    @Override
+    public Map<Long, String> statusOf(Collection<Long> notificationIds) {
+        Map<Long, String> statuses = new HashMap<>();
+        for (Notification n : mapper.findStatusesByIds(notificationIds)) {
+            statuses.put(n.getId(), n.getStatus().name());
+        }
+        return statuses;
+    }
+
     public int unreadCount(Long accountId) {
         authorizer.ensureOwnAccount(accountId);
         return mapper.countUnread(accountId);
+    }
+
+    /** Reads everything in the inbox at once. Answers with how many were unread. */
+    public int markAllRead(Long accountId) {
+        authorizer.ensureOwnAccount(accountId);
+        return mapper.markAllRead(accountId);
     }
 
     public NotificationResponse markRead(Long accountId, Long notificationId) {

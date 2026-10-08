@@ -116,4 +116,50 @@ public interface NotificationMapper {
             UPDATE notifications SET read_at = COALESCE(read_at, CURRENT_TIMESTAMP)
              WHERE id = #{id} AND account_id = #{accountId}""")
     int markRead(@Param("id") Long id, @Param("accountId") Long accountId);
+
+    /** The inbox filtered by type: all, price_alert, order or funds. */
+    @Select("""
+            SELECT id, event_id, account_id, kind, subject, body, status, status_reason,
+                   resolved_channel, channel_source, attempts, created_at, sent_at, read_at
+              FROM notifications
+             WHERE account_id = #{accountId}
+               AND (#{unreadOnly} = FALSE OR read_at IS NULL)
+               AND (#{type} = 'all'
+                    OR (#{type} = 'price_alert' AND kind = 'PRICE_ALERT')
+                    OR (#{type} = 'order' AND kind IN ('ORDER_FILLED', 'ORDER_REJECTED', 'ORDER_CANCELLED'))
+                    OR (#{type} = 'funds' AND kind = 'FUNDS'))
+             ORDER BY created_at DESC, id DESC
+             LIMIT #{limit}""")
+    List<Notification> findByAccountAndType(@Param("accountId") Long accountId,
+                                            @Param("unreadOnly") boolean unreadOnly,
+                                            @Param("type") String type,
+                                            @Param("limit") int limit);
+
+    /** How many messages of each group the account has, for the tab badges. */
+    @Select("""
+            SELECT COUNT(*) AS total,
+                   COUNT(*) FILTER (WHERE kind = 'PRICE_ALERT') AS price_alert,
+                   COUNT(*) FILTER (WHERE kind IN ('ORDER_FILLED', 'ORDER_REJECTED', 'ORDER_CANCELLED')) AS orders,
+                   COUNT(*) FILTER (WHERE kind = 'FUNDS') AS funds
+              FROM notifications WHERE account_id = #{accountId}""")
+    java.util.Map<String, Long> countByGroup(@Param("accountId") Long accountId);
+
+    @Select("""
+            <script>
+            SELECT id, status FROM notifications WHERE id IN
+            <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+            </script>""")
+    List<Notification> findStatusesByIds(@Param("ids") java.util.Collection<Long> ids);
+
+    /** Records that the customer opted out of this kind of message. */
+    @Update("""
+            UPDATE notifications SET status = 'SKIPPED', status_reason = #{reason}
+             WHERE id = #{id}""")
+    int markSkipped(@Param("id") Long id, @Param("reason") String reason);
+
+    /** Marks every unread message of the account read, and says how many there were. */
+    @Update("""
+            UPDATE notifications SET read_at = CURRENT_TIMESTAMP
+             WHERE account_id = #{accountId} AND read_at IS NULL""")
+    int markAllRead(@Param("accountId") Long accountId);
 }

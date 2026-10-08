@@ -15,5 +15,7 @@ public enum NotificationStatus {
     /** Handed to the channel. */
     SENT,
     /** Gave up after the attempt limit. */
-    FAILED
+    FAILED,
+    /** The customer switched this kind of message off. It stays in the inbox and is not sent. */
+    SKIPPED
 }

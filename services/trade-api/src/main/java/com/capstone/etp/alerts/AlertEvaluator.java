@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.util.Locale;
+import java.util.UUID;
 
 
 @Slf4j
@@ -33,7 +34,7 @@ class AlertEvaluator implements QuoteObserver {
         }
         String symbol = quote.getSymbol().trim().toUpperCase(Locale.ROOT);
         for (AlertIndex.Entry alert : index.forSymbol(symbol)) {
-            if (alert.direction().isCrossedBy(quote.getPrice(), alert.threshold())) {
+            if (alert.operator().matches(quote.getPrice(), alert.threshold())) {
                 fire(alert, quote);
             }
         }
@@ -43,6 +44,11 @@ class AlertEvaluator implements QuoteObserver {
         int rows;
         try {
             rows = mapper.markTriggered(alert.id(), quote.getPrice());
+            if (rows == 1) {
+                // One history row per firing. The event id is fresh, so a retry of the hand-over below
+                // reuses this row rather than adding another.
+                mapper.insertTrigger(alert.id(), UUID.randomUUID(), quote.getPrice());
+            }
         } catch (RuntimeException e) {
             // Stays in the index: the next quote past the level tries again.
             log.warn("[ALERTS] could not record trigger of alert {}: {}", alert.id(), e.getMessage());
@@ -54,7 +60,7 @@ class AlertEvaluator implements QuoteObserver {
             return;
         }
         log.info("[ALERTS] alert {} triggered on {} at {}", alert.id(), alert.symbol(), quote.getPrice());
-        handover.handOver(alert.id(), alert.accountId(), alert.symbol(), alert.direction(),
+        handover.handOver(alert.id(), alert.accountId(), alert.symbol(), alert.operator(),
                 alert.threshold(), quote.getPrice(),
                 quote.getQuoteAsOf() != null ? quote.getQuoteAsOf() : Instant.now());
     }

@@ -21,6 +21,13 @@ export const routes: Routes = [
 			import('./components/users/admin/admin-dashboard.component').then((m) => m.AdminDashboardComponent)
 	},
 	{
+		path: 'admin/settings',
+		title: 'Settings',
+		canActivate: [authGuard, adminGuard],
+		loadComponent: () =>
+			import('./components/users/admin/admin-settings.component').then((m) => m.AdminSettingsComponent)
+	},
+	{
 		path: 'dashboard',
 		canActivate: [authGuard, customerGuard],
 		loadComponent: () =>
@@ -55,7 +62,12 @@ export const routes: Routes = [
   },
   {
     path: 'account',
-    title: 'Account',
+    pathMatch: 'full',
+    redirectTo: 'profile'
+  },
+  {
+    path: 'profile',
+    title: 'Profile',
     canActivate: [authGuard, customerGuard],
     loadComponent: () =>
       import('./components/users/account/account.component').then(
@@ -79,6 +91,27 @@ export const routes: Routes = [
       import('./components/users/alerts/alerts.component').then(
         (m) => m.AlertsComponent
       )
+  },
+  {
+    path: 'assistant',
+    title: 'Ask your companion',
+    canActivate: [authGuard, customerGuard],
+    loadComponent: () =>
+      import('./components/users/assistant/assistant.component').then((m) => m.AssistantComponent)
+  },
+  {
+    path: 'advice',
+    title: 'Trade advice',
+    canActivate: [authGuard, customerGuard],
+    loadComponent: () =>
+      import('./components/users/advice/advice.component').then((m) => m.AdviceComponent)
+  },
+  {
+    path: 'automation',
+    title: 'Automated trading',
+    canActivate: [authGuard, customerGuard],
+    loadComponent: () =>
+      import('./components/users/automation/automation.component').then((m) => m.AutomationComponent)
   },
   {
     path: 'notifications',

@@ -22,7 +22,8 @@ record TradeEvent(
         int quantity,
         BigDecimal price,
         BigDecimal executedPrice,
-        String reason) {
+        String reason,
+        UUID orderId) {
 
     static final Set<String> HANDLED_TYPES = Set.of("ORDER_FILLED", "ORDER_REJECTED", "ORDER_CANCELLED");
 
@@ -64,7 +65,8 @@ record TradeEvent(
                 quantity.asInt(),
                 decimal(payload, "price"),
                 decimal(payload, "executedPrice"),
-                payload.hasNonNull("reason") ? payload.get("reason").asText() : null);
+                payload.hasNonNull("reason") ? payload.get("reason").asText() : null,
+                optionalUuid(payload, "orderId"));
     }
 
     private static String text(JsonNode node, String field) {
@@ -80,6 +82,18 @@ record TradeEvent(
             return UUID.fromString(value);
         } catch (IllegalArgumentException e) {
             throw new MalformedEventException("Event has an invalid eventId", e);
+        }
+    }
+
+    private static UUID optionalUuid(JsonNode node, String field) {
+        JsonNode value = node.get(field);
+        if (value == null || !value.isTextual()) {
+            return null;
+        }
+        try {
+            return UUID.fromString(value.asText());
+        } catch (IllegalArgumentException e) {
+            return null;
         }
     }
 

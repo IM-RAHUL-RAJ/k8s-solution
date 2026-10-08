@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { API_ENDPOINTS } from '../config/api-endpoints';
-import { PnlResponse, PortfolioSummary, PricedPosition } from '../models/portfolio.model';
+import { HistoryRange, PnlResponse, PortfolioHistory, PortfolioSummary, PricedPosition } from '../models/portfolio.model';
 
 // Priced holdings and profit and loss (contracts/portfolio-api.yaml)
  
@@ -34,5 +34,10 @@ export class PortfolioService {
       params = params.set('bySymbol', true);
     }
     return this.http.get<PnlResponse>(`${this.base(accountId)}/pnl`, { params });
+  }
+
+  /** The value over time, from what the platform has recorded as the portfolio was viewed. */
+  getHistory(accountId: number, range: HistoryRange = '30d'): Observable<PortfolioHistory> {
+    return this.http.get<PortfolioHistory>(`${this.base(accountId)}/history`, { params: { range } });
   }
 }

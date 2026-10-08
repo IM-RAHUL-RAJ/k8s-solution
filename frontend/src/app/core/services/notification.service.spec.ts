@@ -100,4 +100,27 @@ describe('NotificationService', () => {
 
     expect(service.unread()).toBe(0);
   });
+
+  it('sends the type only when a group is chosen, and does not let a filtered list set the badge', () => {
+    service.list(1, false, 50, 'price_alert').subscribe();
+    const request = http.expectOne((r) => r.url === base);
+    expect(request.request.params.get('type')).toBe('price_alert');
+    request.flush([item(1, false), item(2, false)]);
+
+    expect(service.unread()).toBe(0);
+
+    service.list(1).subscribe();
+    const plain = http.expectOne((r) => r.url === base);
+    expect(plain.request.params.has('type')).toBe(false);
+    plain.flush([item(1, false)]);
+    expect(service.unread()).toBe(1);
+  });
+
+  it('reads how many messages each tab holds', () => {
+    let counts: unknown;
+    service.counts(1).subscribe((value) => (counts = value));
+
+    http.expectOne(`${base}/counts`).flush({ all: 5, priceAlert: 3, order: 2, funds: 0 });
+    expect(counts).toEqual({ all: 5, priceAlert: 3, order: 2, funds: 0 });
+  });
 });

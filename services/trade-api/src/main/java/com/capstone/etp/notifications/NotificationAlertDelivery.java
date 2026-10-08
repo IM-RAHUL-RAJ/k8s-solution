@@ -21,7 +21,7 @@ class NotificationAlertDelivery implements AlertDelivery {
     public DeliveryReceipt deliver(AlertDeliveryRequest request) throws AlertDeliveryException {
         try {
             NotificationService.Enqueued result = notifications.enqueue(
-                    eventIdFor(request.alertId()),
+                    eventIdFor(request.alertId(), request.triggerId()),
                     request.accountId(),
                     NotificationKind.PRICE_ALERT,
                     subject(request),
@@ -36,20 +36,29 @@ class NotificationAlertDelivery implements AlertDelivery {
         }
     }
 
-    /** The same alert always maps to the same id. */
-    static UUID eventIdFor(long alertId) {
-        return UUID.nameUUIDFromBytes(("price-alert:" + alertId).getBytes(StandardCharsets.UTF_8));
+    /** The same firing of the same alert always maps to the same id; a later firing is a different one. */
+    static UUID eventIdFor(long alertId, long triggerId) {
+        return UUID.nameUUIDFromBytes(("price-alert:" + alertId + ":" + triggerId).getBytes(StandardCharsets.UTF_8));
+    }
+
+    /** "is above", "equals" and so on: the condition in the words a customer would use. */
+    static String phrase(AlertDeliveryRequest.Operator operator) {
+        return switch (operator) {
+            case GT -> "is above";
+            case GTE -> "is at or above";
+            case LT -> "is below";
+            case LTE -> "is at or below";
+            case EQ -> "equals";
+        };
     }
 
     static String subject(AlertDeliveryRequest r) {
-        return "Price alert: " + r.symbol() + (r.direction() == AlertDeliveryRequest.Direction.ABOVE
-                ? " is above " : " is below ") + plain(r.threshold());
+        return "Price alert: " + r.symbol() + " " + phrase(r.operator()) + " " + plain(r.threshold());
     }
 
     static String body(AlertDeliveryRequest r) {
-        return r.symbol() + (r.direction() == AlertDeliveryRequest.Direction.ABOVE
-                ? " rose above " : " fell below ")
-                + plain(r.threshold()) + ". The latest price is " + plain(r.price()) + ".";
+        return r.symbol() + " " + phrase(r.operator()) + " " + plain(r.threshold())
+                + ". The latest price is " + plain(r.price()) + ".";
     }
 
     private static String plain(BigDecimal value) {
