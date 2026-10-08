@@ -27,7 +27,7 @@
     </div>
   </main>
 
-  <section class="features" aria-label="What you get">
+  <!-- <section class="features" aria-label="What you get">
     @for (feature of features; track feature.title) {
       <article class="card feature">
         <app-icon [name]="feature.icon" [size]="26" />
@@ -35,17 +35,19 @@
         <p class="muted">{{ feature.text }}</p>
       </article>
     }
-  </section>
+  </section> -->
 
   <div class="ticker" aria-hidden="true">
-    <div class="ticker__track">
-      @for (copy of [0, 1]; track copy) {
-        <div class="ticker__group">
-          @for (tick of ticks; track tick.symbol) {
-            <span>{{ tick.symbol }} {{ tick.price }} <b [class.up]="tick.up" [class.dn]="!tick.up">{{ tick.up ? '&#9650;' : '&#9660;' }} {{ tick.change }}</b></span>
-          }
-        </div>
+    <marquee class="ticker__marquee" behavior="scroll" direction="left" scrollamount="5" onmouseover="this.stop()" onmouseout="this.start()">
+      @for (copy of [0, 1, 2]; track copy) {
+        @for (tick of ticks; track tick.symbol) {
+          <span class="ticker__item">
+            <span class="ticker__symbol">{{ tick.symbol }}</span>
+            <span class="ticker__price">{{ tick.price }}</span>
+            <span [class.up]="tick.up" [class.dn]="!tick.up" class="ticker__change">{{ tick.up ? '▲' : '▼' }} {{ tick.change }}</span>
+          </span>
+        }
       }
-    </div>
+    </marquee>
   </div>
 </div>

@@ -5,12 +5,13 @@
 
 .landing {
   display: grid;
-  grid-template-rows: auto 1fr auto auto;
+  grid-template-rows: auto 1fr auto;
   gap: 40px;
   min-height: 100vh;
   max-width: 1120px;
   margin: 0 auto;
   padding: 20px 24px 0;
+  position: relative;
 }
 
 .bar {
@@ -110,10 +111,25 @@
 }
 
 .ticker {
-  margin: 0 -24px;
+  width: 100vw;
+  margin-left: calc(-50vw + 50%);
+  margin-top: auto;
   overflow: hidden;
   border-top: 1px solid var(--line);
   background: var(--surface);
+  grid-column: 1 / -1;
+}
+
+.ticker__marquee {
+  padding: 10px 16px;
+  white-space: nowrap;
+}
+
+.ticker__item {
+  display: inline-flex;
+  gap: 8px;
+  margin-right: 48px;
+  white-space: nowrap;
 }
 
 .ticker__track {

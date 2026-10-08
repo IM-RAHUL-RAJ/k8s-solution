@@ -33,7 +33,6 @@ const THEMES: ReadonlyArray<{ value: ThemeMode; label: string; icon: IconName }>
       <article class="card section" data-testid="section-account">
         <h2>Account</h2>
         <dl class="rows">
-          <div><dt>Signed in as</dt><dd data-testid="admin-username">{{ username() }}</dd></div>
           <div><dt>Role</dt><dd>Administrator</dd></div>
         </dl>
       </article>
