@@ -4,13 +4,17 @@ import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, Validatio
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService, LoginRequest } from '../../../core/auth/auth.service';
 import { BrandLogoComponent } from '../shared/brand-logo/brand-logo.component';
+import { IconComponent } from '../shared/icon/icon.component';
+import { MascotComponent } from '../shared/mascot/mascot.component';
+import { AnimationName } from '../../../core/mascot/pixel-mascot';
 import { ThemeService } from '../../../core/theme/theme.service';
 import { SessionSocketService } from '../../../core/auth/session-socket.service';
+import { PreferencesService } from '../../../core/services/preferences.service';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, BrandLogoComponent],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, BrandLogoComponent, IconComponent, MascotComponent],
   templateUrl: './login.component.html',
   styleUrl: './login.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -28,6 +32,7 @@ export class LoginComponent {
   private route = inject(ActivatedRoute);
   private themeService = inject(ThemeService);
   private sessionSocket = inject(SessionSocketService);
+  private preferences = inject(PreferencesService);
   private cdr = inject(ChangeDetectorRef);
   private appRef = inject(ApplicationRef);
 
@@ -41,6 +46,9 @@ export class LoginComponent {
 
   // Error message from failed login attempt
   errorMessage = signal<string | null>(null);
+
+  /** The companion reacts: sad at a refusal, thinking while it checks, waving otherwise. */
+  protected readonly mascotAction = computed<AnimationName>(() => (this.errorMessage() ? 'sad' : this.isSubmitting() ? 'think' : 'wave'));
 
   // Track current theme for login page icon toggle
   currentTheme = signal<'light' | 'dark'>('light');
@@ -285,13 +293,17 @@ export class LoginComponent {
         const home = this.authService.isAdmin()
           ? '/admin'
           : this.authService.mustChangePassword()
-            ? '/account'
+            ? '/profile'
             : '/dashboard';
         const target = requested && requested.startsWith('/') && !requested.startsWith('//')
           ? requested
           : home;
 
-        this.router.navigateByUrl(target, { replaceUrl: true });
+        // The customer's stored default account becomes the one the application opens on. This never
+        // fails and never waits long: if it cannot be read they simply land on their own account.
+        this.preferences.applyDefaultAccountAtSignIn().subscribe({
+          complete: () => this.router.navigateByUrl(target, { replaceUrl: true })
+        });
       },
       error: (error: any) => {
         this.isSubmitting.set(false);

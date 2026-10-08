@@ -27,8 +27,8 @@
   gap: 2px;
   padding: 8px 16px;
   border-radius: 12px;
-  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line));
-  background: var(--ok-bg);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
   text-align: right;
 }
 
@@ -68,13 +68,6 @@
   overflow: hidden;
 }
 
-.ticket::before {
-  content: '';
-  position: absolute;
-  inset: 0 0 auto 0;
-  height: 4px;
-  background: var(--accent);
-}
 
 .sidebar-pick {
   display: grid;
@@ -202,7 +195,8 @@
   gap: 12px;
   padding: 14px 16px;
   border-radius: 14px;
-  background: var(--ok-bg);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
 }
 
 .total > div {
@@ -215,7 +209,7 @@
 }
 
 .total__alt {
-  color: var(--teal);
+  color: var(--muted);
   font-weight: 600;
 }
 
@@ -234,9 +228,32 @@
   font-size: 15px;
 }
 
-.primary.sell {
-  background: var(--reject);
+/* Buy is green and Sell is red, in both themes, with white text that stays readable and a hover that darkens. */
+.actions .primary {
+  background: var(--buy);
   color: #fff;
+}
+
+.actions .primary:hover:not(:disabled) {
+  background: var(--buy-hover);
+  color: #fff;
+}
+
+.actions .primary.sell {
+  background: var(--sell);
+}
+
+.actions .primary.sell:hover:not(:disabled) {
+  background: var(--sell-hover);
+}
+
+.actions .primary:disabled {
+  background: var(--buy);
+  opacity: 0.45;
+}
+
+.actions .primary.sell:disabled {
+  background: var(--sell);
 }
 
 /* ---- Banners that belong to this page ---- */
@@ -258,13 +275,6 @@
 
 .tick {
   flex: none;
-  width: 24px;
-  height: 24px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
 }
 
 .tick circle {
@@ -293,7 +303,7 @@
 .thumb {
   position: absolute;
   inset: 0 50% 0 0;
-  background: var(--accent);
+  background: var(--buy);
   transition:
     transform 280ms var(--ease),
     background-color 280ms ease;
@@ -301,7 +311,7 @@
 
 .segmented.sell .thumb {
   transform: translateX(100%);
-  background: var(--reject);
+  background: var(--sell);
 }
 
 .segmented button {
@@ -322,7 +332,8 @@
   transform: none;
 }
 
-.segmented button.selected {
+.segmented button.selected,
+.segmented button.selected:hover {
   color: #fff;
   font-weight: 700;
 }
@@ -347,7 +358,7 @@ button.small {
 .balance {
   display: grid;
   gap: 8px;
-  border-top: 4px solid var(--teal);
+  
 }
 
 .balance__amount {
@@ -379,7 +390,7 @@ button.small {
 .summary {
   display: grid;
   gap: 10px;
-  border-top: 4px solid var(--violet);
+  
 }
 
 .summary dl {
@@ -441,10 +452,12 @@ button.small {
 .converter {
   display: grid;
   gap: 12px;
-  border-top: 4px solid var(--amber);
+  
 }
 
 .converter > summary {
+  font-family: var(--font-dot);
+  font-size: 18px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -487,10 +500,29 @@ button.small {
 
 .fx-pair {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  gap: 8px;
-  align-items: end;
-  margin-top: 12px;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: stretch;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.fx-pair .swap {
+  justify-self: center;
+  width: 44px;
+  height: 32px;
+}
+
+.fx-pair .swap svg {
+  transform: rotate(90deg);
+}
+
+.converter select {
+  width: 100%;
+  height: auto;
+  min-height: 46px;
+  line-height: 1.4;
+  color: var(--text);
+  font-size: 15px;
 }
 
 .swap {
@@ -522,12 +554,18 @@ button.small {
   align-items: baseline;
   padding: 12px 14px;
   border-radius: 12px;
-  background-color: var(--amber-bg);
+  border: 1px solid var(--line);
+  background-color: var(--surface-2);
+}
+
+.fx-result .muted {
+  color: var(--text);
+  font-weight: 700;
 }
 
 .fx-result strong {
-  font-size: 22px;
-  color: var(--amber);
+  font-size: 24px;
+  color: var(--text);
 }
 
 .link {

@@ -11,6 +11,8 @@ import {
   Validators
 } from '@angular/forms';
 
+import { ToastService } from '../../../core/ui/toast.service';
+import { MascotComponent } from '../shared/mascot/mascot.component';
 import { ApiErrorMessageService } from '../../../core/services/api-error-message.service';
 import { AccountContextService } from '../../../core/services/account-context.service';
 import { AccountService } from '../../../core/services/account.service';
@@ -21,6 +23,7 @@ import { CURRENCIES, convertAmount, isSupportedCurrency, rateBetween } from '../
 import { AccountResponse, BalanceResponse, PositionResponse } from '../../../core/models/account.model';
 import { OrderResponse, OrderSide } from '../../../core/models/order.model';
 import { StatusBadgeComponent } from '../shared/status-badge/status-badge.component';
+import { SelectComponent, SelectOption } from '../shared/select/select.component';
 
 // The trade contract bounds a symbol at 1 to 20 characters. Anything richer is the API's call.
 const SYMBOL_PATTERN = /^\S{1,20}$/;
@@ -48,7 +51,7 @@ function symbolValidator(control: AbstractControl<string>): ValidationErrors | n
 @Component({
   selector: 'app-order-ticket',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, StatusBadgeComponent],
+  imports: [MascotComponent, CommonModule, ReactiveFormsModule, RouterLink, StatusBadgeComponent, SelectComponent],
   templateUrl: './order-ticket.component.html',
   styleUrl: './order-ticket.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -61,6 +64,7 @@ export class OrderTicketComponent {
   private readonly accountService = inject(AccountService);
   private readonly draftService = inject(OrderDraftService);
   private readonly route = inject(ActivatedRoute);
+  private readonly toast = inject(ToastService);
   protected readonly home = inject(HomeCurrencyService);
 
   readonly currencies = CURRENCIES;
@@ -136,6 +140,14 @@ export class OrderTicketComponent {
     this.home.ready();
     return this.home.instrument(this.summary().symbol) ?? null;
   });
+
+  /** What the symbol picker offers: every tradable instrument, with its name and what kind of thing it is. */
+  protected readonly symbolOptions = computed<SelectOption[]>(() =>
+    this.home
+      .instrumentList()
+      .filter((item) => item.tradable)
+      .map((item) => ({ value: item.symbol, label: item.symbol, hint: item.name, tag: item.assetClass.replaceAll('_', ' ').toLowerCase() }))
+  );
 
   readonly instrumentCurrency = computed(() => this.home.currencyOf(this.summary().symbol));
 

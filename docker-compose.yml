@@ -10,10 +10,16 @@ services:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ./postgres_database/migrations/001_initial_schema.sql:/docker-entrypoint-initdb.d/001_initial_schema.sql:ro
-      - ./postgres_database/migrations/002_add_query_indexes.sql:/docker-entrypoint-initdb.d/002_add_query_indexes.sql:ro
-      - ./postgres_database/seed/001_seed.sql:/docker-entrypoint-initdb.d/003_seed.sql:ro
+      - ./databases/postgreSQL/migrations/001_initial_schema.sql:/docker-entrypoint-initdb.d/001_initial_schema.sql:ro
+      - ./databases/postgreSQL/migrations/002_add_query_indexes.sql:/docker-entrypoint-initdb.d/002_add_query_indexes.sql:ro
+      - ./databases/postgreSQL/seed/001_seed.sql:/docker-entrypoint-initdb.d/003_seed.sql:ro
       - ./services/auth_service/migrations/001_initial_schema.sql:/docker-entrypoint-initdb.d/004_auth_service_schema.sql:ro
+      # Sprint 10 extensions: preferences, notifications, price alerts, realised P&L
+      - ./databases/postgreSQL/migrations/003_extensions.sql:/docker-entrypoint-initdb.d/005_extensions.sql:ro
+      - ./databases/postgreSQL/migrations/004_sprint10_ui_enhancements.sql:/docker-entrypoint-initdb.d/006_sprint10_ui_enhancements.sql:ro
+      # Automated trading: the strategies customers set up
+      - ./databases/postgreSQL/migrations/005_automation.sql:/docker-entrypoint-initdb.d/007_automation.sql:ro
+      - ./databases/postgreSQL/migrations/006_automation_history.sql:/docker-entrypoint-initdb.d/008_automation_history.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-springboot_db}"]
       interval: 10s
@@ -83,7 +89,7 @@ services:
   backend:
     profiles: ["platform"]
     build:
-      context: ./backend/trade-api
+      context: ./services/trade-api
       dockerfile: Dockerfile
     environment:
       SERVER_PORT: 8084
@@ -96,6 +102,26 @@ services:
       JWT_ISSUER: ${JWT_ISSUER:-auth-service}
       AUTH_BASE_URL: http://auth-service:8081
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      # Consumer groups of the Sprint 10 modules, one per module and never shared (see
+      # services/trade-api/README.md). They default to these values; listed here so they are visible.
+      KAFKA_WATCHLIST_GROUP: watchlist-service
+      KAFKA_NOTIFICATIONS_GROUP: notification-service
+      KAFKA_PORTFOLIO_GROUP: portfolio-service
+      # Portfolio pricing. The key stays in the environment of this container; the browser never sees it.
+      FAUXNANCE_BASE_URL: ${FAUXNANCE_BASE_URL:-http://localhost:8080}
+      FAUXNANCE_API_KEY: ${FAUXNANCE_API_KEY:-}
+      # The e-mail notification channel. Without SMTP_HOST it records a masked stub line instead of sending.
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      # The in-app assistant. The Gemini key lives only in this container's environment (set it in .env, which is
+      # git-ignored); the browser never sees it. Without it the assistant still answers from account data.
+      # Automated trading demo button (places a REAL order from a scripted price path). Off unless set to true.
+      AUTOMATION_SIMULATION: ${AUTOMATION_SIMULATION:-false}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.1-flash-lite}
     ports:
       - "${TRADE_API_PORT:-8084}:8084"
     depends_on:
@@ -103,6 +129,8 @@ services:
         condition: service_healthy
       auth-service:
         condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8084/actuator/health"]
       interval: 15s
@@ -115,7 +143,7 @@ services:
   trade-executor:
     profiles: ["platform"]
     build:
-      context: ./backend/executor
+      context: ./services/executor
       dockerfile: Dockerfile
     environment:
       SERVER_PORT: 8085
@@ -188,7 +216,7 @@ services:
       - kafka
 
     volumes:
-      - ./infra/kafka/create-topics.sh:/create-topics.sh:ro
+      - ./infrastructure/kafka/scripts/create-topics.sh:/create-topics.sh:ro
 
     entrypoint: ["/bin/bash", "/create-topics.sh"]
 
@@ -241,7 +269,7 @@ services:
     profiles: ["sonar-scan"]
     working_dir: /workspace
     volumes:
-      - ./backend/executor:/workspace
+      - ./services/executor:/workspace
       - maven-repo:/root/.m2
     environment:
       SONAR_TOKEN: ${SONAR_TOKEN}
@@ -259,7 +287,7 @@ services:
     profiles: ["sonar-scan"]
     working_dir: /workspace
     volumes:
-      - ./backend/trade-api:/workspace
+      - ./services/trade-api:/workspace
       - maven-repo:/root/.m2
     environment:
       SONAR_TOKEN: ${SONAR_TOKEN}
@@ -276,7 +304,7 @@ services:
     profiles: ["sonar-scan"]
     working_dir: /usr/src
     volumes:
-      - ./analytics:/usr/src
+      - ./ETL_Layer:/usr/src
     environment:
       SONAR_HOST_URL: http://sonarqube:9000
       SONAR_TOKEN: ${SONAR_TOKEN}

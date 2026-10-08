@@ -26,7 +26,7 @@ Instructions are applied automatically to files matching the `applyTo` pattern.
   - Scope: `sprint-09-trading-ui/**` (all files)
   - Use when: Implementing authentication, authorization, API calls, or any security-sensitive feature
 
-- **[`.github/instructions/sprint-09-ui-styling.instructions.md`](./instructions/sprint-09-ui-styling.instructions.md)**
+- **[`.github/instructions/sprint-10-ui-styling.instructions.md`](./instructions/sprint-10-ui-styling.instructions.md)**
   - CSS patterns, theme tokens, component styling, spacing, radius, typography, accessibility
   - Scope: `sprint-09-trading-ui/src/**/*.scss|*.css`
   - Use when: Styling components or working with CSS/SCSS
@@ -277,3 +277,10 @@ rm sprint-09-trading-ui/src/test-component.ts
 - **Sprint 9 Requirements**: [sprint-09-trading-ui/README.md](../sprint-09-trading-ui/README.md)
 - **Angular 21 Docs**: https://angular.io/docs
 - **OpenAPI Generator**: https://openapi-generator.tech/
+
+## Sprint 10
+
+- **[`agents/sprint-10-ui-design.agent.md`](./agents/sprint-10-ui-design.agent.md)**: the UI redesign agent (shell, mascot, alerts, portfolio, downloads, e-mail)
+- **[`instructions/sprint-10-ui-styling.instructions.md`](./instructions/sprint-10-ui-styling.instructions.md)**: tokens, motion, mascot styling
+- **[`instructions/price-alerts-ui.instructions.md`](./instructions/price-alerts-ui.instructions.md)**
+- **[`instructions/portfolio-redesign.instructions.md`](./instructions/portfolio-redesign.instructions.md)**

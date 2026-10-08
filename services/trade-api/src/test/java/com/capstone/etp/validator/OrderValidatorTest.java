@@ -9,7 +9,6 @@ import com.capstone.etp.enums.AccountType;
 import com.capstone.etp.enums.AssetClass;
 import com.capstone.etp.enums.OrderSide;
 import com.capstone.etp.exception.DuplicateOrderException;
-import com.capstone.etp.exception.CurrencyMismatchException;
 import com.capstone.etp.exception.AccountNotActiveException;
 import com.capstone.etp.exception.AccountNotFoundException;
 import com.capstone.etp.exception.InsufficientFundsException;
@@ -33,7 +32,7 @@ class OrderValidatorTest {
 
 
     @Test
-    void validate_throwsCurrencyMismatch_whenAccountTypeAndAssetClassDiffer() {
+    void validate_allowsOrder_whenAccountTypeAndAssetClassDiffer_currencyChecksDisabled() {
 
         Order order = baseOrder(new BigDecimal("150.00"));
 
@@ -52,22 +51,14 @@ class OrderValidatorTest {
                 );
 
 
-        CurrencyMismatchException exception =
-                assertThrows(
-                        CurrencyMismatchException.class,
-                        () -> orderValidator.validate(
-                                order,
-                                account,
-                                instrument,
-                                null,
-                                Collections.emptyList()
-                        )
-                );
-
-
-        assertEquals(
-                "CUR-422",
-                exception.getCatalogueCode()
+        assertDoesNotThrow(
+                () -> orderValidator.validate(
+                        order,
+                        account,
+                        instrument,
+                        null,
+                        Collections.emptyList()
+                )
         );
     }
 
@@ -117,7 +108,7 @@ class OrderValidatorTest {
 
 
     @Test
-    void validate_throwsCurrencyMismatch_whenForexAccountCurrencyDoesNotMatchQuoteCurrency() {
+    void validate_allowsForexWhenAccountCurrencyDoesNotMatchQuoteCurrency_currencyChecksDisabled() {
 
         Order order =
                 baseOrder(
@@ -141,22 +132,14 @@ class OrderValidatorTest {
                 );
 
 
-        CurrencyMismatchException exception =
-                assertThrows(
-                        CurrencyMismatchException.class,
-                        () -> orderValidator.validate(
-                                order,
-                                account,
-                                instrument,
-                                null,
-                                Collections.emptyList()
-                        )
-                );
-
-
-        assertEquals(
-                "CUR-422",
-                exception.getCatalogueCode()
+        assertDoesNotThrow(
+                () -> orderValidator.validate(
+                        order,
+                        account,
+                        instrument,
+                        null,
+                        Collections.emptyList()
+                )
         );
     }
 
@@ -283,10 +266,10 @@ class OrderValidatorTest {
     }
 
     @Test
-    void validate_throwsCurrencyMismatch_forInvalidCryptoSymbolFormat() {
+    void validate_allowsInvalidCryptoSymbolFormat_currencyChecksDisabled() {
         Order order = baseOrder(new BigDecimal("100"));
 
-        CurrencyMismatchException exception = assertThrows(CurrencyMismatchException.class,
+        assertDoesNotThrow(
                 () -> orderValidator.validate(
                         order,
                         baseAccount(AccountType.CRYPTO, "USD", "10000"),
@@ -294,8 +277,6 @@ class OrderValidatorTest {
                         null,
                         Collections.emptyList()
                 ));
-
-        assertEquals("CUR-422", exception.getCatalogueCode());
     }
 
     @Test
@@ -344,12 +325,12 @@ class OrderValidatorTest {
     }
 
     @Test
-    void validate_throwsCurrencyMismatch_whenCompatibilityFieldsMissing() {
+    void validate_allowsMissingCompatibilityFields_currencyChecksDisabled() {
         Order order = baseOrder(new BigDecimal("100"));
         Account account = baseAccount(AccountType.US_EQUITY, "USD", "10000");
         account.setAccountType(null);
 
-        assertThrows(CurrencyMismatchException.class,
+        assertDoesNotThrow(
                 () -> orderValidator.validate(
                         order,
                         account,

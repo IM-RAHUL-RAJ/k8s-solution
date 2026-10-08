@@ -33,7 +33,8 @@
 
 .app-content {
   overflow: auto;
-  padding: 16px;
+  /* Room at the bottom so the last of a long page can scroll clear of the chat bubble in the corner. */
+  padding: 16px 16px 104px;
 }
 
 @keyframes shellEnter {
@@ -75,4 +76,24 @@
 
 .password-banner {
   margin: 8px 16px 0;
+}
+
+/* With a signed-in customer the shell is a sidebar beside the page. */
+.app-shell--sidebar {
+  grid-template-columns: auto minmax(0, 1fr);
+  padding: 0;
+  gap: 0;
+}
+
+.app-shell--sidebar .app-frame {
+  min-height: 100dvh;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+@media (max-width: 800px) {
+  .app-shell--sidebar {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }

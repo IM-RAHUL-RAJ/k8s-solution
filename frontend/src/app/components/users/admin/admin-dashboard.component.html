@@ -3,15 +3,13 @@
     <div>
       <h1>Admin</h1>
       <p class="muted">Every account, read only, and customer registration.</p>
-    </div> <span class="badge">Admin &middot; read only</span>
+    </div>
   </header>
   <div class="tabs" role="tablist" aria-label="Admin sections"> <button type="button" role="tab"
       [class.active]="tab() === 'accounts'" [attr.aria-selected]="tab() === 'accounts'" (click)="setTab('accounts')"
       data-testid="tab-accounts"> Accounts <span class="count">{{ stats().total }}</span> </button> <button
       type="button" role="tab" [class.active]="tab() === 'register'" [attr.aria-selected]="tab() === 'register'"
-      (click)="setTab('register')" data-testid="tab-register"> Register customer </button> <button type="button"
-      role="tab" [class.active]="tab() === 'security'" [attr.aria-selected]="tab() === 'security'"
-      (click)="setTab('security')" data-testid="tab-security"> My password </button> </div> @if (tab() === 'accounts') {
+      (click)="setTab('register')" data-testid="tab-register"> Register customer </button> </div> @if (tab() === 'accounts') {
   <div class="stats">
     <article class="card stat stat--green">
       <p class="stat__label">Accounts</p>
@@ -187,16 +185,5 @@
           data-testid="register-submit"> @if (submitting()) { Registering... } @else { Register customer } </button>
       </div>
     </form>
-    <aside class="card how">
-      <h2>What happens</h2>
-      <ol>
-        <li> A client and an account are opened with the details you enter. </li>
-        <li> The sign-in service creates the login. The username is the email's first part. </li>
-        <li> A temporary password is generated and emailed to the customer. You never see it. </li>
-        <li> On first sign-in the customer is taken to the Account tab to choose their own. </li>
-      </ol>
-      <p class="muted"> If the login or the email fails, the new client and account are removed again, so nothing
-        half-made is left behind. </p>
-    </aside>
-  </div> } @if (tab() === 'security') { <app-change-password /> }
+  </div> }
 </section>
