@@ -251,4 +251,4 @@ Commit checklist:
 - [contracts/auth-api.yaml](../../contracts/auth-api.yaml): Auth Service contract
 - [sprint-09-trading-ui/README.md](../README.md): Sprint 9 detailed requirements
 - [.github/design/theme-sage-forest.md](.../../.github/design/theme-sage-forest.md): Visual design tokens, layout, screens, components
-- [.github/instructions/sprint-09-ui-styling.instructions.md](.../../.github/instructions/sprint-09-ui-styling.instructions.md): Component styling patterns
+- [.github/instructions/sprint-10-ui-styling.instructions.md](.../../.github/instructions/sprint-10-ui-styling.instructions.md): Component styling patterns

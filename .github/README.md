@@ -48,7 +48,7 @@ This folder contains VS Code agent customization and prompt engineering files fo
 |------|-------|---------|-----------|
 | `instructions/angular-trading-ui.instructions.md` | `sprint-09-trading-ui/src/**/*.ts` | Component, service, guard, interceptor, form, test patterns | On any Angular file |
 | `instructions/security-guardrails.instructions.md` | `sprint-09-trading-ui/**` | Token security, origin validation, redirect prevention, logging | On security-sensitive code |
-| `instructions/sprint-09-ui-styling.instructions.md` | `sprint-09-trading-ui/src/**/*.scss\|*.css` | CSS patterns, theme tokens, component styling, spacing, accessibility | On CSS/SCSS files |
+| `instructions/sprint-10-ui-styling.instructions.md` | `sprint-09-trading-ui/src/**/*.scss\|*.css` | CSS patterns, theme tokens, component styling, spacing, accessibility | On CSS/SCSS files |
 
 ### Hooks (Run on Edit)
 
@@ -324,3 +324,12 @@ Hook warns if returnUrl used without validation.
 **Last Updated**: 2026-09-29  
 **Sprint**: 9 (Trading UI)  
 **Status**: Active
+
+## Sprint 10 additions
+
+| File | Applies to | Covers |
+|---|---|---|
+| `instructions/sprint-10-ui-styling.instructions.md` | `frontend/src/**/*.css` | Design tokens (light/dark), spacing, motion, mascot styling (replaces the Sprint 9 palette) |
+| `instructions/price-alerts-ui.instructions.md` | alerts screens and API | Sentence dialog, list, switch, trigger history, operator wording |
+| `instructions/portfolio-redesign.instructions.md` | portfolio, watchlist, downloads | Layout, freshness dots, candle chart, CSV/Excel/PDF export |
+| `agents/sprint-10-ui-design.agent.md` | `frontend/**` | Design philosophy, constraints, patterns, test and build commands |

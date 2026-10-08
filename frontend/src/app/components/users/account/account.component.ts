@@ -11,6 +11,12 @@ import { AllocationSlice } from '../../../core/stats/portfolio-stats';
 import { ChangePasswordComponent } from '../shared/change-password/change-password.component';
 import { AnimatedNumberComponent } from '../shared/animated-number/animated-number.component';
 import { DonutChartComponent } from '../shared/donut-chart/donut-chart.component';
+import { EmptyStateComponent } from '../shared/empty-state/empty-state.component';
+import { IconComponent } from '../shared/icon/icon.component';
+import { MascotComponent } from '../shared/mascot/mascot.component';
+import { ModalComponent } from '../shared/modal/modal.component';
+import { FundsMovement } from '../../../core/services/funds.service';
+import { FundsDialogComponent } from './funds-dialog.component';
 
 function assetClassLabel(assetClass: string): string {
   const labels: Record<string, string> = {
@@ -26,7 +32,7 @@ function assetClassLabel(assetClass: string): string {
 @Component({
   selector: 'app-account',
   standalone: true,
-  imports: [CommonModule, RouterLink, AnimatedNumberComponent, DonutChartComponent, ChangePasswordComponent],
+  imports: [CommonModule, RouterLink, AnimatedNumberComponent, DonutChartComponent, ChangePasswordComponent, EmptyStateComponent, IconComponent, MascotComponent, ModalComponent, FundsDialogComponent],
   templateUrl: './account.component.html',
   styleUrl: './account.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -43,14 +49,15 @@ export class AccountComponent {
   protected readonly balance = signal<BalanceResponse | null>(null);
   protected readonly positions = signal<PositionResponse[]>([]);
   protected readonly showChangePassword = signal(false);
+  /** The funds dialog: which one is open, if any. */
+  protected readonly fundsDialog = signal<'deposit' | 'withdraw' | null>(null);
 
-  protected readonly initials = computed(() =>
-    (this.account()?.holderName ?? '?')
-      .split(/\s+/)
-      .slice(0, 2)
-      .map((part) => part.charAt(0).toUpperCase())
-      .join('')
-  );
+  /** The first letter of the sign-in name, which is what the customer knows themselves by. */
+  protected readonly initial = computed(() => {
+    const name = this.accountContext.getCurrentAccount().displayName || this.account()?.holderName || '?';
+    return name.trim().charAt(0).toUpperCase() || '?';
+  });
+  protected readonly hhiInfoOpen = signal(false);
 
   /** Cost of what is held. The API gives average cost, so this is cost, not market value. */
   protected readonly invested = computed(() =>
@@ -113,6 +120,22 @@ export class AccountComponent {
   constructor() {
     this.home.ensureLoaded();
     this.loadAccount();
+  }
+
+  protected openFunds(kind: 'deposit' | 'withdraw'): void {
+    this.fundsDialog.set(kind);
+  }
+
+  /** A movement went through: show the balance it left behind at once, then close. */
+  protected onFundsDone(movement: FundsMovement): void {
+    this.balance.update((balance) =>
+      balance ? { ...balance, cashBalance: movement.balanceAfter, asOf: movement.createdAt } : balance
+    );
+    this.fundsDialog.set(null);
+  }
+
+  protected toggleHhiInfo(): void {
+    this.hhiInfoOpen.update((open) => !open);
   }
 
   protected toggleChangePassword(): void {

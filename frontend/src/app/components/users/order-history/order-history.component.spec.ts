@@ -253,7 +253,7 @@ describe('OrderHistoryComponent', () => {
 
     const fixture = create();
 
-    expect((fixture.nativeElement as HTMLElement).textContent).toContain('No orders yet.');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('No orders yet');
   });
 
   it('leaving the screen stops the re-read', () => {

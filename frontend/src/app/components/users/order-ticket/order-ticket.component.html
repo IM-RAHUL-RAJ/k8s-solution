@@ -16,10 +16,7 @@
 
   @if (success(); as placed) {
     <div class="banner success placed" role="status" data-testid="order-success">
-      <svg class="tick" viewBox="0 0 24 24" aria-hidden="true">
-        <circle cx="12" cy="12" r="10" />
-        <path d="M7.5 12.5l3 3 6-6.5" />
-      </svg>
+      <app-mascot class="tick" action="cheer" [size]="72" [interactive]="false" />
       <div>
         <p><strong>Order placed.</strong> {{ placed.side === 'BUY' ? 'Buy' : 'Sell' }}
           {{ placed.quantity }} {{ placed.symbol }} at {{ placed.price | number: '1.2-2' }}</p>
@@ -71,26 +68,9 @@
 
       <div class="field">
         <label for="symbol">Symbol</label>
-        <input
-          id="symbol"
-          type="text"
-          formControlName="symbol"
-          autocomplete="off"
-          autocapitalize="characters"
-          placeholder="Search or type, e.g. AAPL"
-          list="symbol-options"
-          [class.invalid]="getSymbolError()"
-          [attr.aria-invalid]="getSymbolError() ? true : null"
-          [attr.aria-describedby]="getSymbolError() ? 'symbol-error' : 'symbol-info'"
-          data-testid="order-symbol"
-        />
-        <datalist id="symbol-options">
-          @for (item of home.instrumentList(); track item.symbol) {
-            @if (item.tradable) {
-              <option [value]="item.symbol">{{ item.name }}</option>
-            }
-          }
-        </datalist>
+        <app-select inputId="symbol" formControlName="symbol" [options]="symbolOptions()" [allowCustom]="true"
+                    [invalid]="!!getSymbolError()" placeholder="Search or type, e.g. AAPL" searchPlaceholder="Search instruments"
+                    emptyText="No listed instrument matches." testId="order-symbol" ariaLabel="Symbol" />
         @if (getSymbolError()) {
           <span class="field-error" id="symbol-error">{{ getSymbolError() }}</span>
         } @else if (instrument(); as info) {

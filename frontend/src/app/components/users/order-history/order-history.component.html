@@ -4,17 +4,25 @@
       <h1>Orders, newest first</h1>
       <p class="muted">Every order for your account, rejections included.</p>
     </div>
-    <button type="button" class="secondary refresh" (click)="refreshOrders()" [disabled]="refreshing()"
-            data-testid="refresh-orders">
-      <svg viewBox="0 0 20 20" class="glyph" [class.spin]="refreshing()" aria-hidden="true">
-        <path d="M16 10a6 6 0 1 1-2-4.5M16 3.5V6h-2.5" />
-      </svg>
-      @if (refreshing() && !loading()) {
-        Refreshing...
-      } @else {
-        Refresh
+    <div class="header__actions">
+      @if (orders().length > 0) {
+        <app-download-menu [filteredCount]="visibleOrders().length" [totalCount]="orders().length"
+                           [hasCharts]="true" [busy]="exporting()" (download)="download($event)" />
       }
-    </button>
+      @if (orders().length > 0) {
+        <button type="button" class="icon-btn filter-toggle" [class.active]="filtersOpen()" (click)="toggleFilters()"
+                [attr.aria-expanded]="filtersOpen()" aria-label="Filters" data-tip="Filters" data-tip-below data-testid="filters-toggle">
+          <app-icon name="filter" />
+          @if (activeColumnFilters() > 0) {
+            <span class="filter-toggle__count" data-testid="filters-count">{{ activeColumnFilters() }}</span>
+          }
+        </button>
+      }
+      <button type="button" class="icon-btn refresh" (click)="refreshOrders()" [disabled]="refreshing()"
+              aria-label="Refresh" data-tip="Refresh" data-tip-below data-tip-end data-testid="refresh-orders">
+        <app-icon name="refresh" [class.spin]="refreshing()" />
+      </button>
+    </div>
   </div>
 
   @if (error()) {
@@ -40,12 +48,13 @@
       <span class="skeleton"></span>
     </article>
   } @else if (orders().length === 0 && !error()) {
-    <article class="card empty" data-testid="blotter-empty">
-      <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 5h12M4 10h12M4 15h7" /></svg>
-      <p>No orders yet.</p>
-      <p class="muted">Place your first order from the <a routerLink="/order-ticket">Order ticket</a>.</p>
+    <article class="card" data-testid="blotter-empty">
+      <app-empty-state title="No orders yet" message="Your orders show up here, including the ones that were turned down. Start with your first.">
+        <a class="button" routerLink="/order-ticket">Place an order</a>
+      </app-empty-state>
     </article>
   } @else if (orders().length > 0) {
+    @if (filtersOpen()) {
     <div class="filters" role="group" aria-label="Filter orders by status">
       @for (option of filters(); track option.value) {
         <button type="button" class="chip" [class.active]="filter() === option.value"
@@ -90,6 +99,7 @@
         }
       </div>
     </div>
+    }
 
     <article class="card table-card">
         <table>
@@ -104,6 +114,7 @@
               <th scope="col">Status</th>
               <th scope="col" class="act"><span class="sr-only">Actions</span></th>
             </tr>
+            @if (filtersOpen()) {
             <tr class="filter-row" data-testid="column-filters">
               <th>
                 <span class="muted">Date range above</span>
@@ -148,6 +159,7 @@
               </th>
               <th class="act"></th>
             </tr>
+            }
           </thead>
           <tbody>
             @for (order of visibleOrders(); track order.orderId; let i = $index) {

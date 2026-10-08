@@ -4,31 +4,21 @@ import { RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { AccountResponse, BalanceResponse, PositionResponse } from '../../../core/models/account.model';
 import { OrderHistoryEntry } from '../../../core/models/order.model';
-import { AuthService } from '../../../core/auth/auth.service';
 import { AccountContextService } from '../../../core/services/account-context.service';
 import { AccountService } from '../../../core/services/account.service';
 import { ApiErrorMessageService } from '../../../core/services/api-error-message.service';
 import { HomeCurrencyService } from '../../../core/services/home-currency.service';
 import { OrderService } from '../../../core/services/order.service';
-import { activityByDay, allocation, executionQuality } from '../../../core/stats/portfolio-stats';
-import { ActivityChartComponent } from '../shared/activity-chart/activity-chart.component';
 import { AnimatedNumberComponent } from '../shared/animated-number/animated-number.component';
-import { DonutChartComponent } from '../shared/donut-chart/donut-chart.component';
-import { ExecutionQualityComponent } from '../shared/execution-quality/execution-quality.component';
+import { EmptyStateComponent } from '../shared/empty-state/empty-state.component';
+import { IconComponent } from '../shared/icon/icon.component';
+import { MascotComponent } from '../shared/mascot/mascot.component';
 import { StatusBadgeComponent } from '../shared/status-badge/status-badge.component';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [
-    CommonModule,
-    RouterLink,
-    StatusBadgeComponent,
-    AnimatedNumberComponent,
-    DonutChartComponent,
-    ActivityChartComponent,
-    ExecutionQualityComponent
-  ],
+  imports: [CommonModule, RouterLink, EmptyStateComponent, IconComponent, MascotComponent, StatusBadgeComponent, AnimatedNumberComponent],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -38,7 +28,6 @@ export class DashboardComponent {
   private readonly orderService = inject(OrderService);
   private readonly accountContext = inject(AccountContextService);
   private readonly apiErrorMessageService = inject(ApiErrorMessageService);
-  private readonly auth = inject(AuthService);
   protected readonly home = inject(HomeCurrencyService);
 
   protected readonly loading = signal(true);
@@ -55,14 +44,6 @@ export class DashboardComponent {
     return name ? `${part}, ${name}` : part;
   });
 
-  protected readonly initials = computed(() =>
-    (this.account()?.holderName ?? '?')
-      .split(/\s+/)
-      .slice(0, 2)
-      .map((part) => part.charAt(0).toUpperCase())
-      .join('')
-  );
-
   /** What the current holdings cost. The API returns average cost, not a live price, so this is cost, not market value. */
   protected readonly invested = computed(() =>
     this.positions().reduce(
@@ -73,11 +54,6 @@ export class DashboardComponent {
 
   // Cash plus holdings, in the home currency. 
   protected readonly netWorth = computed(() => (this.balance()?.cashBalance ?? 0) + this.invested());
-
-  protected readonly cashShare = computed(() => {
-    const total = this.netWorth();
-    return total > 0 ? ((this.balance()?.cashBalance ?? 0) / total) * 100 : 0;
-  });
 
   /** Each holding's share of cost, for the bar beside it. */
   protected readonly holdingRows = computed(() => {
@@ -100,12 +76,8 @@ export class DashboardComponent {
   );
 
   protected readonly holdings = computed(() =>
-    [...this.positions()].sort((left, right) => left.symbol.localeCompare(right.symbol)).slice(0, 6)
+    [...this.positions()].sort((left, right) => left.symbol.localeCompare(right.symbol)).slice(0, 5)
   );
-
-  protected readonly slices = computed(() => allocation(this.positions(), (amount, symbol) => this.home.toHome(amount, symbol)));
-  protected readonly activity = computed(() => activityByDay(this.orders(), 14));
-  protected readonly quality = computed(() => executionQuality(this.orders(), (amount, symbol) => this.home.toHome(amount, symbol)));
 
   protected readonly workingOrders = computed(
     () => this.orders().filter((order) => order.status === 'NEW').length
