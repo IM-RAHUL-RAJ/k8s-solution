@@ -20,7 +20,7 @@ info:
     Errors, the 25-alert cap, the `already reached` refusal and account isolation are unchanged.
 
 servers:
-  - url: http://localhost:8084
+  - url: http://localhost:8081
 
 security:
   - bearerAuth: []

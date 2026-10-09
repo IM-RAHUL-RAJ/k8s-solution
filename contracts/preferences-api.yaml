@@ -46,7 +46,7 @@ info:
     being viewed.
 
 servers:
-  - url: http://localhost:8084
+  - url: http://localhost:8081
     description: Local development (Trade REST API).
 
 tags:
