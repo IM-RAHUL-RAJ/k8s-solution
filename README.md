@@ -22,8 +22,23 @@ This README is for the full project, not only Sprint 10.
 
 ### Platform infrastructure
 - `docker-compose.yml` (platform orchestration with profiles)
-- `databases/postgreSQL/migrations` (schema evolution)
+- `config/application.yaml` (shared host / port / database / Kafka settings from the deployment PDF)
+- `.env.example` and `.env` (every environment variable the platform reads; see below)
+- `databases/postgreSQL/schema.sql`, `seed-data.sql`, `reset.sql`, `migrations/` (database build)
 - `infrastructure/kafka/scripts/create-topics.sh` (topic provisioning)
+
+### Layout against the deployment PDF ("ETP - System Architecture")
+
+| PDF folder | In this repository |
+|---|---|
+| Contracts (API Schemas, Analytics Schemas) | `contracts/` (`*-api.yaml`, `analytics-schema.sql`) |
+| Databases / DuckDB / analytics | `databases/DuckDB/analytics` |
+| Databases / PostgreSQL (migrations, reset.sql, schema.sql, seed-data.sql) | `databases/postgreSQL/` |
+| ETL Layer | `ETL_Layer/` |
+| Frontend (port 4200) | `frontend/` |
+| Infrastructure / Kafka | `infrastructure/kafka/` |
+| Services: auth-service (3000), order-service (8081), executor-service (8082) | `services/auth_service`, `services/trade-api`, `services/executor` |
+| Config / application.yml | `config/application.yaml` |
 
 ### Contracts and architecture records
 - `contracts/` (OpenAPI and topic/data contracts)
@@ -77,8 +92,7 @@ Additional modules:
 
 | Profile | Purpose |
 |---|---|
-| `platform` | Full runtime stack (Postgres, Auth Service, Trade API, Executor, Kafka, topic init, Kafbat UI) |
-| `stub` | Lightweight auth stub service |
+| `platform` | Full runtime stack (Postgres, Auth Service, Order service (`backend`), Executor, Kafka, topic init, Kafbat UI) |
 | `sonar` | SonarQube server |
 | `sonar-scan` | Scanner containers for executor, trade-api, and ETL layer |
 
@@ -91,50 +105,74 @@ Additional modules:
 - npm
 - PostgreSQL client tools (`psql`) for manual migration/debug work
 
-## Quick start (recommended: Docker)
+## Service ports (deployment PDF)
 
-From repository root:
+| Service | URL | Port |
+|---|---|---|
+| Frontend application | `http://localhost` | 4200 |
+| auth-service | `http://localhost` | 3000 |
+| order-service (`services/trade-api`) | `http://localhost` | 8081 |
+| executor-service (`services/executor`) | `http://localhost` | 8082 |
+| PostgreSQL (`trading_system_db`) | `localhost` | 5432 |
+| Kafka (Docker network) | `kafka` | 29092 |
+
+The same values are in `config/application.yaml`, `.env.example` and `.env`. Nothing else is written in code:
+`npm`, `mvn` and `docker compose` all read them from the `.env` at the repository root.
+
+## Setup from a fresh clone
+
+```bash
+cp .env.example .env            # then fill in the blank secrets (see "Environment configuration")
+node scripts/validate-config.mjs
+```
+
+The platform runs in either of two ways, and the same `.env` serves both. Full prerequisites:
+`docs/deployment-prerequisites.md`.
+
+### A. Docker (recommended)
 
 ```bash
 docker compose --profile platform up -d --build
 ```
 
-Default ports:
-- Trade API: `8084`
-- Auth Service: `8081`
-- Executor: `8085`
-- PostgreSQL: `5432`
-- Kafka external listener: `9092`
-- Kafbat UI: `8086`
-
-Stop platform:
+Compose creates the database on first start from `databases/postgreSQL/schema.sql` and `seed-data.sql`, builds the
+three services, and reaches Kafka as `kafka:29092` on the Docker network. Also published on the host: the Kafka
+external listener (`KAFKA_EXTERNAL_PORT`, default 9092) and Kafbat UI (`KAFKA_UI_PORT`, default 8086).
 
 ```bash
-docker compose --profile platform down
+docker compose --profile platform down     # stop
+docker compose --profile platform config   # validate the file and the resolved values
 ```
 
-Validate compose file and resolved paths:
+### B. No Docker (services started directly on the machine)
 
-```bash
-docker compose --profile platform config
-```
+1. Database: `bash databases/postgreSQL/scripts/apply.sh` (needs `psql`; creates `trading_system_db` if missing).
+2. Kafka: set `KAFKA_BOOTSTRAP_SERVERS` in `.env`. A broker on the Linux VM is `<vm-ip>:9092`; a broker on this machine
+   is `localhost:9092`. Changing that one line is all it takes to switch.
+3. Start the services (see "Running services locally") in this order: auth service, order service, executor, frontend.
 
 ## Environment configuration
 
-`docker-compose.yml` reads environment values (for example from `.env` at repo root).
+`.env.example` lists **every** variable the platform reads, grouped by service; `.env` (git-ignored because it holds real
+secrets) has the same keys. `node scripts/validate-config.mjs` fails when the two differ, when a variable used in code is
+missing from `.env.example`, when a deployment-PDF value is wrong, or when a hardcoded URL, IP or key is found in source.
 
-Common variables:
-- `JWT_SECRET` (required for auth and trade-api token verification)
-- `JWT_ISSUER` (default `auth-service`)
-- `DB_NAME`, `DB_USER`, `DB_PASSWORD`
-- `FAUXNANCE_BASE_URL`, `FAUXNANCE_API_KEY`
-- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`
-- `KAFKA_BOOTSTRAP_SERVERS` (for local non-compose service runs)
+How each part reads it:
+- Spring Boot services: `application.properties` contains only `${NAME}` references. Started from `services/<name>`, they
+  also read `../../.env`; variables already in the process environment win. A missing required variable stops start-up.
+- Auth service: `ConfigModule` reads the root `.env`; a missing required variable stops start-up and names it.
+- Frontend: `npm start`, `build`, `watch` and `test` first run `frontend/scripts/set-env.mjs`, which writes the
+  git-ignored `src/environments/environment.ts` (API URLs) from `.env`; `npm start` serves on `FRONTEND_PORT`.
+- Docker Compose: every value is `${NAME}` from `.env`; containers reach each other by service name.
 
-Helper script for remote Linux VM setup:
+Variables that whoever deploys must fill in: `JWT_SECRET` (the same value for all services), `DB_PASSWORD`,
+`FAUXNANCE_API_KEY`, and optionally `SMTP_*` and `GEMINI_API_KEY` (without them e-mail is only logged and the assistant
+answers from account data).
+
+Helper script for remote Linux VM setup (copies `.env` to the VM and restarts the stack):
 
 ```bash
-./setup-jwt-docker.sh <username> <vm-ip>
+./setup-jwt-docker.sh <vm-user> <vm-ip>
 ```
 
 ## Running services locally (without Docker orchestration)
@@ -144,7 +182,7 @@ Helper script for remote Linux VM setup:
 ```bash
 cd frontend
 npm ci
-npm start
+npm start        # http://localhost:4200 (FRONTEND_PORT); API URLs come from .env
 ```
 
 Also available:
@@ -162,8 +200,10 @@ npm run scan:bundle
 ```bash
 cd services/auth_service
 npm install
-npm run start:dev
+npm run start:dev        # port AUTH_SERVICE_PORT (3000)
 ```
+
+The first admin is created with `ADMIN_PASSWORD='<12+ characters>' npm run create-admin -- <username> <accountId>`.
 
 Tests:
 
@@ -182,7 +222,7 @@ mvn spring-boot:run
 Tests:
 
 ```bash
-JWT_SECRET=any-32-byte-secret-for-tests-0000000 mvn test
+mvn test        # unit tests need no environment; ExtensionsChainIT / KafkaChainIT run when TEST_DB_URL is set
 ```
 
 ### Executor
@@ -192,21 +232,28 @@ cd services/executor
 mvn spring-boot:run
 ```
 
-## Database migrations
+## Database
 
-The Compose bootstrap mounts and applies migration SQL files from:
-- `databases/postgreSQL/migrations`
-- `services/auth_service/migrations`
+One PostgreSQL database (`DB_NAME`, `trading_system_db`) with two schemas:
 
-If using an existing database that predates extension tables, apply needed migration files manually with `psql`.
+| Schema | Owner | Contents |
+|---|---|---|
+| `trade` | order-service and executor-service | clients, accounts, portfolios, instruments, holdings, orders, transactions, watchlist, preferences, notifications, price alerts, P&L, cash movements, automation |
+| `auth` | auth-service | `auth_users` (credentials, roles), `refresh_tokens` |
 
-Current migration chain includes:
-- `001_initial_schema.sql`
-- `002_add_query_indexes.sql`
-- `003_extensions.sql`
-- `004_sprint10_ui_enhancements.sql`
-- `005_automation.sql`
-- `006_automation_history.sql`
+Each service selects its schema through its connection (`DB_SCHEMA_TRADE` / `DB_SCHEMA_AUTH`), so no SQL carries a
+schema prefix. Credentials exist only in `auth.auth_users`: the `clients` table has no password column.
+One client has exactly one account (`accounts.client_id` is UNIQUE).
+
+Files in `databases/postgreSQL/`:
+- `schema.sql` - the complete schema, safe to run repeatedly
+- `seed-data.sql` - baseline data: 20 clients, each with exactly one account (client N owns account N), portfolios, instruments, orders, watchlists
+- `reset.sql` - drops both schemas (destructive)
+- `migrations/001..007` - the same schema built step by step (`apply.sh --migrations`); verified to produce an identical schema
+- `scripts/apply.sh` - creates the database if needed, then runs `schema.sql` and `seed-data.sql`
+  (options `--reset`, `--migrations`, `--no-seed`, `--queries`)
+
+Logins are not seeded: create them through the auth service (`POST /auth/register` with an existing `accountId`).
 
 ## Contracts and API-first development
 
@@ -268,8 +315,8 @@ docker compose logs trade-executor
 	- inspect `trade-events.DLT` in Kafbat UI (`http://localhost:8086`)
 
 - If frontend calls fail locally:
-	- verify proxy settings in `frontend/proxy.conf.json`
-	- verify backend/auth ports and JWT configuration
+	- verify `.env` (ports and URLs), then run `node scripts/validate-config.mjs`
+	- the dev-server proxy is `frontend/proxy.conf.mjs` and also reads `.env`
 
 ## Related docs
 
@@ -278,6 +325,7 @@ docker compose logs trade-executor
 - Sprint 10 scope/backlog: `docs/sprint10/scope-and-backlog.md`
 - Trade API details: `services/trade-api/README.md`
 - Auth service details: `services/auth_service/README.md`
+- Deployment prerequisites: `docs/deployment-prerequisites.md`
 - Frontend details: `frontend/README.md`
 - Contracts guide: `contracts/README.md`
 - Decision template: `decision-log/TEMPLATE.md`
