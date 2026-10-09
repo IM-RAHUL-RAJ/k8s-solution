@@ -63,7 +63,7 @@ class RegistrationServiceTest {
         when(adminMapper.countClientsByEmail(anyString())).thenReturn(0);
         when(adminMapper.nextClientRef()).thenReturn("C000000011");
         when(adminMapper.nextAccountRef()).thenReturn("ACC0000011");
-        when(adminMapper.insertClient(anyString(), anyString(), anyString(), anyString(), any(), any(), any()))
+        when(adminMapper.insertClient(anyString(), anyString(), anyString(), any(), any(), any()))
                 .thenReturn(11L);
         when(adminMapper.insertAccount(anyString(), anyLong(), anyString(), anyString(), any())).thenReturn(21L);
     }
@@ -85,25 +85,25 @@ class RegistrationServiceTest {
         assertThat(response.getAccountId()).isEqualTo(21L);
 
         verify(adminMapper).insertClient(eq("C000000011"), eq("Priya Menon"), eq("priya.menon@example.com"),
-                anyString(), eq("9876543210"), eq(LocalDate.of(1990, 4, 12)), eq("FEMALE"));
+                eq("9876543210"), eq(LocalDate.of(1990, 4, 12)), eq("FEMALE"));
         verify(adminMapper).insertAccount("ACC0000011", 11L, "INDIAN_EQUITY", "INR", new BigDecimal("50000.00"));
         verify(adminMapper).insertPortfolio(21L, "Primary portfolio");
         // The id counters are moved past the seeded rows before anything is inserted.
         org.mockito.InOrder order = org.mockito.Mockito.inOrder(adminMapper);
         order.verify(adminMapper).lockReferenceAllocation();
         order.verify(adminMapper).syncIdSequences();
-        order.verify(adminMapper).insertClient(anyString(), anyString(), anyString(), anyString(), any(), any(), any());
+        order.verify(adminMapper).insertClient(anyString(), anyString(), anyString(), any(), any(), any());
         verify(adminMapper).insertPreferences(21L, "MODERATE");
     }
 
     @Test
-    void theClientRowHoldsAnUnusableHashNeverAPlainPassword() {
+    void theClientRowCarriesNoCredentialsAtAll() {
         refsAvailable();
 
         service.register(request("priya.menon@example.com"));
 
-        verify(adminMapper).insertClient(anyString(), anyString(), anyString(),
-                org.mockito.ArgumentMatchers.startsWith("$2"), any(), any(), any());
+        // clients has no password column: the login lives in the auth schema, created by the auth service.
+        verify(adminMapper).insertClient(anyString(), anyString(), anyString(), any(), any(), any());
     }
 
     @Test
@@ -113,7 +113,7 @@ class RegistrationServiceTest {
         assertThatThrownBy(() -> service.register(request("priya.menon@example.com")))
                 .isInstanceOf(AccountAccessDeniedException.class);
 
-        verify(adminMapper, never()).insertClient(any(), any(), any(), any(), any(), any(), any());
+        verify(adminMapper, never()).insertClient(any(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -124,7 +124,7 @@ class RegistrationServiceTest {
         assertThatThrownBy(() -> service.register(request("a+b.tag@example.com")))
                 .isInstanceOf(RegistrationException.class);
 
-        verify(adminMapper, never()).insertClient(any(), any(), any(), any(), any(), any(), any());
+        verify(adminMapper, never()).insertClient(any(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -136,7 +136,7 @@ class RegistrationServiceTest {
                 .extracting(e -> ((RegistrationException) e).getCatalogueCode())
                 .isEqualTo("REG-409");
 
-        verify(adminMapper, never()).insertClient(any(), any(), any(), any(), any(), any(), any());
+        verify(adminMapper, never()).insertClient(any(), any(), any(), any(), any(), any());
     }
 
     @Test

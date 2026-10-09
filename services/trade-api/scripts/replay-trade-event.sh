@@ -10,6 +10,9 @@
 #   SELECT count(*) FROM portfolio_realised_pnl WHERE event_id = '<printed id>';            -- 1 for a SELL, 0 for a BUY
 set -euo pipefail
 
+. "$(dirname "${BASH_SOURCE[0]}")/../../../scripts/load-env.sh"
+require_env KAFKA_HOST KAFKA_PORT TRADE_EVENTS_TOPIC
+
 ACCOUNT_ID="${1:?usage: replay-trade-event.sh <accountId> [BUY|SELL] [times]}"
 SIDE="${2:-BUY}"
 TIMES="${3:-3}"
@@ -31,7 +34,7 @@ echo "eventId=${EVENT_ID}  account=${ACCOUNT_ID}  ${SIDE} 1 ${SYMBOL}  sending $
 for _ in $(seq 1 "${TIMES}"); do
   echo "${ACCOUNT_ID}:${EVENT}"
 done | docker compose exec -T kafka /opt/kafka/bin/kafka-console-producer.sh \
-      --bootstrap-server kafka:29092 --topic trade-events \
+      --bootstrap-server "${KAFKA_HOST}:${KAFKA_PORT}" --topic "${TRADE_EVENTS_TOPIC}" \
       --property parse.key=true --property key.separator=:
 
 echo "done. Look for exactly one notification with event_id = ${EVENT_ID}"

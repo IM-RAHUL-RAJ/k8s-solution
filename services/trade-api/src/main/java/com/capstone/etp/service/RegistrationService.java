@@ -9,14 +9,12 @@ import com.capstone.etp.security.AccountAuthorizer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Locale;
-import java.util.UUID;
 import java.util.regex.Pattern;
 
 /**
@@ -36,8 +34,6 @@ public class RegistrationService {
 
     private final AdminMapper adminMapper;
     private final AccountAuthorizer accountAuthorizer;
-
-    private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
 
     /** Every account with its client, for the admin dashboard. Read only. */
     public List<AdminAccountSummary> listAccounts() {
@@ -72,13 +68,11 @@ public class RegistrationService {
         String clientRef = adminMapper.nextClientRef();
         String accountRef = adminMapper.nextAccountRef();
 
-        // clients.password_hash is NOT NULL but sign-in is the auth service's job, so this is an
-        // unguessable placeholder, never a password anybody knows.
+        // The client row holds no credentials: sign-in is the auth service's job (schema auth).
         Long clientId = adminMapper.insertClient(
                 clientRef,
                 request.getName().trim(),
                 email,
-                encoder.encode(UUID.randomUUID().toString()),
                 request.getPhone(),
                 request.getDateOfBirth(),
                 request.getGender() == null ? null : request.getGender().name());

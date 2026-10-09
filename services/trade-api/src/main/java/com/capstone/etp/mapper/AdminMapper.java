@@ -46,15 +46,14 @@ public interface AdminMapper {
     int countClientsByEmail(@Param("email") String email);
 
     @Select("""
-        INSERT INTO clients (client_ref, name, email, password_hash, phone, date_of_birth, gender)
-        VALUES (#{clientRef}, #{name}, #{email}, #{passwordHash}, #{phone}, #{dateOfBirth},
+        INSERT INTO clients (client_ref, name, email, phone, date_of_birth, gender)
+        VALUES (#{clientRef}, #{name}, #{email}, #{phone}, #{dateOfBirth},
                 CAST(#{gender,jdbcType=VARCHAR} AS gender_enum))
         RETURNING id""")
     Long insertClient(
             @Param("clientRef") String clientRef,
             @Param("name") String name,
             @Param("email") String email,
-            @Param("passwordHash") String passwordHash,
             @Param("phone") String phone,
             @Param("dateOfBirth") LocalDate dateOfBirth,
             @Param("gender") String gender);

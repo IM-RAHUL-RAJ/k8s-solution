@@ -236,7 +236,7 @@ class ExtensionsChainIT {
 
     @Test
     void aChannelTheProfileCannotServeIsRefused() throws Exception {
-        // client 3 (account 4) has no phone number
+        // client 4 (account 4) has no phone number
         Reply refused = call("PUT", "/api/v1/accounts/4/preferences", 4L, "{\"defaultAccountId\":4,\"alertChannel\":\"SMS\"}");
 
         assertEquals(422, refused.status());
@@ -298,8 +298,8 @@ class ExtensionsChainIT {
 
     @Test
     void whenTheChosenChannelHasNoContactTheMessageIsHeldNotMisrouted() throws Exception {
-        // client 3 / account 4 has no phone; a stored SMS preference (written directly, the API refuses it)
-        jdbc.update("INSERT INTO customer_preferences (client_id, default_account_id, alert_channel) VALUES (3, 4, 'SMS')");
+        // client 4 / account 4 (one client, one account) has no phone; a stored SMS preference (written directly, the API refuses it)
+        jdbc.update("INSERT INTO customer_preferences (client_id, default_account_id, alert_channel) VALUES (4, 4, 'SMS')");
         tradeEvents.handle(TradeEventListenerTest.filled(UUID.randomUUID()).replace("\"accountId\":1", "\"accountId\":4"));
 
         dispatcher.dispatchDue();
