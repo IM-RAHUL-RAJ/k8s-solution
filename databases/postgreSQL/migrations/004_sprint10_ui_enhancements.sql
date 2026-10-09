@@ -4,6 +4,8 @@
 
 BEGIN;
 
+SET LOCAL search_path TO trade, public;
+
 -- ---------------------------------------------------------------------
 -- PRICE ALERTS: richer conditions and an on/off switch
 -- ---------------------------------------------------------------------

@@ -1,143 +1,104 @@
 #!/usr/bin/env bash
-
+#
+# Builds the PostgreSQL database for the platform: one database (DB_NAME) with the schemas
+# "trade" and "auth". Connection settings come from the repository's .env (or the environment).
+#
+#   scripts/apply.sh                 create the database if missing, run schema.sql, then seed-data.sql
+#   scripts/apply.sh --reset         drop both schemas first (reset.sql), then rebuild and re-seed
+#   scripts/apply.sh --migrations    build from migrations/*.sql instead of schema.sql
+#   scripts/apply.sh --no-seed       build the schema only, no baseline data
+#   scripts/apply.sh --queries       afterwards, also run the sample queries in queries/
+#
 set -euo pipefail
 
-# Resolve paths relative to this script, so it works from any current directory.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DB_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 REPO_ROOT="$(cd "$DB_DIR/../.." && pwd)"
 MIGRATIONS_DIR="$DB_DIR/migrations"
-SEED_DIR="$DB_DIR/seed"
 QUERIES_DIR="$DB_DIR/queries"
 
-# Load KEY=VALUE entries from .env without word-splitting values (supports spaces and <> in values).
-load_env_file() {
-    local env_file="$1"
-    local line key value
-    while IFS= read -r line || [ -n "$line" ]; do
-        line="${line%$'\r'}"
-        [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
-        [[ "$line" != *"="* ]] && continue
+RESET=false
+USE_MIGRATIONS=false
+SEED=true
+RUN_QUERIES=false
+for arg in "$@"; do
+    case "$arg" in
+        --reset)      RESET=true ;;
+        --migrations) USE_MIGRATIONS=true ;;
+        --no-seed)    SEED=false ;;
+        --queries)    RUN_QUERIES=true ;;
+        -h|--help)    sed -n '2,13p' "${BASH_SOURCE[0]}"; exit 0 ;;
+        *) echo "ERROR: unknown option $arg"; exit 1 ;;
+    esac
+done
 
-        key="${line%%=*}"
-        value="${line#*=}"
+# shellcheck source=lib-env.sh
+. "$SCRIPT_DIR/lib-env.sh"
 
-        # trim surrounding whitespace on key only
-        key="${key#"${key%%[![:space:]]*}"}"
-        key="${key%"${key##*[![:space:]]}"}"
-
-        [[ "$key" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || continue
-        export "$key=$value"
-    done < "$env_file"
-}
-
-# Load .env if present (prefer repo root, then current working directory).
 if [ -f "$REPO_ROOT/.env" ]; then
     load_env_file "$REPO_ROOT/.env"
 elif [ -f ".env" ]; then
     load_env_file ".env"
 fi
 
-
-# Database connection
-DATABASE="${TARGET_DATABASE:-${POSTGRES_DB:-${DB_NAME:-}}}"
-DB_HOST_VALUE="${DB_HOST:-localhost}"
-DB_PORT_VALUE="${DB_PORT:-${POSTGRES_PORT:-5432}}"
-DB_USER_VALUE="${DB_USER:-${POSTGRES_USER:-}}"
-DB_PASSWORD_VALUE="${DB_PASSWORD:-${POSTGRES_PASSWORD:-}}"
-
-
-if [ -z "$DATABASE" ]; then
-    echo "ERROR: TARGET_DATABASE, POSTGRES_DB, or DB_NAME is not set"
-    exit 1
-fi
-
-if [ -z "$DB_USER_VALUE" ]; then
-    echo "ERROR: DB_USER or POSTGRES_USER is not set"
-    exit 1
-fi
-
-# Tell psql exactly which connection settings to use (avoid OS-user fallback).
-export PGHOST="$DB_HOST_VALUE"
-export PGPORT="$DB_PORT_VALUE"
-export PGUSER="$DB_USER_VALUE"
-export PGDATABASE="$DATABASE"
-if [ -n "$DB_PASSWORD_VALUE" ]; then
-    export PGPASSWORD="$DB_PASSWORD_VALUE"
-fi
-
-
-echo "Using database: $PGDATABASE"
-echo "Using host: $PGHOST port: $PGPORT user: $PGUSER"
-
-
-# Apply migrations
-echo "Applying migrations..."
-
-if [ ! -d "$MIGRATIONS_DIR" ]; then
-    echo "ERROR: migrations directory does not exist: $MIGRATIONS_DIR"
-    exit 1
-fi
-
-shopt -s nullglob
-migrations=("$MIGRATIONS_DIR"/*.sql)
-if [ "${#migrations[@]}" -eq 0 ]; then
-    echo "ERROR: no migration SQL files found in $MIGRATIONS_DIR"
-    exit 1
-fi
-
-for migration in "${migrations[@]}"; do
-    echo "Applying: $migration"
-
-    psql \
-        -v ON_ERROR_STOP=1 \
-        -f "$migration"
-done
-
-
-# Load seed data
-echo "Loading seed data..."
-
-if [ ! -d "$SEED_DIR" ]; then
-    echo "ERROR: seed directory does not exist: $SEED_DIR"
-    exit 1
-fi
-
-seeds=("$SEED_DIR"/*.sql)
-if [ "${#seeds[@]}" -eq 0 ]; then
-    echo "ERROR: no seed SQL files found in $SEED_DIR"
-    exit 1
-fi
-
-for seed_file in "${seeds[@]}"; do
-    echo "Loading: $seed_file"
-
-    psql \
-        -v ON_ERROR_STOP=1 \
-        -f "$seed_file"
-done
-
-if [ -d "$QUERIES_DIR" ]; then
-    queries=("$QUERIES_DIR"/*.sql)
-    if [ "${#queries[@]}" -gt 0 ]; then
-        echo "Running analytical queries..."
-        for query_file in "${queries[@]}"; do
-            echo "===================================="
-            echo "Executing: $query_file"
-            echo "===================================="
-
-            psql \
-                -v ON_ERROR_STOP=1 \
-                -a \
-                -f "$query_file"
-
-            echo ""
-        done
+for required in DB_HOST DB_PORT DB_NAME DB_USER DB_PASSWORD; do
+    if [ -z "${!required:-}" ]; then
+        echo "ERROR: $required is not set. Copy .env.example to .env at the repository root and fill it in."
+        exit 1
     fi
+done
+
+export PGHOST="$DB_HOST"
+export PGPORT="$DB_PORT"
+export PGUSER="$DB_USER"
+export PGPASSWORD="$DB_PASSWORD"
+
+echo "Database: $DB_NAME on $DB_HOST:$DB_PORT as $DB_USER"
+
+# Create the database when it does not exist yet (connects to the maintenance database "postgres").
+exists="$(psql -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname = '$DB_NAME'")"
+if [ "$exists" != "1" ]; then
+    echo "Creating database $DB_NAME"
+    psql -d postgres -v ON_ERROR_STOP=1 -c "CREATE DATABASE \"$DB_NAME\""
+fi
+export PGDATABASE="$DB_NAME"
+
+run_sql() {
+    echo "Applying: $1"
+    psql -v ON_ERROR_STOP=1 -q -f "$1"
+}
+
+if [ "$RESET" = true ]; then
+    run_sql "$DB_DIR/reset.sql"
 fi
 
+if [ "$USE_MIGRATIONS" = true ]; then
+    shopt -s nullglob
+    migrations=("$MIGRATIONS_DIR"/*.sql)
+    if [ "${#migrations[@]}" -eq 0 ]; then
+        echo "ERROR: no migration SQL files found in $MIGRATIONS_DIR"
+        exit 1
+    fi
+    for migration in "${migrations[@]}"; do
+        run_sql "$migration"
+    done
+else
+    run_sql "$DB_DIR/schema.sql"
+fi
 
+if [ "$SEED" = true ]; then
+    run_sql "$DB_DIR/seed-data.sql"
+fi
 
-
+if [ "$RUN_QUERIES" = true ] && [ -d "$QUERIES_DIR" ]; then
+    export PGOPTIONS="-c search_path=trade,auth,public"
+    for query_file in "$QUERIES_DIR"/*.sql; do
+        echo "===================================="
+        echo "Executing: $query_file"
+        echo "===================================="
+        psql -v ON_ERROR_STOP=1 -a -f "$query_file"
+        echo ""
+    done
+fi
 
 echo "Database setup completed successfully."

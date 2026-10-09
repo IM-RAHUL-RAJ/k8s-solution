@@ -4,6 +4,8 @@
 
 BEGIN;
 
+SET LOCAL search_path TO trade, public;
+
 CREATE TABLE IF NOT EXISTS automation_events (
     id               BIGSERIAL PRIMARY KEY,
     strategy_id      BIGINT REFERENCES automation_strategies(id) ON DELETE SET NULL,

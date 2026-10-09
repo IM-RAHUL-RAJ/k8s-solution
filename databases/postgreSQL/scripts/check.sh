@@ -5,19 +5,29 @@ set -uo pipefail
 
 # LOAD ENVIRONMENT
 
-if [ -f ".env" ]; then
-    export $(grep -v '^#' .env | xargs)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR/.."
+REPO_ROOT="$(cd ../.. && pwd)"
+
+# shellcheck source=lib-env.sh
+. "$SCRIPT_DIR/lib-env.sh"
+if [ -f "$REPO_ROOT/.env" ]; then
+    load_env_file "$REPO_ROOT/.env"
 fi
+
+# The probes use unqualified table names; the tables live in the trade (and auth) schemas.
+export PGOPTIONS="-c search_path=trade,auth,public"
+export PGHOST="${DB_HOST:-}" PGPORT="${DB_PORT:-}" PGUSER="${DB_USER:-}" PGPASSWORD="${DB_PASSWORD:-}"
 
 
 
 # DATABASE SELECTION
 
-DATABASE="${TARGET_DATABASE:-${POSTGRES_DB:-}}"
+DATABASE="${TARGET_DATABASE:-${DB_NAME:-}}"
 
 
 if [ -z "$DATABASE" ]; then
-    echo "ERROR: TARGET_DATABASE or POSTGRES_DB is not set"
+    echo "ERROR: TARGET_DATABASE or DB_NAME is not set"
     exit 1
 fi
 
