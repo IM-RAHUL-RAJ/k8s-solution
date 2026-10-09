@@ -3,7 +3,8 @@
 # JWT Debug Utility - helps diagnose JWT validation issues
 
 JWT_TOKEN="$1"
-JWT_SECRET="security-secret-for-etp-capstone-team2-2026"
+. "$(dirname "${BASH_SOURCE[0]}")/../../scripts/load-env.sh"
+require_env JWT_SECRET ORDER_SERVICE_URL || exit 1
 
 if [ -z "$JWT_TOKEN" ]; then
   echo "Usage: $0 <jwt-token>"
@@ -47,7 +48,7 @@ echo ""
 
 echo "5️⃣  Next Steps:"
 echo "  ✓ Verify JWT_SECRET is set on Linux VM:"
-echo "    ssh admin@10.8.76.150 'echo \$JWT_SECRET'"
+echo "    ssh admin@${ORDER_SERVICE_URL#*://} 'echo \$JWT_SECRET'"
 echo ""
 echo "  ✓ Check Trade API logs for JWT validation errors"
 echo ""

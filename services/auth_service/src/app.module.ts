@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { join } from 'path';
 
 import {
     ConfigModule,
@@ -24,6 +25,10 @@ import { RefreshToken } from './auth/entity/refresh-token.entity';
 
         ConfigModule.forRoot({
             isGlobal: true,
+            // The repository's .env (three folders up from src/ and dist/) is the one source of truth, so it comes
+            // first and wins; a .env in this folder can only add variables. A variable already in the process
+            // environment wins over both.
+            envFilePath: [join(__dirname, '..', '..', '..', '.env'), '.env'],
             load: [configuration],
         }),
 
@@ -68,6 +73,16 @@ import { RefreshToken } from './auth/entity/refresh-token.entity';
                     config.get<string>(
                         'database.database',
                     ),
+
+                // One database, two schemas: the auth service works only in its own.
+                schema:
+                    config.get<string>(
+                        'database.schema',
+                    ),
+
+                extra: {
+                    options: `-c search_path=${config.get<string>('database.schema')},public`,
+                },
 
                 entities: [
                     AuthUser,
