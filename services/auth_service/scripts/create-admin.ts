@@ -5,10 +5,25 @@
  *   ADMIN_PASSWORD='a long password' npm run create-admin -- <username> <accountId>
  *
  * <accountId> is any existing account id: it is what the admin's token carries, and the admin
- * only ever gets read access to accounts. Uses the same DB_* variables as the service.
+ * only ever gets read access to accounts. Uses the same DB_* variables as the service, read from the
+ * repository's .env (or the environment) and the auth schema (DB_SCHEMA_AUTH).
  */
 import * as argon2 from 'argon2';
+import * as dotenv from 'dotenv';
+import { join } from 'path';
 import { Client } from 'pg';
+
+// The repository's .env wins; a .env in this folder can only add variables.
+dotenv.config({ path: [join(__dirname, '..', '..', '..', '.env'), '.env'] });
+
+function required(name: string): string {
+    const value = process.env[name];
+    if (!value) {
+        console.error(`Missing required environment variable ${name} (see .env.example).`);
+        process.exit(1);
+    }
+    return value as string;
+}
 
 async function main() {
     const [username, accountIdArg] = process.argv.slice(2);
@@ -31,14 +46,16 @@ async function main() {
     });
 
     const client = new Client({
-        host: process.env.DB_HOST ?? 'localhost',
-        port: Number(process.env.DB_PORT ?? 5432),
-        database: process.env.DB_NAME ?? 'springboot_db',
-        user: process.env.DB_USER ?? 'postgres',
-        password: process.env.DB_PASSWORD,
+        host: required('DB_HOST'),
+        port: Number(required('DB_PORT')),
+        database: required('DB_NAME'),
+        user: required('DB_USER'),
+        password: required('DB_PASSWORD'),
     });
+    const schema = required('DB_SCHEMA_AUTH');
     await client.connect();
     try {
+        await client.query(`SET search_path TO "${schema.replace(/"/g, '')}", public`);
         await client.query(
             `INSERT INTO auth_users (username, password_hash, account_id, roles)
              VALUES ($1, $2, $3, ARRAY['ADMIN'])

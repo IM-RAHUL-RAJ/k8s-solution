@@ -57,7 +57,7 @@ class EmailTemplateRenderer {
     private final Map<String, String> templates = new ConcurrentHashMap<>();
     private final String publicBaseUrl;
 
-    EmailTemplateRenderer(@Value("${app.public.base-url:http://localhost:4200}") String publicBaseUrl) {
+    EmailTemplateRenderer(@Value("${app.public.base-url}") String publicBaseUrl) {
         this.publicBaseUrl = publicBaseUrl.endsWith("/") ? publicBaseUrl.substring(0, publicBaseUrl.length() - 1) : publicBaseUrl;
     }
 

@@ -1,18 +1,17 @@
+-- 001: base trade schema (clients, accounts, portfolios, instruments, orders, transactions, watchlist).
+-- Runs on an empty database. Everything is created inside schema "trade" (the auth schema comes in 007).
+-- Tearing down is reset.sql's job, so this migration drops nothing.
 
 BEGIN;
 
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
+CREATE SCHEMA IF NOT EXISTS trade;
+CREATE SCHEMA IF NOT EXISTS auth;
+
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
+
+SET LOCAL search_path TO trade, public;
 
 
-DROP TYPE IF EXISTS transaction_status_enum CASCADE;
-DROP TYPE IF EXISTS order_status_enum CASCADE;
-DROP TYPE IF EXISTS order_type_enum CASCADE;
-DROP TYPE IF EXISTS asset_class_enum CASCADE;
-DROP TYPE IF EXISTS risk_profile_enum CASCADE;
-DROP TYPE IF EXISTS account_status_enum CASCADE;
-DROP TYPE IF EXISTS account_type_enum CASCADE;
-DROP TYPE IF EXISTS client_status_enum CASCADE;
-DROP TYPE IF EXISTS gender_enum CASCADE;
 
 
 CREATE TYPE gender_enum AS ENUM (
@@ -71,17 +70,6 @@ CREATE TYPE transaction_status_enum AS ENUM (
 );
 
 
-DROP TABLE IF EXISTS
-    transactions,
-    orders,
-    portfolio_holdings,
-    instruments,
-    portfolios,
-    account_preferences,
-    accounts,
-    clients,
-    watchlist
-CASCADE;
 
 
 -- CLIENTS
@@ -92,7 +80,6 @@ CREATE TABLE clients (
     client_ref      VARCHAR(10) NOT NULL UNIQUE,
     name            TEXT NOT NULL,
     email           TEXT NOT NULL UNIQUE,
-    password_hash   TEXT NOT NULL,
     phone           TEXT,
     date_of_birth   DATE,
     gender          gender_enum,
@@ -128,6 +115,9 @@ CREATE TABLE accounts (
     suspended_at    TIMESTAMPTZ,
     closed_at       TIMESTAMPTZ,
     updated_at       TIMESTAMPTZ,
+
+    -- one account per client
+    CONSTRAINT uq_accounts_client_id UNIQUE (client_id),
 
     CONSTRAINT ck_accounts_account_ref
         CHECK (account_ref ~ '^ACC[0-9]{7}$'),
@@ -166,9 +156,6 @@ CREATE TABLE accounts (
         )
 );
 
-
-CREATE INDEX idx_accounts_client_id
-ON accounts(client_id);
 
 
 -- ACCOUNT PREFERENCES

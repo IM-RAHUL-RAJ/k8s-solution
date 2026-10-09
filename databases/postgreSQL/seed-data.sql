@@ -1,49 +1,65 @@
+-- =====================================================================
+-- seed-data.sql : baseline / reference data for schema trade
+--
+-- Load it once into an empty schema (after schema.sql); to load it again run reset.sql and schema.sql first.
+-- One client has exactly one account: client N owns account N (ids, C1000000NN / ACC00000NN line up).
+-- Sign-in credentials are NOT seeded: logins live in schema auth and are created through the
+-- auth service (POST /auth/register, or `npm run create-admin` for the first admin).
+-- =====================================================================
+
 BEGIN;
 
+SET LOCAL search_path TO trade, public;
 
--- CLIENTS
 
-INSERT INTO clients (id, client_ref, name, email, password_hash, phone, date_of_birth, gender, status) VALUES
-(1,  'C100000001', 'John Doe',        'john.doe@example.com',        'x_hash_1',  '9876543210', '1985-04-12', 'MALE',   'ACTIVE'),
-(2,  'C100000002', 'Jane Smith',      'jane.smith@example.com',      'x_hash_2',  '9876543211', '1990-07-23', 'FEMALE', 'ACTIVE'),
-(3,  'C100000003', 'Alex Johnson',    'alex.johnson@example.com',    'x_hash_3',  NULL,         '1978-11-02', 'OTHER',  'DORMANT'),
-(4,  'C100000004', 'Priya Singh',     'priya.singh@example.com',     'x_hash_4',  '9123456780', '1995-01-30', 'FEMALE', 'ACTIVE'),
-(5,  'C100000005', 'Robert Brown',    'robert.brown@example.com',    'x_hash_5',  '9123456781', '1960-09-15', 'MALE',   'CLOSED'),
-(6,  'C100000006', 'Emily Davis',     'emily.davis@example.com',     'x_hash_6',  NULL,         NULL,         NULL,     'ACTIVE'),
-(7,  'C100000007', 'Wei Chen',        'wei.chen@example.com',        'x_hash_7',  '9988776655', '1988-03-19', 'MALE',   'ACTIVE'),
-(8,  'C100000008', 'Fatima Ali',      'fatima.ali@example.com',      'x_hash_8',  '9988776656', '1992-06-08', 'FEMALE', 'DORMANT'),
-(9,  'C100000009', 'Carlos Garcia',   'carlos.garcia@example.com',   'x_hash_9',  '9988776657', '1975-12-25', 'MALE',   'ACTIVE'),
-(10, 'C100000010', 'Sara Kim',        'sara.kim@example.com',        'x_hash_10', '9988776658', '1983-02-14', 'FEMALE', 'CLOSED'),
-(11, 'C100000011', 'Liam O''Brien',   'liam.obrien@example.com',     'x_hash_11', '9988776659', '1991-08-05', 'MALE',   'ACTIVE'),
-(12, 'C100000012', 'Olga Petrova',    'olga.petrova@example.com',    'x_hash_12', '9988776660', '1987-10-11', 'FEMALE', 'ACTIVE'),
-(13, 'C100000013', 'Hiro Tanaka',     'hiro.tanaka@example.com',     'x_hash_13', '9988776661', '1993-05-27', 'MALE',   'ACTIVE'),
-(14, 'C100000014', 'Nina Patel',      'nina.patel@example.com',      'x_hash_14', '9988776662', '1980-01-09', 'FEMALE', 'DORMANT'),
-(15, 'C100000015', 'Minimal Fields',  'minimal.fields@example.com',  'x_hash_15', NULL,         NULL,         NULL,     'ACTIVE');
+-- CLIENTS  (20 clients, one per account; no credentials stored here)
+
+INSERT INTO clients (id, client_ref, name, email, phone, date_of_birth, gender, status) VALUES
+(1,  'C100000001', 'John Doe',        'john.doe@example.com',        '9876543210', '1985-04-12', 'MALE',   'ACTIVE'),
+(2,  'C100000002', 'Arjun Mehta',     'arjun.mehta@example.com',     '9876543212', '1987-09-03', 'MALE',   'ACTIVE'),
+(3,  'C100000003', 'Jane Smith',      'jane.smith@example.com',      '9876543211', '1990-07-23', 'FEMALE', 'ACTIVE'),
+(4,  'C100000004', 'Alex Johnson',    'alex.johnson@example.com',    NULL,         '1978-11-02', 'OTHER',  'DORMANT'),
+(5,  'C100000005', 'Priya Singh',     'priya.singh@example.com',     '9123456780', '1995-01-30', 'FEMALE', 'ACTIVE'),
+(6,  'C100000006', 'Robert Brown',    'robert.brown@example.com',    '9123456781', '1960-09-15', 'MALE',   'CLOSED'),
+(7,  'C100000007', 'Emily Davis',     'emily.davis@example.com',     NULL,         NULL,         NULL,     'ACTIVE'),
+(8,  'C100000008', 'Wei Chen',        'wei.chen@example.com',        '9988776655', '1988-03-19', 'MALE',   'ACTIVE'),
+(9,  'C100000009', 'Fatima Ali',      'fatima.ali@example.com',      '9988776656', '1992-06-08', 'FEMALE', 'DORMANT'),
+(10, 'C100000010', 'Carlos Garcia',   'carlos.garcia@example.com',   '9988776657', '1975-12-25', 'MALE',   'ACTIVE'),
+(11, 'C100000011', 'Sara Kim',        'sara.kim@example.com',        '9988776658', '1983-02-14', 'FEMALE', 'CLOSED'),
+(12, 'C100000012', 'Liam O''Brien',   'liam.obrien@example.com',     '9988776659', '1991-08-05', 'MALE',   'ACTIVE'),
+(13, 'C100000013', 'Olga Petrova',    'olga.petrova@example.com',    '9988776660', '1987-10-11', 'FEMALE', 'ACTIVE'),
+(14, 'C100000014', 'Hiro Tanaka',     'hiro.tanaka@example.com',     '9988776661', '1993-05-27', 'MALE',   'ACTIVE'),
+(15, 'C100000015', 'Nina Patel',      'nina.patel@example.com',      '9988776662', '1980-01-09', 'FEMALE', 'DORMANT'),
+(16, 'C100000016', 'Minimal Fields',  'minimal.fields@example.com',  NULL,         NULL,         NULL,     'ACTIVE'),
+(17, 'C100000017', 'Isabella Rossi',  'isabella.rossi@example.com',  '9988776663', '1989-04-17', 'FEMALE', 'ACTIVE'),
+(18, 'C100000018', 'Daniel Okafor',   'daniel.okafor@example.com',   '9988776664', '1982-12-01', 'MALE',   'CLOSED'),
+(19, 'C100000019', 'Grace Wilson',    'grace.wilson@example.com',    '9988776665', '1994-02-21', 'FEMALE', 'ACTIVE'),
+(20, 'C100000020', 'Noah Williams',   'noah.williams@example.com',   '9988776666', '1990-11-30', 'MALE',   'ACTIVE');
 
 
 -- ACCOUNTS
 
 INSERT INTO accounts (id, account_ref, client_id, account_type, currency, cash_balance, status, version, created_at, suspended_at, closed_at, updated_at) VALUES
 (1,  'ACC0000001', 1,  'US_EQUITY', 'USD', 15000.50, 'ACTIVE',    3, '2023-01-10 09:00:00+00', NULL,                     NULL,                     '2024-06-01 10:00:00+00'),
-(2,  'ACC0000002', 1,  'CRYPTO', 'USD', 11313500.00,   'ACTIVE',    1, '2023-02-15 09:00:00+00', NULL,                     NULL,                     NULL),
-(3,  'ACC0000003', 2,  'FOREX',  'EUR', 2000.00,  'ACTIVE',    2, '2023-03-01 09:00:00+00', NULL,                     NULL,                     '2024-05-20 08:30:00+00'),
-(4,  'ACC0000004', 3,  'INDIAN_EQUITY', 'INR', 0.00,     'SUSPENDED', 4, '2022-11-05 09:00:00+00', '2024-02-01 12:00:00+00', NULL,                     '2024-02-01 12:00:00+00'),
-(5,  'ACC0000005', 4,  'US_EQUITY', 'USD', 10000.00, 'ACTIVE',    5, '2023-04-18 09:00:00+00', NULL,                     NULL,                     '2024-07-12 14:00:00+00'),
-(6,  'ACC0000006', 5,  'US_EQUITY', 'USD', 0.00,     'CLOSED',    6, '2021-06-01 09:00:00+00', NULL,                     '2023-12-31 17:00:00+00', '2023-12-31 17:00:00+00'),
-(7,  'ACC0000007', 6,  'CRYPTO', 'EUR', 2222250.75,   'ACTIVE',    2, '2023-05-22 09:00:00+00', NULL,                     NULL,                     NULL),
-(8,  'ACC0000008', 7,  'FOREX',  'USD', 5000.00,  'ACTIVE',    3, '2023-06-30 09:00:00+00', NULL,                     NULL,                     '2024-03-11 09:20:00+00'),
-(9,  'ACC0000009', 8,  'INDIAN_EQUITY', 'INR', 1200.00,  'SUSPENDED', 2, '2022-09-14 09:00:00+00', '2024-01-15 11:00:00+00', NULL,                     '2024-01-15 11:00:00+00'),
-(10, 'ACC0000010', 9,  'CRYPTO', 'GBP', 13244389.99,    'ACTIVE',    1, '2024-01-02 09:00:00+00', NULL,                     NULL,                     NULL),
-(11, 'ACC0000011', 10, 'US_EQUITY', 'USD', 0.00,     'CLOSED',    5, '2020-03-01 09:00:00+00', NULL,                     '2022-08-19 16:45:00+00', '2022-08-19 16:45:00+00'),
-(12, 'ACC0000012', 11, 'US_EQUITY', 'USD', 30000.00, 'ACTIVE',    4, '2023-07-07 09:00:00+00', NULL,                     NULL,                     '2024-04-02 13:10:00+00'),
-(13, 'ACC0000013', 12, 'FOREX',  'GBP', 750.00,   'ACTIVE',    1, '2023-08-19 09:00:00+00', NULL,                     NULL,                     NULL),
-(14, 'ACC0000014', 13, 'CRYPTO', 'USD', 100000.00,'ACTIVE',    2, '2023-09-25 09:00:00+00', NULL,                     NULL,                     '2024-08-01 07:00:00+00'),
-(15, 'ACC0000015', 14, 'INDIAN_EQUITY', 'INR', 4000.00,  'SUSPENDED', 3, '2022-12-12 09:00:00+00', '2024-03-05 10:15:00+00', NULL,                     '2024-03-05 10:15:00+00'),
-(16, 'ACC0000016', 15, 'US_EQUITY', 'USD', 0.00,     'ACTIVE',    0, '2024-08-20 09:00:00+00', NULL,                     NULL,                     NULL),
-(17, 'ACC0000017', 9,  'US_EQUITY', 'USD', 15000.00, 'ACTIVE',    1, '2024-02-10 09:00:00+00', NULL,                     NULL,                     NULL),
-(18, 'ACC0000018', 4,  'CRYPTO', 'USD', 300.00,   'CLOSED',    3, '2022-05-05 09:00:00+00', NULL,                     '2023-10-10 15:30:00+00', '2023-10-10 15:30:00+00'),
-(19, 'ACC0000019', 2,  'INDIAN_EQUITY', 'INR', 22000.00, 'ACTIVE',    2, '2023-10-30 09:00:00+00', NULL,                     NULL,                     NULL),
-(20, 'ACC0000020', 7,  'CRYPTO', 'USD', 60.00,    'SUSPENDED', 1, '2023-11-11 09:00:00+00', '2024-04-22 09:45:00+00', NULL,                     '2024-04-22 09:45:00+00');
+(2,  'ACC0000002', 2,  'CRYPTO', 'USD', 11313500.00,   'ACTIVE',    1, '2023-02-15 09:00:00+00', NULL,                     NULL,                     NULL),
+(3,  'ACC0000003', 3,  'FOREX',  'EUR', 2000.00,  'ACTIVE',    2, '2023-03-01 09:00:00+00', NULL,                     NULL,                     '2024-05-20 08:30:00+00'),
+(4,  'ACC0000004', 4,  'INDIAN_EQUITY', 'INR', 0.00,     'SUSPENDED', 4, '2022-11-05 09:00:00+00', '2024-02-01 12:00:00+00', NULL,                     '2024-02-01 12:00:00+00'),
+(5,  'ACC0000005', 5,  'US_EQUITY', 'USD', 10000.00, 'ACTIVE',    5, '2023-04-18 09:00:00+00', NULL,                     NULL,                     '2024-07-12 14:00:00+00'),
+(6,  'ACC0000006', 6,  'US_EQUITY', 'USD', 0.00,     'CLOSED',    6, '2021-06-01 09:00:00+00', NULL,                     '2023-12-31 17:00:00+00', '2023-12-31 17:00:00+00'),
+(7,  'ACC0000007', 7,  'CRYPTO', 'EUR', 2222250.75,   'ACTIVE',    2, '2023-05-22 09:00:00+00', NULL,                     NULL,                     NULL),
+(8,  'ACC0000008', 8,  'FOREX',  'USD', 5000.00,  'ACTIVE',    3, '2023-06-30 09:00:00+00', NULL,                     NULL,                     '2024-03-11 09:20:00+00'),
+(9,  'ACC0000009', 9,  'INDIAN_EQUITY', 'INR', 1200.00,  'SUSPENDED', 2, '2022-09-14 09:00:00+00', '2024-01-15 11:00:00+00', NULL,                     '2024-01-15 11:00:00+00'),
+(10, 'ACC0000010', 10,  'CRYPTO', 'GBP', 13244389.99,    'ACTIVE',    1, '2024-01-02 09:00:00+00', NULL,                     NULL,                     NULL),
+(11, 'ACC0000011', 11, 'US_EQUITY', 'USD', 0.00,     'CLOSED',    5, '2020-03-01 09:00:00+00', NULL,                     '2022-08-19 16:45:00+00', '2022-08-19 16:45:00+00'),
+(12, 'ACC0000012', 12, 'US_EQUITY', 'USD', 30000.00, 'ACTIVE',    4, '2023-07-07 09:00:00+00', NULL,                     NULL,                     '2024-04-02 13:10:00+00'),
+(13, 'ACC0000013', 13, 'FOREX',  'GBP', 750.00,   'ACTIVE',    1, '2023-08-19 09:00:00+00', NULL,                     NULL,                     NULL),
+(14, 'ACC0000014', 14, 'CRYPTO', 'USD', 100000.00,'ACTIVE',    2, '2023-09-25 09:00:00+00', NULL,                     NULL,                     '2024-08-01 07:00:00+00'),
+(15, 'ACC0000015', 15, 'INDIAN_EQUITY', 'INR', 4000.00,  'SUSPENDED', 3, '2022-12-12 09:00:00+00', '2024-03-05 10:15:00+00', NULL,                     '2024-03-05 10:15:00+00'),
+(16, 'ACC0000016', 16, 'US_EQUITY', 'USD', 0.00,     'ACTIVE',    0, '2024-08-20 09:00:00+00', NULL,                     NULL,                     NULL),
+(17, 'ACC0000017', 17,  'US_EQUITY', 'USD', 15000.00, 'ACTIVE',    1, '2024-02-10 09:00:00+00', NULL,                     NULL,                     NULL),
+(18, 'ACC0000018', 18,  'CRYPTO', 'USD', 300.00,   'CLOSED',    3, '2022-05-05 09:00:00+00', NULL,                     '2023-10-10 15:30:00+00', '2023-10-10 15:30:00+00'),
+(19, 'ACC0000019', 19,  'INDIAN_EQUITY', 'INR', 22000.00, 'ACTIVE',    2, '2023-10-30 09:00:00+00', NULL,                     NULL,                     NULL),
+(20, 'ACC0000020', 20,  'CRYPTO', 'USD', 60.00,    'SUSPENDED', 1, '2023-11-11 09:00:00+00', '2024-04-22 09:45:00+00', NULL,                     '2024-04-22 09:45:00+00');
 
 
 -- ACCOUNT PREFERENCES 
@@ -70,7 +86,7 @@ INSERT INTO account_preferences (account_id, risk_profile, investment_goals, pre
 
 INSERT INTO portfolios (id, account_id, name, current_value, created_at, updated_at) VALUES
 (1,  1,  'John''s US Equity Portfolio',      12000.00, '2023-01-10 09:05:00+00', '2024-06-01 10:00:00+00'),
-(2,  2,  'John''s Crypto Portfolio',         42000.00, '2023-02-15 09:05:00+00', '2024-05-01 10:00:00+00'),
+(2,  2,  'Arjun''s Crypto Portfolio',         42000.00, '2023-02-15 09:05:00+00', '2024-05-01 10:00:00+00'),
 (3,  3,  'Jane''s FX Portfolio',             18700.00, '2023-03-01 09:05:00+00', '2024-05-20 08:30:00+00'),
 (4,  4,  'Alex''s Indian Equity Portfolio',  245000.00,'2022-11-05 09:05:00+00', '2024-02-01 12:00:00+00'),
 (5,  5,  'Priya''s Growth Portfolio',        41500.00, '2023-04-18 09:05:00+00', '2024-07-12 14:00:00+00'),
@@ -84,10 +100,10 @@ INSERT INTO portfolios (id, account_id, name, current_value, created_at, updated
 (13, 13, 'Olga''s FX Portfolio',             2180.00,  '2023-08-19 09:05:00+00', '2023-08-19 09:05:00+00'),
 (14, 14, 'Hiro''s Crypto Portfolio',         6300000.00,'2023-09-25 09:05:00+00','2024-08-01 07:00:00+00'),
 (15, 15, 'Nina''s Mixed Indian Portfolio',   9270.00,  '2022-12-12 09:05:00+00', '2024-03-05 10:15:00+00'),
-(17, 17, 'Carlos''s Second Equity Portfolio',3900.00,  '2024-02-10 09:05:00+00', '2024-02-10 09:05:00+00'),
-(18, 18, 'Priya''s Closed Crypto Portfolio', 0.00,     '2022-05-05 09:05:00+00', '2023-10-10 15:30:00+00'),
-(19, 19, 'Jane''s UK Equity Portfolio',      4300.00,  '2023-10-30 09:05:00+00', '2023-10-30 09:05:00+00'),
-(20, 20, 'Emily''s Second Crypto Portfolio', 4200.00,  '2023-11-11 09:05:00+00', '2024-04-22 09:45:00+00');
+(17, 17, 'Isabella''s Equity Portfolio',3900.00,  '2024-02-10 09:05:00+00', '2024-02-10 09:05:00+00'),
+(18, 18, 'Daniel''s Closed Crypto Portfolio', 0.00,     '2022-05-05 09:05:00+00', '2023-10-10 15:30:00+00'),
+(19, 19, 'Grace''s UK Equity Portfolio',      4300.00,  '2023-10-30 09:05:00+00', '2023-10-30 09:05:00+00'),
+(20, 20, 'Noah''s Crypto Portfolio', 4200.00,  '2023-11-11 09:05:00+00', '2024-04-22 09:45:00+00');
 
 
 -- INSTRUMENTS 
@@ -245,6 +261,8 @@ VALUES
 (17, 2);
 
 COMMIT;
+
+SET search_path TO trade, public;
 
 
 -- The inserts above give clients, accounts and portfolios fixed ids, so their id counters are

@@ -25,7 +25,7 @@
         <!-- SonarQube — token comes from SONAR_TOKEN env var, never put it here -->
         <sonar.projectKey>trade-executor</sonar.projectKey>
         <sonar.projectName>Trade Executor</sonar.projectName>
-        <sonar.host.url>http://localhost:9000</sonar.host.url>
+        <sonar.host.url>${env.SONAR_HOST_URL}</sonar.host.url>
         <sonar.coverage.jacoco.xmlReportPaths>
             ${project.build.directory}/site/jacoco/jacoco.xml
         </sonar.coverage.jacoco.xmlReportPaths>

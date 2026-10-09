@@ -1,9 +1,12 @@
 #!/bin/bash
 
+# The broker address comes from KAFKA_BOOTSTRAP (KAFKA_HOST:KAFKA_PORT in .env, passed in by docker-compose).
+BOOTSTRAP="${KAFKA_BOOTSTRAP:?KAFKA_BOOTSTRAP is not set}"
+
 echo "Waiting for Kafka to become available..."
 
 until /opt/kafka/bin/kafka-topics.sh \
-  --bootstrap-server kafka:29092 \
+  --bootstrap-server "$BOOTSTRAP" \
   --list > /dev/null 2>&1
 do
   sleep 2
@@ -14,7 +17,7 @@ echo "Creating topics..."
 
 # Create orders topic
 /opt/kafka/bin/kafka-topics.sh \
-  --bootstrap-server kafka:29092 \
+  --bootstrap-server "$BOOTSTRAP" \
   --create \
   --if-not-exists \
   --topic orders \
@@ -24,7 +27,7 @@ echo "Creating topics..."
 
 # Create trade-events topic
 /opt/kafka/bin/kafka-topics.sh \
-  --bootstrap-server kafka:29092 \
+  --bootstrap-server "$BOOTSTRAP" \
   --create \
   --if-not-exists \
   --topic trade-events \
@@ -34,7 +37,7 @@ echo "Creating topics..."
 
 # Create market-data topic
 /opt/kafka/bin/kafka-topics.sh \
-  --bootstrap-server kafka:29092 \
+  --bootstrap-server "$BOOTSTRAP" \
   --create \
   --if-not-exists \
   --topic market-data \
@@ -44,7 +47,7 @@ echo "Creating topics..."
 
 # Create orders dead-letter topic
 /opt/kafka/bin/kafka-topics.sh \
-  --bootstrap-server kafka:29092 \
+  --bootstrap-server "$BOOTSTRAP" \
   --create \
   --if-not-exists \
   --topic orders.DLT \
@@ -54,7 +57,7 @@ echo "Creating topics..."
 
 # Create trade-events dead-letter topic
 /opt/kafka/bin/kafka-topics.sh \
-  --bootstrap-server kafka:29092 \
+  --bootstrap-server "$BOOTSTRAP" \
   --create \
   --if-not-exists \
   --topic trade-events.DLT \
@@ -64,7 +67,7 @@ echo "Creating topics..."
 
 # Create market-data dead-letter topic
 /opt/kafka/bin/kafka-topics.sh \
-  --bootstrap-server kafka:29092 \
+  --bootstrap-server "$BOOTSTRAP" \
   --create \
   --if-not-exists \
   --topic market-data.DLT \
@@ -78,7 +81,7 @@ echo ""
 echo "Available topics:"
 
 /opt/kafka/bin/kafka-topics.sh \
-  --bootstrap-server kafka:29092 \
+  --bootstrap-server "$BOOTSTRAP" \
   --list
 
 

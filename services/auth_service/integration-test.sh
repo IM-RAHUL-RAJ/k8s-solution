@@ -2,28 +2,23 @@
 set -euo pipefail
 
 # Integration Test: Auth Service + Trade API + Trade Executor
-# All services must share the same JWT_SECRET for token validation
+# All services must share the same JWT_SECRET for token validation.
+# Every address comes from the repository's .env (AUTH_SERVICE_*, ORDER_SERVICE_*, EXECUTOR_SERVICE_*).
 #
-# Architecture:
-#   - Auth Service: localhost:3000 (npm start)
-#   - Trade API: 10.8.76.150:8084 (Docker container)
-#   - Trade Executor: 10.8.76.150:8085 (Docker container)
+# Architecture (default): each service runs where its URL in .env points, e.g. the auth service
+# locally (npm start) and the two Spring Boot services locally or in Docker.
 
-# JWT Secret (shared across all services)
-JWT_SECRET="security-secret-for-etp-capstone-team2-2026"
+. "$(dirname "${BASH_SOURCE[0]}")/../../scripts/load-env.sh"
+require_env JWT_SECRET AUTH_SERVICE_URL AUTH_SERVICE_PORT ORDER_SERVICE_URL ORDER_SERVICE_PORT             EXECUTOR_SERVICE_URL EXECUTOR_SERVICE_PORT DB_HOST DB_PORT
 
-# Auth service runs locally
-AUTH_HOST=localhost
-AUTH_PORT=3000
-
-# Spring Boot services (Trade API, Executor) run on Linux VM
-LINUX_VM_IP=10.8.76.150
-TRADE_API_HOST=$LINUX_VM_IP
-TRADE_API_PORT=8084
-EXECUTOR_HOST=$LINUX_VM_IP
-EXECUTOR_PORT=8085
-POSTGRES_HOST=10.8.76.150
-POSTGRES_PORT=5432
+AUTH_HOST="${AUTH_SERVICE_URL#*://}"
+AUTH_PORT="$AUTH_SERVICE_PORT"
+TRADE_API_HOST="${ORDER_SERVICE_URL#*://}"
+TRADE_API_PORT="$ORDER_SERVICE_PORT"
+EXECUTOR_HOST="${EXECUTOR_SERVICE_URL#*://}"
+EXECUTOR_PORT="$EXECUTOR_SERVICE_PORT"
+POSTGRES_HOST="$DB_HOST"
+POSTGRES_PORT="$DB_PORT"
 
 # Color output
 RED='\033[0;31m'
@@ -32,9 +27,9 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 echo -e "${YELLOW}== Integration Test: Auth Service + Trade API + Trade Executor ==${NC}"
-echo "Auth Service: http://$AUTH_HOST:$AUTH_PORT (localhost)"
-echo "Trade API: http://$TRADE_API_HOST:$TRADE_API_PORT (Docker on Linux VM)"
-echo "Trade Executor: http://$EXECUTOR_HOST:$EXECUTOR_PORT (Docker on Linux VM)"
+echo "Auth Service: http://$AUTH_HOST:$AUTH_PORT ($AUTH_HOST)"
+echo "Trade API: http://$TRADE_API_HOST:$TRADE_API_PORT ($TRADE_API_HOST)"
+echo "Trade Executor: http://$EXECUTOR_HOST:$EXECUTOR_PORT ($TRADE_API_HOST)"
 echo ""
 echo "📋 Prerequisites:"
 echo "  1. Auth Service: npm start (uses JWT_SECRET from config)"
@@ -43,7 +38,7 @@ echo "  3. ⚠️  All services must use the same JWT_SECRET:"
 echo "     JWT_SECRET='$JWT_SECRET'"
 echo ""
 echo "  🐳 To start Trade API & Executor on Linux VM (DOCKER):"
-echo "     ssh ec2-user@10.8.76.150"
+echo "     ssh ec2-user@$TRADE_API_HOST"
 echo "     cd /path/to/project"
 echo "     export JWT_SECRET='$JWT_SECRET'"
 echo "     docker-compose --profile platform up -d"
@@ -193,7 +188,7 @@ else
   echo "   The Trade API is rejecting the JWT token. Check:"
   echo ""
   echo "   1. Is JWT_SECRET set in Docker containers?"
-  echo "      ssh ec2-user@10.8.76.150"
+  echo "      ssh ec2-user@$TRADE_API_HOST"
   echo "      docker-compose exec backend env | grep JWT_SECRET"
   echo ""
   echo "   2. Was docker-compose started WITH JWT_SECRET?"
@@ -406,11 +401,11 @@ fi
 echo -e "\n${GREEN}== ALL STAGES PASSED ==${NC}"
 echo ""
 echo "Summary:"
-echo "  ✓ Auth service running on http://$AUTH_HOST:$AUTH_PORT (localhost)"
-echo "  ✓ Trade API running on http://$TRADE_API_HOST:$TRADE_API_PORT (Linux VM)"
+echo "  ✓ Auth service running on http://$AUTH_HOST:$AUTH_PORT ($AUTH_HOST)"
+echo "  ✓ Trade API running on http://$TRADE_API_HOST:$TRADE_API_PORT ($TRADE_API_HOST)"
 echo "  ✓ JWT Secret shared across all services"
 echo "  ✓ JWT_SECRET='$JWT_SECRET'"
-echo "  ✓ Trade Executor running on http://$EXECUTOR_HOST:$EXECUTOR_PORT (Linux VM) - background Kafka consumer"
+echo "  ✓ Trade Executor running on http://$EXECUTOR_HOST:$EXECUTOR_PORT ($TRADE_API_HOST) - background Kafka consumer"
 echo "  ✓ All endpoints require JWT token (401 without token)"
 echo "  ✓ Auth service issued valid JWT token"
 echo "  ✓ Trade API accepted token (ZERO code modifications)"
@@ -427,15 +422,15 @@ echo "  ✓ JWT claims verified"
 echo ""
 echo "Commands to properly start services:"
 echo ""
-echo "  🖥️  Auth Service (localhost):"
+echo "  🖥️  Auth Service ($AUTH_HOST):"
 echo "     npm start"
 echo ""
-echo "  🐳 Trade API & Executor (Docker on Linux VM):"
-echo "     ssh ec2-user@10.8.76.150"
+echo "  🐳 Trade API & Executor ($TRADE_API_HOST):"
+echo "     ssh ec2-user@$TRADE_API_HOST"
 echo "     cd /path/to/project"
 echo "     echo \"JWT_SECRET='$JWT_SECRET'\" > .env"
 echo "     docker-compose --profile platform up -d"
 echo ""
 echo "  Verify Docker containers have JWT_SECRET:"
-echo "     ssh ec2-user@10.8.76.150 'docker-compose exec backend env | grep JWT_SECRET'"
+echo "     ssh ec2-user@$TRADE_API_HOST 'docker-compose exec backend env | grep JWT_SECRET'"
 echo ""

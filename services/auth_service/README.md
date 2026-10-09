@@ -22,16 +22,11 @@ npm install
 ### Database Setup
 
 ```bash
-# Create the auth database
-createdb auth_db
+# The auth service uses the schema "auth" of the platform database (DB_NAME). From the repository root:
+cp .env.example .env            # fill in JWT_SECRET and DB_PASSWORD
+bash databases/postgreSQL/scripts/apply.sh
 
-# Create database user
-createuser auth_user
-# Set password in psql: ALTER USER auth_user WITH PASSWORD 'secure_password';
-# Grant permissions: GRANT ALL PRIVILEGES ON DATABASE auth_db TO auth_user;
-
-# Run migrations
-psql -U auth_user -d auth_db -f migrations/001_initial_schema.sql
+# (migrations/001_initial_schema.sql here is the same auth schema, for running it on its own)
 ```
 
 ### Start the Service

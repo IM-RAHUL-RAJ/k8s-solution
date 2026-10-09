@@ -29,11 +29,11 @@ jobs:
           cache: maven
 
       - name: Build, test and generate JaCoCo coverage
-        working-directory: backend/executor
+        working-directory: services/executor
         run: mvn -B clean verify
 
       - name: Run SonarQube scan
-        working-directory: backend/executor
+        working-directory: services/executor
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
@@ -65,11 +65,11 @@ jobs:
           cache: maven
 
       - name: Build, test and generate JaCoCo coverage
-        working-directory: backend/trade-api
+        working-directory: services/trade-api
         run: mvn -B clean verify
 
       - name: Run SonarQube scan
-        working-directory: backend/trade-api
+        working-directory: services/trade-api
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
@@ -99,25 +99,25 @@ jobs:
           python-version: "3.12"
 
       - name: Install dev dependencies
-        working-directory: analytics
+        working-directory: ETL_Layer
         run: pip install -e ".[dev]" pytest-cov
 
       - name: Run tests with coverage
-        working-directory: analytics
+        working-directory: ETL_Layer
         run: pytest tests/ --cov=src --cov-report=xml:coverage.xml -v
 
       - name: Install dev dependencies
-        working-directory: analytics
+        working-directory: ETL_Layer
         run: pip install -e ".[dev]"
 
       - name: Run tests with coverage
-        working-directory: analytics
+        working-directory: ETL_Layer
         run: pytest tests/ --cov=src --cov-report=xml:coverage.xml -v
 
       - name: Run SonarQube scan
         uses: sonarsource/sonarqube-scan-action@master
         with:
-          projectBaseDir: analytics
+          projectBaseDir: ETL_Layer
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}

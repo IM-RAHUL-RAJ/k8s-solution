@@ -7,11 +7,14 @@ import { GlobalExceptionFilter } from './auth/filters/global-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  app.enableCors({ origin: 'http://localhost:4200', credentials: true });
+  const configService = app.get(ConfigService);
+  // The web app's origin (FRONTEND_URL:FRONTEND_PORT) is the only browser origin allowed.
+  const frontendOrigin = configService.get<string>('frontendOrigin');
+  app.enableCors({ origin: frontendOrigin, credentials: true });
 
   if ('enableCors' in app) {
     app.enableCors({
-      origin: 'http://localhost:4200',
+      origin: frontendOrigin,
       methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization'],
     });
@@ -27,8 +30,7 @@ async function bootstrap() {
     }),
   );
 
-  const configService = app.get(ConfigService);
-  const port = configService.get<number>('port', 3000);
+  const port = configService.get<number>('port');
 
   // OpenAPI Swagger Documentation
   const swaggerConfig = new DocumentBuilder()

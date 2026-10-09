@@ -3,6 +3,8 @@
 
 BEGIN;
 
+SET LOCAL search_path TO trade, public;
+
 CREATE TABLE IF NOT EXISTS automation_strategies (
     id            BIGSERIAL PRIMARY KEY,
     account_id    BIGINT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,

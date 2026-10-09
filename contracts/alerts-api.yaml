@@ -60,7 +60,7 @@ info:
     exactly like one that does not exist (`404 ALR-404`).
 
 servers:
-  - url: http://localhost:8084
+  - url: http://localhost:8081
 
 tags:
   - name: Alerts

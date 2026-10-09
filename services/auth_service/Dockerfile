@@ -26,9 +26,10 @@ COPY --chown=node:node --from=builder /usr/src/app/node_modules ./node_modules
 COPY --chown=node:node --from=builder /usr/src/app/dist ./dist
 
 ENV NODE_ENV=production
-ENV PORT=8081
 
-EXPOSE 8081
+# The listening port is AUTH_SERVICE_PORT (.env, passed in by docker-compose); 3000 is only the documented port.
+ARG AUTH_SERVICE_PORT=3000
+EXPOSE ${AUTH_SERVICE_PORT}
 
 CMD ["node", "dist/main.js"]
 

@@ -16,8 +16,8 @@ public class AutomationProperties {
 
     /** The kill switch. */
     private boolean enabled = true;
-    /** Where the Trade REST API is. Defaults to this same service. */
-    private String tradeApiBaseUrl = "http://localhost:8084";
+    /** Where the Trade REST API is: this same service, built from ORDER_SERVICE_URL and ORDER_SERVICE_PORT. */
+    private String tradeApiBaseUrl;
     private int connectTimeoutMs = 2000;
     private int readTimeoutMs = 4000;
     /** Prices kept per symbol. Must cover the longest period any strategy uses, plus one. */

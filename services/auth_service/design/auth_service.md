@@ -56,7 +56,7 @@ npm install
 # JWT_SECRET=dev-jwt-secret-at-least-32-chars-long-12345678
 # JWT_ISSUER=auth-service
 # DB_NAME=auth_db
-# SPRINGBOOT_DB_NAME=springboot_db
+# DB_NAME=trading_system_db
 
 # Run database migrations
 npm run typeorm migration:run
@@ -119,7 +119,7 @@ Content-Type: application/json
 **Validation Rules:**
 - `username`: 3-12 characters, alphanumeric + . _ -
 - `password`: 8-12 characters, must be strong
-- `accountId`: Positive integer, must exist in springboot_db
+- `accountId`: Positive integer, must exist in the trade schema of trading_system_db
 - `roles`: Optional array of role strings
 
 ---
@@ -417,7 +417,7 @@ curl -X POST http://localhost:3000/auth/login \
 
 ```bash
 # Use the accessToken from login response
-curl -X GET http://localhost:8084/api/v1/accounts/1 \
+curl -X GET http://localhost:8081/api/v1/accounts/1 \
   -H "Authorization: Bearer <accessToken from login>"
 ```
 
@@ -439,7 +439,7 @@ curl -X GET http://localhost:8084/api/v1/accounts/1 \
 **Bruno Image Name:** `trade-api-no-token-request.png`
 
 ```bash
-curl -X GET http://localhost:8084/api/v1/accounts/1
+curl -X GET http://localhost:8081/api/v1/accounts/1
 ```
 
 **Expected Response (401 Unauthorized):**
@@ -462,7 +462,7 @@ This test requires simulating a token signed with a different JWT_SECRET. Tools 
 ```bash
 # Simulate: Create token with SECRET_KEY="wrong-key-123456789"
 # Then call Trade API with that token:
-curl -X GET http://localhost:8084/api/v1/accounts/1 \
+curl -X GET http://localhost:8081/api/v1/accounts/1 \
   -H "Authorization: Bearer <token-signed-with-wrong-key>"
 ```
 

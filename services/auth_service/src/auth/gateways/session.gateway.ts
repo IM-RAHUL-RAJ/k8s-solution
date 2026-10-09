@@ -7,6 +7,7 @@ import {
 import { Server, Socket } from 'socket.io';
 import { Logger, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { frontendOrigin } from '../../config/configuration';
 
 // WebSocket Gateway for real-time session invalidation
 
@@ -14,7 +15,9 @@ import { JwtService } from '@nestjs/jwt';
 @WebSocketGateway({
   namespace: '/session',
   cors: {
-    origin: ['http://localhost:4200', 'http://localhost:3000'],
+    // Evaluated per handshake, after the .env has been loaded: only the web app may connect.
+    origin: (_origin: string | undefined, callback: (error: Error | null, allow?: boolean | string) => void) =>
+      callback(null, frontendOrigin()),
     methods: ['GET', 'POST'],
     credentials: true,
   },

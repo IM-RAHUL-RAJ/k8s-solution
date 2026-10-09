@@ -23,17 +23,22 @@ A database created before the extension tables existed needs them once (idempote
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f databases/postgreSQL/migrations/003_extensions.sql
 ```
 
-The API listens on `SERVER_PORT` (default 8084). Swagger-style contracts are in `contracts/`.
+The API listens on `ORDER_SERVICE_PORT` (8081 in the deployment PDF). Swagger-style contracts are in `contracts/`.
 
 ## Configuration
 
-| Variable | Default | Meaning |
-|---|---|---|
-| `JWT_SECRET` | none (required) | HS256 key shared with the auth service |
-| `DB_*` | localhost / `springboot_db` | Postgres |
-| `KAFKA_BOOTSTRAP_SERVERS` | `localhost:9092` | broker |
-| `FAUXNANCE_BASE_URL`, `FAUXNANCE_API_KEY` | `http://localhost:8080`, empty | quote provider, **server side only** |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` | empty | the e-mail channel; without `SMTP_HOST` it records `STUB_DELIVERY` |
+Every value comes from the environment or the repository's `.env` (see `.env.example` for the complete list); there are no
+built-in defaults for addresses, credentials or keys, and a missing required variable stops start-up.
+
+| Variable | Meaning |
+|---|---|
+| `ORDER_SERVICE_URL`, `ORDER_SERVICE_PORT` | where this service listens (it also calls itself there for automated orders) |
+| `JWT_SECRET`, `JWT_ISSUER`, `JWT_ALGORITHM` | HS256 key and issuer shared with the auth service |
+| `AUTH_SERVICE_URL`, `AUTH_SERVICE_PORT` | the auth service |
+| `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_SCHEMA_TRADE` | Postgres; this service works in the `trade` schema |
+| `KAFKA_BOOTSTRAP_SERVERS` | broker (`<vm-ip>:9092`, `localhost:9092`, or `kafka:29092` inside Docker) |
+| `FAUXNANCE_BASE_URL`, `FAUXNANCE_API_KEY` | quote provider, **server side only** |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` | the e-mail channel; without `SMTP_HOST` it records `STUB_DELIVERY` |
 | `ALERTS_MAX_PER_ACCOUNT` | 25 | alert cap |
 | `PORTFOLIO_QUOTE_TTL_SECONDS` | 60 | cache window for a fetched quote |
 | `PORTFOLIO_STALE_AFTER_SECONDS` | 900 | an older observation is marked stale |
@@ -62,9 +67,7 @@ JWT_SECRET=any-32-byte-secret-for-tests-0000000 mvn test
 * **Integration tests** need a Postgres with the platform schema, the seed, and `003_extensions.sql` applied. They are skipped without `TEST_DB_URL` and are not part of the default run:
 
 ```
-TEST_DB_URL=jdbc:postgresql://localhost:5432/springboot_db TEST_DB_USER=postgres TEST_DB_PASSWORD=postgres \
-JWT_SECRET=integration-test-secret-integration-test-secret \
-mvn test -Dtest='ExtensionsChainIT,KafkaChainIT'
+TEST_DB_URL='jdbc:postgresql://localhost:5432/<scratch database>?currentSchema=trade,public' \nTEST_DB_USER=postgres TEST_DB_PASSWORD=<password> \nmvn test -Dtest='ExtensionsChainIT,KafkaChainIT'
 ```
 
 `ExtensionsChainIT` runs the real application over HTTP with real signed tokens against that database (and a local stand-in for Fauxnance, so the real client code runs). `KafkaChainIT` adds an embedded Kafka broker to prove group ids, replay, committed offsets and dead-lettering.

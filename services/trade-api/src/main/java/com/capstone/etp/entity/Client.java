@@ -15,7 +15,6 @@ public class Client {
     private String clientRef;
     private String name;
     private String email;
-    private String passwordHash;
     private String phone;
     private LocalDate dateOfBirth;
     private Gender gender;
