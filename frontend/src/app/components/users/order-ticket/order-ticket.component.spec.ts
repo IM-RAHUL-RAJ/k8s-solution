@@ -88,6 +88,9 @@ describe('OrderTicketComponent', () => {
     expect(placeOrder).toHaveBeenCalledWith(
       expect.objectContaining({ accountId: 1042, symbol: 'AAPL', side: 'BUY', quantity: 10, price: 150.5 })
     );
+    expect(placeOrder.mock.calls[0][0].idempotencyKey).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
+    );
     const status = (fixture.nativeElement as HTMLElement).querySelector('[data-testid="order-status"]');
     expect(status?.textContent).toContain('NEW');
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('This order is being processed');

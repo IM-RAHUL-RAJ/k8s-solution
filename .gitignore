@@ -14,6 +14,11 @@ node_modules
 
 .vscode/
 
+# Local deployment reference clone and generated deployment credentials.
+DEPLOY-KIT/
+certs/global-bundle.pem
+k8s/base/secrets.env
+
 data/
 
 *.txt

@@ -41,7 +41,6 @@
 #      DB_USER=...
 #      DB_PASSWORD=...
 #      # For AWS RDS, download the CA bundle before starting services:
-#      # mkdir -p certs && curl -fL https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem -o certs/global-bundle.pem
 #      JWT_SECRET=<same for all services, 32+ characters>
 #      AUTH_SERVICE_DIR=./services/auth-service
 #      AUTH_SERVICE_PORT=3000
@@ -175,13 +174,11 @@ x-common-env: &common-env
 
 x-java-env: &java-env
   <<: *common-env
-  # RDS TLS verification. Override JDBC_PARAMS in .env only if you intentionally
-  # need different JDBC options (for example, localdb with a self-signed cert).
-  # SPRING_DATASOURCE_URL: "jdbc:postgresql://${DB_HOST}:${DB_PORT:-5432}/${DB_NAME}${JDBC_PARAMS:-?sslmode=verify-full&sslrootcert=/certs/global-bundle.pem}"
+  # RDS TLS encryption. Override JDBC_PARAMS in .env only when needed.
   SPRING_DATASOURCE_USERNAME: ${DB_USER}
   SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
   SPRING_KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_INTERNAL:-kafka:29092}
-  SPRING_DATASOURCE_URL: "jdbc:postgresql://${DB_HOST}:${DB_PORT:-5432}/${DB_NAME}?currentSchema=${DB_SCHEMA_TRADE:-trade},public${JDBC_PARAMS:-&sslmode=verify-full&sslrootcert=/certs/global-bundle.pem}"
+  SPRING_DATASOURCE_URL: "jdbc:postgresql://${DB_HOST}:${DB_PORT:-5432}/${DB_NAME}?currentSchema=${DB_SCHEMA_TRADE:-trade},public${JDBC_PARAMS:-&sslmode=require}"
 
 # A shared config folder of the repo (e.g. ./Config with application.yml), mounted
 # read-only into every app container. Default = the DockerFile folder (harmless).
@@ -372,10 +369,7 @@ services:
       PORT: ${AUTH_SERVICE_PORT:-3000}
       HC_PORT: ${AUTH_SERVICE_PORT:-3000}
       HC_PATH: ${AUTH_SERVICE_HEALTH_PATH:-}
-      # NestJS/database configuration should read this CA path for PostgreSQL TLS.
-      DB_SSL_CA_PATH: /certs/global-bundle.pem
     volumes:
-      - ./certs/global-bundle.pem:/certs/global-bundle.pem:ro
       - *config-volume
     ports:
       - "${AUTH_SERVICE_HOST_PORT:-${AUTH_SERVICE_PORT:-3000}}:${AUTH_SERVICE_PORT:-3000}"
@@ -413,7 +407,6 @@ services:
       HC_PATH: ${ORDER_SERVICE_HEALTH_PATH:-}
       JAVA_OPTS: "${JAVA_OPTS:--XX:MaxRAMPercentage=60 -XX:+ExitOnOutOfMemoryError}"
     volumes:
-      - ./certs/global-bundle.pem:/certs/global-bundle.pem:ro
       - *config-volume
     ports:
       - "${ORDER_SERVICE_HOST_PORT:-${ORDER_SERVICE_PORT:-8081}}:${ORDER_SERVICE_PORT:-8081}"
@@ -451,7 +444,6 @@ services:
       HC_PATH: ${EXECUTOR_SERVICE_HEALTH_PATH:-}
       JAVA_OPTS: "${JAVA_OPTS:--XX:MaxRAMPercentage=60 -XX:+ExitOnOutOfMemoryError}"
     volumes:
-      - ./certs/global-bundle.pem:/certs/global-bundle.pem:ro
       - *config-volume
     depends_on:
       <<: *wait-db-kafka
