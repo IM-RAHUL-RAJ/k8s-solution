@@ -127,8 +127,12 @@ kubectl get nodes -o wide
 ## Storage Addon
 
 Kafka uses the `gp3` StorageClass, which requires the AWS EBS CSI driver. The
-cluster must have OIDC or EKS Pod Identity configured so the driver can call
-EC2 APIs.
+cluster must have **OpenID Connect (OIDC)** or EKS Pod Identity configured so
+the driver can call EC2 APIs. OIDC is the standard identity protocol that lets
+an AWS IAM role trust a Kubernetes service account. In EKS this is commonly
+called **IAM Roles for Service Accounts (IRSA)**: the EBS CSI pod receives AWS
+permissions through its service account instead of receiving broad permissions
+through every worker node.
 
 Preferred approach for a new cluster:
 
@@ -147,12 +151,25 @@ kubectl get pods -n kube-system | grep ebs
 kubectl get storageclass gp3
 ```
 
-In the first test cluster, OIDC permissions were unavailable and the managed
-driver temporarily used the node role. The required recovery was:
+If OIDC was not enabled and an immediate test-cluster recovery is needed, the
+nodegroup role can be discovered and granted the managed EBS policy. This is
+less isolated than IRSA and should not be the production design:
 
 ```bash
+CLUSTER_NAME=<your-cluster-name>
+NODEGROUP=$(aws eks list-nodegroups \
+  --region "$AWS_REGION" \
+  --cluster-name "$CLUSTER_NAME" \
+  --query 'nodegroups[0]' --output text)
+NODE_ROLE_ARN=$(aws eks describe-nodegroup \
+  --region "$AWS_REGION" \
+  --cluster-name "$CLUSTER_NAME" \
+  --nodegroup-name "$NODEGROUP" \
+  --query 'nodegroup.nodeRole' --output text)
+NODE_ROLE_NAME="${NODE_ROLE_ARN##*/}"
+
 aws iam attach-role-policy \
-  --role-name <EKS_NODE_ROLE> \
+  --role-name "$NODE_ROLE_NAME" \
   --policy-arn arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy
 ```
 
@@ -167,12 +184,44 @@ them. For the same VPC, configure the RDS security group to allow TCP `5432`
 from the EKS node security group:
 
 ```bash
+CLUSTER_NAME=<your-cluster-name>
+RDS_HOST=$(awk -F= '$1 == "DB_HOST" {print $2}' k8s/base/config.env)
+RDS_INSTANCE_ID=$(aws rds describe-db-instances \
+  --region "$AWS_REGION" \
+  --query "DBInstances[?Endpoint.Address=='${RDS_HOST}'].DBInstanceIdentifier | [0]" \
+  --output text)
+NODEGROUP=$(aws eks list-nodegroups \
+  --region "$AWS_REGION" \
+  --cluster-name "$CLUSTER_NAME" \
+  --query 'nodegroups[0]' --output text)
+NODE_INSTANCE_ID=$(aws ec2 describe-instances \
+  --region "$AWS_REGION" \
+  --filters "Name=tag:eks:nodegroup-name,Values=$NODEGROUP" \
+            "Name=instance-state-name,Values=running" \
+  --query 'Reservations[].Instances[0].InstanceId | [0]' \
+  --output text)
+RDS_SECURITY_GROUP_ID=$(aws rds describe-db-instances \
+  --region "$AWS_REGION" \
+  --db-instance-identifier "$RDS_INSTANCE_ID" \
+  --query 'DBInstances[0].VpcSecurityGroups[0].VpcSecurityGroupId' \
+  --output text)
+EKS_NODE_SECURITY_GROUP_ID=$(aws ec2 describe-instances \
+  --region "$AWS_REGION" \
+  --instance-ids "$NODE_INSTANCE_ID" \
+  --query 'Reservations[0].Instances[0].SecurityGroups[0].GroupId' \
+  --output text)
+
 aws ec2 authorize-security-group-ingress \
-  --group-id <RDS_SECURITY_GROUP_ID> \
+  --group-id "$RDS_SECURITY_GROUP_ID" \
   --protocol tcp \
   --port 5432 \
-  --source-group <EKS_NODE_SECURITY_GROUP_ID>
+  --source-group "$EKS_NODE_SECURITY_GROUP_ID" || \
+  echo 'The rule may already exist; inspect the RDS security group.'
 ```
+
+Only `CLUSTER_NAME` and `AWS_REGION` are project choices in that discovery
+block. It assumes EKS and RDS are in the same VPC. Cross-VPC peering requires
+routes and a CIDR-based security-group rule instead of `--source-group`.
 
 Check the path from inside Kubernetes:
 
@@ -181,12 +230,25 @@ kubectl run rds-test --rm -it --restart=Never \
   --image=postgres:16 -- bash
 ```
 
-Inside the temporary pod:
+Inside the temporary pod, `PGPASSWORD` is the password for the RDS database
+user in `DB_USER`. Kubernetes does not automatically read your local `.env`
+when you run an ad-hoc command, so enter it through a prompt rather than putting
+it in shell history:
 
 ```bash
-PGPASSWORD='<password>' pg_isready \
-  -h <RDS_ENDPOINT> -p 5432 -U <DB_USER> -d <DB_NAME>
+read -rsp 'RDS password: ' PGPASSWORD; echo
+RDS_HOST=$(awk -F= '$1 == "DB_HOST" {print $2}' k8s/base/config.env)
+DB_NAME=$(awk -F= '$1 == "DB_NAME" {print $2}' k8s/base/config.env)
+DB_USER=$(awk -F= '$1 == "DB_USER" {print $2}' k8s/base/config.env)
+PGPASSWORD="$PGPASSWORD" pg_isready \
+  -h "$RDS_HOST" -p 5432 -U "$DB_USER" -d "$DB_NAME"
+unset PGPASSWORD
 ```
+
+For the application deployment, Kustomize reads the local ignored
+`k8s/base/secrets.env` during `kubectl apply`; it does not read the root `.env`
+implicitly. Copy the values explicitly from the new project's `.env` into the
+secret file, or generate the Kubernetes Secret through a secrets manager.
 
 For this deployment, Java uses encrypted PostgreSQL connections with
 `sslmode=require`. Certificate verification is intentionally disabled in the
@@ -226,6 +288,11 @@ for image in etp-auth-service etp-order-service etp-executor-service etp-fronten
 done
 ```
 
+Those ECR commands are directly runnable after setting `AWS_REGION` and from
+the application repository root. They use the current AWS account and do not
+require manually copying an account ID. The image names and build directories
+must still match the target project's services.
+
 Update the `images` block in [`base/kustomization.yaml`](base/kustomization.yaml)
 with the new registry and immutable image tags or digests. Do not leave another
 project's AWS account ID or image tag in that file.
@@ -240,8 +307,12 @@ Copy the deployment kit into the project root and configure these files:
    it to `base/secrets.env` locally and fill in passwords, JWT secrets, and API
    keys. The real file is ignored by Git.
 3. [`base/generated/application.yml`](base/generated/application.yml): the
-   shared application configuration expected by the service images. Replace it
-   with the target project's compatible shared configuration.
+  structured shared configuration file mounted at `/config` and referenced by
+  `SHARED_CONFIG`. `config.env` supplies flat environment variables through
+  `envFrom`; this YAML supplies the file-based configuration contract and
+  structured defaults expected by the service images. They are complementary,
+  not two automatic copies of the same file. Replace it with the target
+  project's compatible shared configuration and keep both contracts aligned.
 4. `overlays/four-lb/urls.env`: public frontend/API hostnames after the
    LoadBalancers receive DNS names. Values must match how the application joins
    hostnames and ports.
