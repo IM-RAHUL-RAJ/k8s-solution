@@ -47,6 +47,18 @@ cd /home/ubuntu/Documents/CD/chennai-capstone-SE5-team2
 export AWS_REGION=ap-south-1
 export CLUSTER_NAME=etp-cluster-2
 export NODEGROUP_NAME=workers
+export DB_HOST=database-1.clcw0sygakz6.ap-south-1.rds.amazonaws.com
+export DB_PORT=5432
+export DB_NAME=postgres
+export DB_USER=postgres
+export AUTH_PORT=3000
+export ORDER_PORT=8081
+export EXECUTOR_PORT=8082
+export FRONTEND_PORT=80
+export AUTH_IMAGE=etp-auth-service
+export ORDER_IMAGE=etp-order-service
+export EXECUTOR_IMAGE=etp-executor-service
+export FRONTEND_IMAGE=etp-frontend
 
 aws configure set region "$AWS_REGION"
 aws sts get-caller-identity
@@ -144,7 +156,7 @@ commands discover the IDs automatically:
 ```bash
 RDS_INSTANCE_ID=$(aws rds describe-db-instances \
   --region "$AWS_REGION" \
-  --query "DBInstances[?Endpoint.Address=='database-1.clcw0sygakz6.ap-south-1.rds.amazonaws.com'].DBInstanceIdentifier | [0]" \
+  --query "DBInstances[?Endpoint.Address=='$DB_HOST'].DBInstanceIdentifier | [0]" \
   --output text)
 
 NODE_INSTANCE_ID=$(aws ec2 describe-instances \
@@ -187,8 +199,7 @@ Inside the temporary pod:
 ```bash
 read -rsp 'RDS password: ' PGPASSWORD; echo
 PGPASSWORD="$PGPASSWORD" pg_isready \
-  -h database-1.clcw0sygakz6.ap-south-1.rds.amazonaws.com \
-  -p 5432 -U postgres -d postgres
+  -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME"
 unset PGPASSWORD
 ```
 
@@ -220,7 +231,7 @@ The AWS account ID is discovered automatically:
 AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 REGISTRY="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
 
-for repo in etp-auth-service etp-order-service etp-executor-service etp-frontend; do
+for repo in "$AUTH_IMAGE" "$ORDER_IMAGE" "$EXECUTOR_IMAGE" "$FRONTEND_IMAGE"; do
   aws ecr describe-repositories \
     --region "$AWS_REGION" \
     --repository-names "$repo" >/dev/null 2>&1 || \
@@ -237,10 +248,10 @@ aws ecr get-login-password --region "$AWS_REGION" \
 ./run.sh -y
 
 declare -A IMAGE_MAP=(
-  [etp-auth-service]=auth-service
-  [etp-order-service]=order-service
-  [etp-executor-service]=executor-service
-  [etp-frontend]=frontend
+  ["$AUTH_IMAGE"]=auth-service
+  ["$ORDER_IMAGE"]=order-service
+  ["$EXECUTOR_IMAGE"]=executor-service
+  ["$FRONTEND_IMAGE"]=frontend
 )
 
 for repo in "${!IMAGE_MAP[@]}"; do
