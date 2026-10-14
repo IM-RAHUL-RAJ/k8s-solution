@@ -3,6 +3,88 @@
 This guide documents the deployment used for this project and explains which
 parts of `k8s/` are reusable for another project.
 
+## Configuration Map
+
+The important rule is: **values flow into pods through ConfigMaps and Secrets;
+the applications read environment variables, not the files on the operator's
+laptop.** Secret names are shown below, but secret values must never be placed
+in this diagram or committed to Git.
+
+```mermaid
+flowchart LR
+  ENV["New project's .env<br/>operator machine"]
+  CFG["k8s/base/config.env<br/>non-secret settings"]
+  SEC["k8s/base/secrets.env<br/>ignored secret values"]
+  URLS["overlays/four-lb/urls.env<br/>public service URLs"]
+  YAML["base/generated/application.yml<br/>shared structured config"]
+
+  K[Kustomize<br/>kubectl apply -k]
+  CM[(ConfigMap<br/>etp-config-hash)]
+  SM[(Secret<br/>etp-secrets-hash)]
+  UM[(ConfigMap<br/>etp-urls-hash)]
+  SH[(ConfigMap<br/>etp-shared-config-hash)]
+
+  AUTH["auth-service Pod"]
+  ORDER["order-service Pod"]
+  EXEC["executor-service Pod"]
+  FRONT["frontend Pod / nginx"]
+
+  CODEAUTH["NestJS config<br/>process.env.*"]
+  CODEJAVA["Spring Boot<br/>${DB_PASSWORD}, ${JWT_SECRET}, ..."]
+  CODEUI["Angular build<br/>environment.ts → API_ENDPOINTS"]
+  RDS[(PostgreSQL RDS)]
+  KAFKA[(Kafka<br/>kafka:29092)]
+
+  CFG --> K
+  SEC --> K
+  URLS --> K
+  YAML --> K
+  K --> CM
+  K --> SM
+  K --> UM
+  K --> SH
+
+  CM -->|envFrom| AUTH
+  SM -->|envFrom| AUTH
+  UM -->|envFrom| AUTH
+  SH -->|/config/application.yml| AUTH
+
+  CM -->|envFrom| ORDER
+  SM -->|envFrom| ORDER
+  UM -->|envFrom| ORDER
+  SH -->|/config/application.yml| ORDER
+
+  CM -->|envFrom| EXEC
+  SM -->|envFrom| EXEC
+  SH -->|/config/application.yml| EXEC
+  UM -->|envFrom| FRONT
+
+  AUTH --> CODEAUTH
+  ORDER --> CODEJAVA
+  EXEC --> CODEJAVA
+  FRONT --> CODEUI
+  CODEAUTH -->|DB_HOST + DB_PASSWORD + DB_SSL| RDS
+  CODEJAVA -->|JDBC sslmode=require| RDS
+  CODEJAVA --> KAFKA
+  CODEUI -->|AUTH_SERVICE_URL / ORDER_SERVICE_URL| AUTH
+  CODEUI -->|AUTH_SERVICE_URL / ORDER_SERVICE_URL| ORDER
+```
+
+### Example Mappings
+
+| Source value | Kubernetes object | Pod connection | Code usage |
+| --- | --- | --- | --- |
+| `DB_PASSWORD` in `secrets.env` | Generated `etp-secrets-*` Secret | `envFrom` in auth/order/executor | NestJS `process.env.DB_PASSWORD`; Spring `${DB_PASSWORD}` |
+| `JWT_SECRET` in `secrets.env` | Generated `etp-secrets-*` Secret | `envFrom` in auth/order/executor | JWT signing and verification |
+| `DB_HOST`, `DB_NAME`, `DB_SCHEMA_TRADE` in `config.env` | Generated `etp-config-*` ConfigMap | `envFrom` in auth/order/executor | PostgreSQL host, database, and schema settings |
+| `AUTH_SERVICE_URL` and `ORDER_SERVICE_URL` in `urls.env` | Generated `etp-urls-*` ConfigMap | `envFrom` in application pods | Frontend build endpoint generation and CORS/runtime URL config |
+| `generated/application.yml` | Generated `etp-shared-config-*` ConfigMap | Mounted at `/config/application.yml` | Shared structured defaults and service configuration |
+| ECR image entries in `base/kustomization.yaml` | Deployment container image | Pulled by EKS nodes | Runs the built application code |
+
+`config.env` and `secrets.env` are read by Kustomize only when applying the
+manifests. A local root `.env` is not automatically read by Kubernetes. Copy
+the relevant values into the ignored Kubernetes files or use a secret manager.
+
 ## Architecture
 
 The deployment contains:
