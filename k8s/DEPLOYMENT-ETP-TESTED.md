@@ -230,7 +230,12 @@ SMTP_USER=
 SMTP_PASS=
 ```
 
-## 6. Create and Push ECR Images
+## 6. Create and Push ECR Images (Skip if Already Pushed)
+
+Skip this entire section if the four ECR repositories already exist and the
+current images have already been pushed. Before continuing, verify that
+[`base/kustomization.yaml`](base/kustomization.yaml) references those existing
+repositories and the intended image tags.
 
 The AWS account ID is discovered automatically:
 
