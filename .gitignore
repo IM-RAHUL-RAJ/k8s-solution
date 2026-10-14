@@ -11,6 +11,7 @@ package-lock.json
 !services/auth_service/package-lock.json
 node_modules
 .env
+env.txt
 
 .vscode/
 
