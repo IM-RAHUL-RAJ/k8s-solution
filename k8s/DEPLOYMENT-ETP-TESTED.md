@@ -191,10 +191,17 @@ history:
 
 ```bash
 kubectl run rds-test --rm -it --restart=Never \
-  --image=postgres:16 -- bash
+  --image=postgres:16 \
+  --env="DB_HOST=$DB_HOST" \
+  --env="DB_PORT=$DB_PORT" \
+  --env="DB_NAME=$DB_NAME" \
+  --env="DB_USER=$DB_USER" \
+  -- bash
 ```
 
-Inside the temporary pod:
+Inside the temporary pod, the local non-secret connection variables are now
+available. The password is still requested interactively and is not passed as a
+Kubernetes argument:
 
 ```bash
 read -rsp 'RDS password: ' PGPASSWORD; echo
