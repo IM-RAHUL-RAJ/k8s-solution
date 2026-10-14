@@ -140,29 +140,13 @@ aws configure set region "$AWS_REGION"
 ## Create EKS
 
 Edit [`cluster.example.yaml`](cluster.example.yaml) for the project name,
-region, node type, and node count. The example uses `t3.large`; two `t3.medium`
-nodes were used for the first test, but the smaller nodes are tight when Kafka
-and all application services run together.
+region, node type, and node count. Choose capacity based on the workloads your
+project runs; Kafka and Java services need more memory than a minimal cluster.
 
 Create a cluster from the example:
 
 ```bash
 eksctl create cluster -f k8s/cluster.example.yaml
-```
-
-Or create the tested two-node setup directly:
-
-```bash
-eksctl create cluster \
-  --name etp-cluster-2 \
-  --region "$AWS_REGION" \
-  --nodegroup-name workers \
-  --node-type t3.medium \
-  --nodes 2 \
-  --nodes-min 2 \
-  --nodes-max 3 \
-  --managed \
-  --with-oidc
 ```
 
 If CloudFormation reports that `eksctl-<name>-cluster` already exists, do not
@@ -190,10 +174,10 @@ eksctl create nodegroup \
   --cluster <name> \
   --region "$AWS_REGION" \
   --name workers \
-  --node-type t3.medium \
-  --nodes 2 \
-  --nodes-min 2 \
-  --nodes-max 3 \
+  --node-type <node-type> \
+  --nodes <desired-nodes> \
+  --nodes-min <minimum-nodes> \
+  --nodes-max <maximum-nodes> \
   --managed \
   --node-private-networking
 ```
