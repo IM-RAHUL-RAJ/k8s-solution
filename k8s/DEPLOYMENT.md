@@ -3,6 +3,9 @@
 This guide documents the deployment used for this project and explains which
 parts of `k8s/` are reusable for another project.
 
+For the exact values used by this repository, follow the filled runbook:
+[`DEPLOYMENT-ETP-TESTED.md`](DEPLOYMENT-ETP-TESTED.md).
+
 ## Configuration Map
 
 The important rule is: **values flow into pods through ConfigMaps and Secrets;
