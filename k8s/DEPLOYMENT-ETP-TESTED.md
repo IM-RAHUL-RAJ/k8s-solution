@@ -47,10 +47,6 @@ cd /home/ubuntu/Documents/CD/chennai-capstone-SE5-team2
 export AWS_REGION=ap-south-1
 export CLUSTER_NAME=etp-cluster-2
 export NODEGROUP_NAME=workers
-export NODE_TYPE=t3.medium
-export DESIRED_NODES=2
-export MIN_NODES=2
-export MAX_NODES=3
 
 aws configure set region "$AWS_REGION"
 aws sts get-caller-identity
@@ -58,22 +54,8 @@ aws sts get-caller-identity
 
 ## 2. Create the Cluster
 
-The cluster configuration file is the source of truth. Edit
-[`cluster.example.yaml`](cluster.example.yaml) so its values match this runbook:
-
-```yaml
-metadata:
-  name: etp-cluster-2
-  region: ap-south-1
-managedNodeGroups:
-  - name: workers
-    instanceType: t3.medium
-    minSize: 2
-    desiredCapacity: 2
-    maxSize: 3
-```
-
-Then create the cluster:
+The tested values are already stored in
+[`cluster.example.yaml`](cluster.example.yaml). Run the file directly:
 
 ```bash
 eksctl create cluster -f k8s/cluster.example.yaml
