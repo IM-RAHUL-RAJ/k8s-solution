@@ -1,13 +1,14 @@
-# eksctl create cluster -f k8s/cluster.example.yaml     (edit name/region; use the same values in your commands)
-# 2 x t3.large (8 GB each) hold Kafka + 2 Java services + auth + frontend (+ in-cluster Postgres).
+# Tested configuration used by k8s/DEPLOYMENT-ETP-TESTED.md.
+# Run from the repository root: eksctl create cluster -f k8s/cluster.example.yaml
+# Two t3.medium nodes were sufficient for the tested deployment.
 apiVersion: eksctl.io/v1alpha5
 kind: ClusterConfig
 metadata:
-  name: etp-cluster
+  name: etp-cluster-2
   region: ap-south-1
 managedNodeGroups:
   - name: workers
-    instanceType: t3.large
+    instanceType: t3.medium
     minSize: 2
     desiredCapacity: 2
     maxSize: 3
