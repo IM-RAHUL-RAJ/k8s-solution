@@ -35,7 +35,7 @@ pipeline {
       steps {
         checkout scm
         script {
-          env.RELEASE_TAG = sh(script: 'date -u +%Y.%m.%d.%H%M%S', returnStdout: true).trim()
+          env.RELEASE_TAG = "1.${env.BUILD_NUMBER}"
         }
       }
     }
@@ -92,6 +92,7 @@ pipeline {
               docker push "$REGISTRY/$repo:$RELEASE_TAG"
             done
             echo "CI image tag: $RELEASE_TAG"
+            echo "IMAGE_TAG=$RELEASE_TAG"
         '''
       }
     }

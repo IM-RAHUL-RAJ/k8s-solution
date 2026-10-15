@@ -81,12 +81,14 @@ CI stages:
 5. Build auth, order, executor, and frontend images.
 6. Push all four images with a unique tag.
 
-CI has no image-tag parameter. It always generates a UTC timestamp tag and
-prints it in the build log. For example, a build on 15 October 2026 can use:
+CI has no image-tag parameter. It always generates a simple version/build tag
+and prints it at the end of the build log. Build 3 produces:
 
 ```text
-2026.10.15.143012
+1.3
 ```
+
+Copy the printed `IMAGE_TAG=1.3` value into the CD job.
 
 The CI console prints the image tag. Copy that tag for the CD job, for example:
 
