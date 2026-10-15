@@ -35,8 +35,7 @@ pipeline {
       steps {
         checkout scm
         script {
-          def shortCommit = sh(script: 'git rev-parse --short=12 HEAD', returnStdout: true).trim()
-          env.RELEASE_TAG = "${env.BUILD_NUMBER}-${shortCommit}"
+          env.RELEASE_TAG = sh(script: 'date -u +%Y.%m.%d.%H%M%S', returnStdout: true).trim()
         }
       }
     }
