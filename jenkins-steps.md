@@ -81,6 +81,10 @@ CI stages:
 5. Build auth, order, executor, and frontend images.
 6. Push all four images with a unique tag.
 
+CI has no image-tag parameter. It always generates the tag from the Jenkins
+build number and the checked-out Git commit, then prints that tag in the build
+log.
+
 The CI console prints the image tag. Copy that tag for the CD job, for example:
 
 ```text
@@ -123,7 +127,7 @@ Do not enable an automatic push webhook for CD. CD is a manual promotion step.
 
 ## 6. Run CD Manually
 
-Click **Build with Parameters** and enter:
+Click **Build with Parameters** and enter the image tag printed by `etp-ci`:
 
 ```text
 AWS_REGION=ap-south-1

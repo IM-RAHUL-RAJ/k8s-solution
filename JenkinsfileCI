@@ -15,7 +15,6 @@ pipeline {
 
   parameters {
     string(name: 'AWS_REGION', defaultValue: 'ap-south-1', description: 'AWS region')
-    string(name: 'IMAGE_TAG', defaultValue: '', description: 'Optional tag. Empty uses BUILD_NUMBER-GIT_COMMIT.')
     string(name: 'K8S_OVERLAY', defaultValue: 'k8s/overlays/four-lb', description: 'Overlay used for frontend build URLs')
   }
 
@@ -37,7 +36,7 @@ pipeline {
         checkout scm
         script {
           def shortCommit = sh(script: 'git rev-parse --short=12 HEAD', returnStdout: true).trim()
-          env.RELEASE_TAG = params.IMAGE_TAG?.trim() ? params.IMAGE_TAG.trim() : "${env.BUILD_NUMBER}-${shortCommit}"
+          env.RELEASE_TAG = "${env.BUILD_NUMBER}-${shortCommit}"
         }
       }
     }
