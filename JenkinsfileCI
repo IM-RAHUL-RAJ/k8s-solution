@@ -1,5 +1,5 @@
 pipeline {
-  agent { label 'docker-aws' }
+  agent any
 
   options {
     timestamps()
@@ -8,14 +8,19 @@ pipeline {
     timeout(time: 45, unit: 'MINUTES')
   }
 
+  triggers {
+    githubPush()
+    pollSCM('H */2 * * *')
+  }
+
   parameters {
     string(name: 'AWS_REGION', defaultValue: 'ap-south-1', description: 'AWS region')
-    string(name: 'AWS_CREDENTIALS_ID', defaultValue: 'aws-jenkins', description: 'Jenkins AWS credentials ID')
     string(name: 'IMAGE_TAG', defaultValue: '', description: 'Optional tag. Empty uses BUILD_NUMBER-GIT_COMMIT.')
     string(name: 'K8S_OVERLAY', defaultValue: 'k8s/overlays/four-lb', description: 'Overlay used for frontend build URLs')
   }
 
   environment {
+    AWS_REGION = 'ap-south-1'
     AUTH_REPO = 'etp-auth-service'
     ORDER_REPO = 'etp-order-service'
     EXECUTOR_REPO = 'etp-executor-service'
@@ -53,12 +58,11 @@ pipeline {
 
     stage('Build and push ECR') {
       steps {
-        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: params.AWS_CREDENTIALS_ID]]) {
-          script {
-            env.AWS_ACCOUNT_ID = sh(script: 'aws sts get-caller-identity --query Account --output text', returnStdout: true).trim()
-            env.REGISTRY = "${env.AWS_ACCOUNT_ID}.dkr.ecr.${params.AWS_REGION}.amazonaws.com"
-          }
-          sh '''#!/usr/bin/env bash
+        script {
+          env.AWS_ACCOUNT_ID = sh(script: 'aws sts get-caller-identity --query Account --output text', returnStdout: true).trim()
+          env.REGISTRY = "${env.AWS_ACCOUNT_ID}.dkr.ecr.${params.AWS_REGION}.amazonaws.com"
+        }
+        sh '''#!/usr/bin/env bash
             set -euo pipefail
             aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$REGISTRY"
 
@@ -90,8 +94,7 @@ pipeline {
               docker push "$REGISTRY/$repo:$RELEASE_TAG"
             done
             echo "CI image tag: $RELEASE_TAG"
-          '''
-        }
+        '''
       }
     }
   }

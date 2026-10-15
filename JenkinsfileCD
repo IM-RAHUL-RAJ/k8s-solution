@@ -1,5 +1,5 @@
 pipeline {
-  agent { label 'kubectl-aws' }
+  agent any
 
   options {
     timestamps()
@@ -11,7 +11,6 @@ pipeline {
   parameters {
     string(name: 'AWS_REGION', defaultValue: 'ap-south-1', description: 'AWS region')
     string(name: 'EKS_CLUSTER_NAME', defaultValue: 'eks-cluster-1', description: 'Existing EKS cluster. This pipeline never creates a cluster.')
-    string(name: 'AWS_CREDENTIALS_ID', defaultValue: 'aws-jenkins', description: 'Jenkins AWS credentials ID')
     string(name: 'K8S_SECRETS_CREDENTIAL_ID', defaultValue: 'etp-k8s-secrets-env', description: 'Jenkins Secret file containing KEY=VALUE lines')
     string(name: 'RDS_HOST', defaultValue: 'database-1.c94cwk4g097q.ap-south-1.rds.amazonaws.com', description: 'RDS endpoint')
     string(name: 'RDS_PORT', defaultValue: '5432', description: 'RDS PostgreSQL port')
@@ -48,8 +47,7 @@ pipeline {
 
     stage('Validate existing EKS cluster') {
       steps {
-        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: params.AWS_CREDENTIALS_ID]]) {
-          sh '''#!/usr/bin/env bash
+        sh '''#!/usr/bin/env bash
             set -euo pipefail
             sed -i -E "s#^DB_HOST=.*#DB_HOST=$DB_HOST#; s#^DB_PORT=.*#DB_PORT=$DB_PORT#; s#^DB_NAME=.*#DB_NAME=$DB_NAME#; s#^DB_USER=.*#DB_USER=$DB_USER#" k8s/base/config.env
             command -v aws >/dev/null
@@ -63,15 +61,13 @@ pipeline {
               echo 'aws-ebs-csi-driver is not installed on the existing cluster.' >&2
               exit 1
             }
-          '''
-        }
+        '''
       }
     }
 
     stage('Test RDS connectivity first') {
       steps {
-        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: params.AWS_CREDENTIALS_ID]]) {
-          script {
+        script {
             def result = sh(script: '''#!/usr/bin/env bash
               set +e
               DB_HOST=$(awk -F= '$1 == "DB_HOST" {print $2}' k8s/base/config.env)
@@ -87,7 +83,6 @@ pipeline {
             ''', returnStdout: true).trim()
             env.RDS_TEST_FAILED = result.endsWith('0') ? 'false' : 'true'
             echo "RDS connectivity test failed: ${env.RDS_TEST_FAILED}"
-          }
         }
       }
     }
@@ -100,8 +95,7 @@ pipeline {
         }
       }
       steps {
-        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: params.AWS_CREDENTIALS_ID]]) {
-          sh '''#!/usr/bin/env bash
+        sh '''#!/usr/bin/env bash
             set -euo pipefail
             DB_HOST=$(awk -F= '$1 == "DB_HOST" {print $2}' k8s/base/config.env)
             NODEGROUP=$(aws eks list-nodegroups --region "$AWS_REGION" --cluster-name "$EKS_CLUSTER_NAME" --query 'nodegroups[0]' --output text)
@@ -116,8 +110,7 @@ pipeline {
             RDS_SECURITY_GROUP_ID=$(aws rds describe-db-instances --region "$AWS_REGION" --db-instance-identifier "$RDS_INSTANCE_ID" --query 'DBInstances[0].VpcSecurityGroups[0].VpcSecurityGroupId' --output text)
             EKS_NODE_SECURITY_GROUP_ID=$(aws ec2 describe-instances --region "$AWS_REGION" --instance-ids "$NODE_INSTANCE_ID" --query 'Reservations[0].Instances[0].SecurityGroups[0].GroupId' --output text)
             aws ec2 authorize-security-group-ingress --group-id "$RDS_SECURITY_GROUP_ID" --protocol tcp --port 5432 --source-group "$EKS_NODE_SECURITY_GROUP_ID" || echo 'RDS ingress rule already exists.'
-          '''
-        }
+        '''
       }
     }
 
@@ -143,18 +136,16 @@ pipeline {
 
     stage('Verify selected ECR images') {
       steps {
-        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: params.AWS_CREDENTIALS_ID]]) {
-          script {
+        script {
             env.AWS_ACCOUNT_ID = sh(script: 'aws sts get-caller-identity --query Account --output text', returnStdout: true).trim()
             env.REGISTRY = "${env.AWS_ACCOUNT_ID}.dkr.ecr.${params.AWS_REGION}.amazonaws.com"
-          }
-          sh '''#!/usr/bin/env bash
+        }
+        sh '''#!/usr/bin/env bash
             set -euo pipefail
             for repo in "$AUTH_REPO" "$ORDER_REPO" "$EXECUTOR_REPO" "$FRONTEND_REPO"; do
               aws ecr describe-images --region "$AWS_REGION" --repository-name "$repo" --image-ids imageTag="$IMAGE_TAG" >/dev/null
             done
-          '''
-        }
+        '''
       }
     }
 

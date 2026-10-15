@@ -12,16 +12,14 @@ The CD pipeline never creates a new cluster. The tested cluster name is:
 eks-cluster-1
 ```
 
-## 1. Jenkins Agent
+## 1. Jenkins EC2 Machine
 
-Create or use an agent with the labels below:
+Both jobs use `agent any` and run directly on the Jenkins EC2 machine. No
+separate AWS agent is required. The Jenkins service account must be allowed to
+use Docker, and the EC2 instance role must allow ECR, EKS, and the optional
+RDS/EC2 security-group operations.
 
-```text
-Docker: docker-aws
-Kubernetes deployment: kubectl-aws
-```
-
-The agent must have:
+The Jenkins machine must have:
 
 ```bash
 aws --version
@@ -29,7 +27,7 @@ docker --version
 kubectl version --client
 ```
 
-The CI agent needs Docker access. The CD agent needs AWS CLI and kubectl access.
+The CI job needs Docker access. The CD job needs AWS CLI and kubectl access.
 `eksctl` is not required by CD because the cluster already exists.
 
 Install Jenkins plugins:
@@ -37,7 +35,6 @@ Install Jenkins plugins:
 - Pipeline
 - Git
 - Credentials Binding
-- AWS Credentials
 - GitHub Integration
 
 ## 2. Jenkins Credentials
@@ -46,7 +43,6 @@ Create these credentials in Jenkins:
 
 | ID | Type | Use |
 | --- | --- | --- |
-| `aws-jenkins` | AWS credentials or IAM-backed credential | ECR, EKS, optional RDS/EC2 security-group discovery |
 | `etp-k8s-secrets-env` | Secret file | The target project's populated `k8s/base/secrets.env` |
 
 The secret file must contain the keys expected by the application:
@@ -74,8 +70,7 @@ Create a Jenkins Pipeline job named `etp-ci`:
 5. Set the application repository URL.
 6. Set the branch to `*/main`.
 7. Set the script path to `JenkinsfileCI`.
-8. Select an agent with the `docker-aws` label.
-9. Save the job.
+8. Save the job.
 
 CI stages:
 
@@ -122,8 +117,7 @@ Create a second Jenkins Pipeline job named `etp-cd`:
 3. Use the same application repository.
 4. Set the branch to `*/main`.
 5. Set the script path to `JenkinsfileCD`.
-6. Select an agent with the `kubectl-aws` label.
-7. Save the job.
+6. Save the job.
 
 Do not enable an automatic push webhook for CD. CD is a manual promotion step.
 
