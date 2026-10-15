@@ -141,7 +141,7 @@ RDS_USER=postgres
 IMAGE_TAG=<tag printed by etp-ci>
 K8S_OVERLAY=k8s/overlays/four-lb
 K8S_NAMESPACE=default
-AUTO_AUTHORIZE_RDS=false
+AUTO_AUTHORIZE_RDS=true
 ```
 
 The four public URL values must already be correct in:
