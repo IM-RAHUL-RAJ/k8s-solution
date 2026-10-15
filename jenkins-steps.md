@@ -123,7 +123,15 @@ Create a second Jenkins Pipeline job named `etp-cd`:
 
 1. Choose **New Item** and select **Pipeline**.
 2. Select **Pipeline script from SCM**.
-3. Use the same application repository.
+3. Use the deployment repository:
+
+```text
+https://github.com/IM-RAHUL-RAJ/Cloud-Deployment-Setup.git
+```
+
+   CD checks out this repository only because it needs the `k8s/` manifests,
+   `generated/application.yml`, and `JenkinsfileCD`. It does not rebuild or
+   push application images.
 4. Set the branch to `*/main`.
 5. Set the script path to `JenkinsfileCD`.
 6. Save the job.
